@@ -172,11 +172,15 @@ def obtener_residente(id_residente: int, db: Session = Depends(get_db)):
 
 @app.post("/api/Residentes", response_model=ResidenteOut, status_code=201)
 def crear_residente(datos: ResidenteCreate, db: Session = Depends(get_db)):
+    if datos.fechaIngreso:
+        fecha_ing_dt = datetime.combine(datos.fechaIngreso, datetime.min.time())
+    else:
+        fecha_ing_dt = datetime.now()
     nuevo = Residente(
         no_expediente=datos.noExpediente,
         nombre_completo=datos.nombreCompleto,
         fecha_nacimiento=datos.fechaNacimiento,
-        fecha_ingreso=datos.fechaIngreso or datetime.utcnow(),
+        fecha_ingreso=fecha_ing_dt,
         patologia=datos.patologia,
         nombre_tutor=datos.nombreTutor,
         telefono_tutor=datos.telefonoTutor,

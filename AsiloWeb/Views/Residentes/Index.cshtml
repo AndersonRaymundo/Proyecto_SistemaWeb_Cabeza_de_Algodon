@@ -3,112 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reportes - Asilo Cabeza de Algodón</title>
+    <title>Pacientes - Asilo Cabeza de Algodón</title>
     <link rel="stylesheet" href="/CSS/dashboard.css"> 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-   <header class="barra-superior">
-    <div class="logo-top"></div>
-    <div class="usuario-info">
-        <button class="btn-notificacion" title="Notificaciones">
-            <i class="fa-solid fa-bell"></i>
-            <span class="badge-notificacion" id="contador-notificaciones">0</span>
-        </button>
-        
-        <div class="perfil-usuario">
-            <div class="contenedor-avatar">
-                <div class="avatar" id="avatar-usuario">G</div>
-                <span class="estado-activo" title="En línea"></span>
-            </div>
-            <div class="datos-usuario">
-                <span class="nombre-usuario" id="nombre-usuario">Dr. Raymundo</span>
-                <span class="rol-usuario" id="rol-usuario">Administrador</span>
+    <header class="barra-superior">
+        <div class="logo-top"></div>
+        <div class="usuario-info">
+            <button class="btn-notificacion" title="Notificaciones">
+                <i class="fa-solid fa-bell"></i>
+                <span class="badge-notificacion" id="contador-notificaciones">0</span>
+            </button>
+            
+            <div class="perfil-usuario">
+                <div class="contenedor-avatar">
+                    <div class="avatar" id="avatar-usuario">G</div>
+                    <span class="estado-activo" title="En línea"></span>
+                </div>
+                <div class="datos-usuario">
+                    <span class="nombre-usuario" id="nombre-usuario">Dr. Raymundo</span>
+                    <span class="rol-usuario" id="rol-usuario">Administrador</span>
+                </div>
             </div>
         </div>
-    </div>
-</header>
+    </header>
     
-<!-- CONTENEDOR PRINCIPAL -->
-<div class="menu-contenido">
-    
-    <!-- MENÚ LATERAL -->
-    <nav class="menu-lateral">
-        <a href="/Home/MENU" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
-            <i class="fa-solid fa-house"></i> INICIO
-        </a>
-        <a href="/Residentes" class="opcion-menu activa" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
-            <i class="fa-solid fa-hospital-user"></i> PACIENTES
-        </a>
-        <a href="/Citas" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
-            <i class="fa-solid fa-calendar-check"></i> SOLICITUDES Y CITAS
-        </a>
-        <a href="/Historial" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
-            <i class="fa-solid fa-notes-medical"></i> HISTORIAL MÉDICO
-        </a>
-        <a href="/LaboratorioFarmacia" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA">
-            <i class="fa-solid fa-vials"></i> LAB Y FARMACIA
-        </a>
-        <a href="/Reportes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
-            <i class="fa-solid fa-chart-line"></i> REPORTES
-        </a>
+    <!-- CONTENEDOR PRINCIPAL -->
+    <div class="menu-contenido">
         
-        <!-- OPCIÓN ACTIVA -->
-        <a href="/Caja" class="opcion-menu" data-rol="ADMINISTRADOR">
-            <i class="fa-solid fa-cash-register"></i> CAJA
-        </a>
-        
-        <a href="/Paginas/Configuracion" class="opcion-menu" data-rol="ADMINISTRADOR">
-            <i class="fa-solid fa-gear"></i> CONFIGURACIÓN
-        </a>
+        <!-- MENÚ LATERAL -->
+        <nav class="menu-lateral">
+            <a href="/Home/MENU" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+                <i class="fa-solid fa-house"></i> INICIO
+            </a>
+            <a href="/Residentes" class="opcion-menu activa" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
+                <i class="fa-solid fa-hospital-user"></i> PACIENTES
+            </a>
+            <a href="/Citas" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
+                <i class="fa-solid fa-calendar-check"></i> SOLICITUDES Y CITAS
+            </a>
+            <a href="/Historial" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
+                <i class="fa-solid fa-notes-medical"></i> HISTORIAL MÉDICO
+            </a>
+            <a href="/LaboratorioFarmacia" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA">
+                <i class="fa-solid fa-vials"></i> LAB Y FARMACIA
+            </a>
+            <a href="/Reportes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
+                <i class="fa-solid fa-chart-line"></i> REPORTES
+            </a>
+            <a href="/Caja" class="opcion-menu" data-rol="ADMINISTRADOR">
+                <i class="fa-solid fa-cash-register"></i> CAJA
+            </a>
+            <a href="/Paginas/Configuracion" class="opcion-menu" data-rol="ADMINISTRADOR">
+                <i class="fa-solid fa-gear"></i> CONFIGURACIÓN
+            </a>
 
-        <!-- CERRAR SESIÓN -->
-        <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
-            <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
-        </a>
-    </nav>
+            <!-- CERRAR SESIÓN -->
+            <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+                <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
+            </a>
+        </nav>
         
-      <main class="area-trabajo">
-            <h1><i class="fa-solid fa-chart-line"></i> Módulo de Reportes Estadísticos e Informes</h1>
-            <p>Generación de documentos en formato PDF consumiendo microservicio desacoplado</p>
+        <main class="area-trabajo">
+            <h1><i class="fa-solid fa-hospital-user"></i> Módulo de Gestión de Pacientes / Residentes</h1>
+            <p>Registro, edición y control de estado de los residentes del asilo</p>
             <br>
-            <div class="lista-reportes">
-                
-                <!-- TARJETA 1 -->
-                <div class="tarjeta-reporte">
-                    <h3><i class="fa-solid fa-file-pdf"></i> Análisis Médicos por Paciente</h3>
-                    <p>Exporta la ficha médica, medicamentos y padecimientos del residente.</p>
-                    <button class="btn-descarga" onclick="generarReportePDF('001', 'Análisis Médicos por Paciente', 'Ficha médica, medicamentos y padecimientos')">
-                        <i class="fa-solid fa-download"></i> Exportar PDF
-                    </button>
-                </div>
-                <br>
-                
-                <!-- TARJETA 2 -->
-                <div class="tarjeta-reporte">
-                    <h3><i class="fa-solid fa-file-pdf"></i> Reporte de Cobros y Donaciones</h3>
-                    <p>Consolidado de entradas financieras, mensualidades y gastos del asilo.</p>
-                    <button class="btn-descarga" onclick="generarReportePDF('002', 'Reporte de Cobros y Donaciones', 'Consolidado de entradas financieras y gastos')">
-                        <i class="fa-solid fa-download"></i> Exportar PDF
-                    </button>
-                </div>
-                <br>
-                
-                <!-- TARJETA 3 -->
-                <div class="tarjeta-reporte">
-                    <h3><i class="fa-solid fa-file-pdf"></i> Pagos Realizados a la Fundación</h3>
-                    <p>Detalle de costos de consultas, exámenes y medicamentos con descuento.</p>
-                    <button class="btn-descarga" onclick="generarReportePDF('003', 'Pagos Realizados a la Fundación', 'Detalle de consultas, exámenes y medicamentos')">
-                        <i class="fa-solid fa-download"></i> Exportar PDF
-                    </button>
-                </div>
 
+            <!-- FORMULARIO DE REGISTRO / EDICIÓN -->
+            <div class="tarjeta-formulario" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 25px;">
+                <h2><i class="fa-solid fa-user-plus"></i> Registro de Residente</h2>
+                <br>
+                <form id="formResidente" onsubmit="guardarResidente(event)">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+                        
+                        <div>
+                            <label for="txtExpediente"><strong>No. Expediente:</strong></label>
+                            <input type="text" id="txtExpediente" class="form-control" placeholder="Ej. EXP-2026-01" required style="width: 100%; padding: 8px; margin-top: 5px;">
+                        </div>
+
+                        <div>
+                            <label for="txtNombre"><strong>Nombre Completo:</strong></label>
+                            <input type="text" id="txtNombre" class="form-control" placeholder="Nombre completo" required style="width: 100%; padding: 8px; margin-top: 5px;">
+                        </div>
+
+                        <div>
+                            <label for="txtFechaNacimiento"><strong>Fecha de Nacimiento:</strong></label>
+                            <input type="date" id="txtFechaNacimiento" class="form-control" required style="width: 100%; padding: 8px; margin-top: 5px;">
+                        </div>
+
+                        <div>
+                            <label for="txtPatologia"><strong>Patología / Condición:</strong></label>
+                            <input type="text" id="txtPatologia" class="form-control" placeholder="Padecimientos principales" style="width: 100%; padding: 8px; margin-top: 5px;">
+                        </div>
+
+                        <div>
+                            <label for="txtTutor"><strong>Nombre del Tutor:</strong></label>
+                            <input type="text" id="txtTutor" class="form-control" placeholder="Nombre de encargado" style="width: 100%; padding: 8px; margin-top: 5px;">
+                        </div>
+
+                        <div>
+                            <label for="txtTelefono"><strong>Teléfono del Tutor:</strong></label>
+                            <input type="tel" id="txtTelefono" class="form-control" placeholder="Teléfono de contacto" style="width: 100%; padding: 8px; margin-top: 5px;">
+                        </div>
+
+                        <div>
+                            <label for="txtCorreo"><strong>Correo del Tutor:</strong></label>
+                            <input type="email" id="txtCorreo" class="form-control" placeholder="correo@ejemplo.com" style="width: 100%; padding: 8px; margin-top: 5px;">
+                        </div>
+
+                    </div>
+
+                    <div style="margin-top: 20px; text-align: right;">
+                        <button type="submit" class="btn-guardar" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                            <i class="fa-solid fa-floppy-disk"></i> Registrar Residente
+                        </button>
+                    </div>
+                </form>
             </div>
+
+            <!-- TABLA DE RESIDENTES -->
+            <div class="tarjeta-tabla" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h2><i class="fa-solid fa-list"></i> Listado de Residentes</h2>
+                <br>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                <th style="padding: 12px;">Expediente</th>
+                                <th style="padding: 12px;">Nombre Completo</th>
+                                <th style="padding: 12px;">Tutor</th>
+                                <th style="padding: 12px;">Teléfono Tutor</th>
+                                <th style="padding: 12px;">Estado</th>
+                                <th style="padding: 12px; text-align: center;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaResidentesBody">
+                            <!-- Los datos se cargan dinámicamente desde el JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </main>
     </div>
 
-    <!-- SCRIPT CONTROLADOR DE ROLES Y REPORTES -->
+    <!-- SCRIPTS -->
     <script src="/JS/roles.js"></script>
-    <script src="/JS/reportes.js"></script>
+    <script src="/JS/pacientes.js"></script>
 </body>
 </html>

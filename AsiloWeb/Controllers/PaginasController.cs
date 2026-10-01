@@ -10,9 +10,6 @@ namespace AsiloWeb.Controllers
         [HttpGet("/Auth/Login")]
         public IActionResult Login() => View("~/Views/Auth/Login.cshtml");
 
-        [HttpGet("/Residentes")]
-        public IActionResult Pacientes() => View("~/Views/Residentes/Index.cshtml");
-
         [HttpGet("/Citas")]
         public IActionResult SolicitudesCitas() => View("~/Views/Citas/Index.cshtml");
 
