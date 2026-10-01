@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Inicio de Sesión</title>
+        <link rel="stylesheet" href="~/CSS/estilos.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    </head>
+<body>
+    <div class="login">   
+    <img src="imagen sesion/logo.jpg" alt="logo_principal" class="logo-login">
+    <h1> ACCESO AL SISTEMA </h1>
+    <p>por favor, Ingrese su usuario y contraseña.</p> 
+
+
+   <form action="MENU.html" method="GET">
+        <div class="contenedor-fila">
+        <label for="usuario"> <i class="fa-solid fa-user"></i> Nombre de Usuario:</label>
+        <div class="contenedor-texto">
+       <input type="text" 
+               id="usuario"    
+               placeholder="Ingrese su nombre de usuario"
+               >
+        </div>
+        </div>
+
+
+         <div class="contenedor-fila">
+        <label for="contrasena"> <i class="fa-solid fa-lock"></i>Contraseña:</label>
+        <div class="contenedor-texto">
+        <input type="password" id="contrasena" placeholder="Ingrese su contraseña" >
+        <button type="button" class="btn-mostrar" onclick="togglePassword('contrasena', this)">
+        <i class="fa-solid fa-eye-slash"></i> MOSTRAR 
+        </button>     
+        </div>
+        </div>
+        <br>
+
+        <div class="olvidoContra">
+        <p><strong>¿Olvidaste la contraseña?</strong> </p>
+        </div>
+
+      <!-- Cambia el botón de inicio de sesión -->
+        <button type="button" class="boton" onclick="iniciarSesion()">
+        Iniciar Sesión <i class="fa-solid fa-right-to-bracket"></i>
+        </button>
+
+        <!-- VENTANA EMERGENTE (MODAL) -->
+        <div id="modalBienvenida" class="modal-fondo">
+        <div class="modal-contenido">
+        <i class="fa-solid fa-circle-check modal-icono"></i>
+        <h2>¡Bienvenido al Sistema!</h2>
+        <p>Has ingresado correctamente a Cabeza de Algodón.</p>
+        <button type="button" class="btn-cerrar" onclick="cerrarModal()">Aceptar</button>
+        </div>
+        </div>
+
+    </form>
+      <!-- Enlace vital para cargar el script JS -->
+    <script src="~/JS/MostrarContra.js"></script>
+ </div>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu-principal</title>
+    <link rel="stylesheet" href="~/CSS/dashboard.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+</head>
+
+<body>
+ <header class="barra-superior">
+    <div class="logo-top"></div>
+    <div class="usuario-info">
+        <button class="btn-notificacion" title="Notificaciones">
+            <i class="fa-solid fa-bell"></i>
+            <span class="badge-notificacion" id="contador-notificaciones">0</span>
+        </button>
+        
+        <div class="perfil-usuario">
+            <div class="contenedor-avatar">
+                <div class="avatar" id="avatar-usuario">G</div>
+                <span class="estado-activo" title="En línea"></span>
+            </div>
+            <div class="datos-usuario">
+                <span class="nombre-usuario" id="nombre-usuario">Dr. Raymundo</span>
+                <span class="rol-usuario" id="rol-usuario">Administrador</span>
+            </div>
+        </div>
+    </div>
+</header>
+    
+    <div class="menu-contenido">
+        
+  <nav class="menu-lateral">
+    <a href="MENU.html" class="opcion-menu activa" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+        <i class="fa-solid fa-house"></i> INICIO  </a>
+    
+    <a href="pacientes.html" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
+        <i class="fa-solid fa-hospital-user"></i> PACIENTES </a>
+    <!-- Solicitudes y Citas -->
+    <a href="solicitudes-citas.html" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
+        <i class="fa-solid fa-calendar-check"></i> SOLICITUDES Y CITAS</a>
+    
+    <a href="historial-medico.html" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
+        <i class="fa-solid fa-notes-medical"></i> HISTORIAL MÉDICO</a>
+    
+    <a href="laboratorio-farmacia.html" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA">
+        <i class="fa-solid fa-vials"></i> LAB Y FARMACIA</a>
+    
+    <a href="reportes.html" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
+        <i class="fa-solid fa-chart-line"></i> REPORTES </a>
+
+    <a href="caja.html" class="opcion-menu" data-rol="ADMINISTRADOR">
+        <i class="fa-solid fa-cash-register"></i> CAJA</a>
+    
+    <a href="configuracion.html" class="opcion-menu" data-rol="ADMINISTRADOR">
+        <i class="fa-solid fa-gear"></i> CONFIGURACIÓN  </a>
+        <!-- BOTÓN DE SALIR ABAJO DEL MENÚ -->
+    <a href="../login.html" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+        <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
+    </a>
+</nav>
+
+    <main class="area-trabajo">
+        <div class="logo-menu">   
+            <h1>Bienvenido al Sistema</h1>
+            <img src="~/imagen sesion/logo.jpg" alt="logo" class="logo-inico">
+            <p>Selecciona una opción del menú lateral para comenzar.</p>
+            </div>
+        </main>
+
+    </div>
+<!-- SCRIPT CONTROLADOR DE ROLES -->
+    <script src="~/JS/roles.js"></script>
+</body>
+    </html>

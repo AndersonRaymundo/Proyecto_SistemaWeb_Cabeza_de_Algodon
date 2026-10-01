@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitudes y Citas - Asilo Cabeza de Algodón</title>
+    <link rel="stylesheet" href="~/CSS/dashboard.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <header class="barra-superior">
+    <div class="logo-top"></div>
+    <div class="usuario-info">
+        <button class="btn-notificacion" title="Notificaciones">
+            <i class="fa-solid fa-bell"></i>
+            <span class="badge-notificacion" id="contador-notificaciones">0</span>
+        </button>
+        
+        <div class="perfil-usuario">
+            <div class="contenedor-avatar">
+                <div class="avatar" id="avatar-usuario">G</div>
+                <span class="estado-activo" title="En línea"></span>
+            </div>
+            <div class="datos-usuario">
+                <span class="nombre-usuario" id="nombre-usuario">Dr. Raymundo</span>
+                <span class="rol-usuario" id="rol-usuario">Administrador</span>
+            </div>
+        </div>
+    </div>
+</header>
+    
+  <!-- CONTENEDOR PRINCIPAL -->
+<div class="menu-contenido">
+    
+    <!-- MENÚ LATERAL -->
+    <nav class="menu-lateral">
+        <a href="/Home/MENU" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+            <i class="fa-solid fa-house"></i> INICIO
+        </a>
+        <a href="/Residentes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
+            <i class="fa-solid fa-hospital-user"></i> PACIENTES
+        </a>
+        <a href="/Citas" class="opcion-menu activa" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
+            <i class="fa-solid fa-calendar-check"></i> SOLICITUDES Y CITAS
+        </a>
+        <a href="/Historial" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
+            <i class="fa-solid fa-notes-medical"></i> HISTORIAL MÉDICO
+        </a>
+        <a href="/LaboratorioFarmacia" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA">
+            <i class="fa-solid fa-vials"></i> LAB Y FARMACIA
+        </a>
+        <a href="/Reportes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
+            <i class="fa-solid fa-chart-line"></i> REPORTES
+        </a>
+        
+        <!-- OPCIÓN ACTIVA -->
+        <a href="/Caja" class="opcion-menu" data-rol="ADMINISTRADOR">
+            <i class="fa-solid fa-cash-register"></i> CAJA
+        </a>
+        
+        <a href="/Paginas/Configuracion" class="opcion-menu" data-rol="ADMINISTRADOR">
+            <i class="fa-solid fa-gear"></i> CONFIGURACIÓN
+        </a>
+
+        <!-- CERRAR SESIÓN -->
+        <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+            <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
+        </a>
+    </nav>
+        
+        <main class="area-trabajo">
+            <h1><i class="fa-solid fa-calendar-check"></i> Remisiones y Agenda de Citas</h1>
+            <p>Emisión de solicitudes del Asilo hacia la Fundación y agendamiento con especialistas</p>
+            <br>
+            <form class="formulario-datos" id="form-solicitud">
+                <div class="grupo-campo">
+                    <label>Seleccionar Residente:</label>
+                    <select id="select-residente-solicitud" required>
+                        <option value="">-- Cargar Pacientes desde BD --</option>
+                    </select>
+                </div>
+                <div class="grupo-campo">
+                    <label>Especialidad Médica Solicitada:</label>
+                    <input type="text" id="especialidad-solicitada" placeholder="Ej. Geriatría / Oftalmología / Neurología" required>
+                </div>
+                <div class="grupo-campo">
+                    <label>Motivo de Remisión:</label>
+                    <textarea id="motivo-remision" rows="3" placeholder="Describa los síntomas o justificación de la consulta..." required></textarea>
+                </div>
+                <div class="grupo-campo">
+                    <label>Enfermero Asignado para Acompañamiento:</label>
+                    <input type="text" id="enfermero-asignado" placeholder="Ej. Licda. Sofía López">
+                </div>
+                <div class="grupo-campo">
+                    <label>Médico que Asigna (Fundación):</label>
+                    <select id="medico-asignado-solicitud">
+                        <option value="">-- Sin asignar todavía --</option>
+                    </select>
+                </div>
+                <div class="grupo-campo">
+                    <label>Fecha y Hora Programada (Fundación):</label>
+                    <input type="datetime-local" id="fecha-hora-cita">
+                </div>
+                <button type="submit" class="btn-guardar"><i class="fa-solid fa-calendar-plus"></i> Procesar Cita en Fundación</button>
+            </form>
+
+            <br>
+            <div class="formulario-datos">
+                <h2><i class="fa-solid fa-list"></i> Solicitudes Registradas</h2>
+                <div id="contenedor-solicitudes">
+                    <!-- Se llena dinámicamente mediante Fetch / AJAX -->
+                </div>
+            </div>
+        </main>
+    </div>
+    <!-- SCRIPT CONTROLADOR DE ROLES -->
+    <script src="~/JS/roles.js"></script>
+    <script src="~/JS/solicitudes-citas.js"></script>
+</body>
+</html>

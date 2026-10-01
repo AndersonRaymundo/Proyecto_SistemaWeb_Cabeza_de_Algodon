@@ -1,0 +1,183 @@
+/* Reseteo básico para eliminar bordes feos del navegador */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Centra la tarjeta en toda la pantalla con un fondo moderno */
+body {
+   background: linear-gradient(135deg, #2c6d96 0%, #062569 100%);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Estilo de la tarjeta blanca */
+.logo-login {
+  max-width: 280px; /* Controla el tamaño para que no ocupe toda la pantalla */
+  height: auto;     /* Evita que se deforme */
+  display: block;  /* Permite centrarlo */
+  margin: 0 auto 40px auto; /* Centra el logo y da espacio con el texto de abajo */
+}
+
+.login {
+    background-color: #ffffff;
+    padding: 30px 80px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(2, 2, 80, 0.2);
+    width: 100%;
+    max-width: 550px;
+}
+
+.login h1 {
+    font-size: 1.4rem;
+    color: #000000;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.login p {
+    font-size: 0.9rem;
+    color: #000000;
+    margin-bottom: 28px;
+    text-align: center;
+}
+
+/* 1. La línea gris inferior que abraza todo el campo */
+.contenedor-fila {
+  margin-bottom: 20px;
+  padding-bottom: 5px;
+}
+
+/* 2. El label (con su icono adentro) arriba */
+.contenedor-fila label {
+  display: block;
+  font-size: 16px;
+  color: #000000;
+  margin-bottom: 5px;
+}
+
+.contenedor-fila label i {
+  margin-right: 6px; /* Separa el icono del texto "Nombre de Usuario" */
+}
+
+/* 3. Limpiamos el input que está dentro del contenedor-texto */
+.contenedor-texto input {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #ccc; /* Línea gris inferior */
+    outline: none;
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+}
+
+/* Quita el borde feo del botón y lo pega justo debajo de la línea */
+.btn-mostrar {
+    background: transparent;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: bold;
+    color: #333;
+    padding: 0;
+    margin-top: 2px; /* Controla la distancia con respecto a la línea */
+}
+
+/* Efecto opcional: cambia de color al pasar el mouse */
+.btn-mostrar:hover {
+    color: #004080;
+}
+
+.olvidoContra p{
+font-size: 14px;
+text-align: left;
+}
+
+/* 4. Estilo para tu botón */
+.boton {
+  background-color: #0b559b;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  width: 100%;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Efecto al pasar el mouse sobre el botón */
+.boton {
+    background-color: #3b5998;
+}
+/* Fondo oscuro semitransparente */
+.modal-fondo {
+    display: none; /* Oculto por defecto */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* Caja de la ventana emergente */
+.modal-contenido {
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: aparecer 0.3s ease-in-out;
+}
+
+/* Ícono de éxito */
+.modal-icono {
+    font-size: 45px;
+    color: #28a745;
+    margin-bottom: 15px;
+}
+
+.modal-contenido h2 {
+    font-size: 1.3rem;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.modal-contenido p {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+/* Botón de la ventana */
+.btn-cerrar {
+    background-color: #0b559b;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-cerrar:hover {
+    background-color: #062569;
+}
+
+/* Animación de entrada */
+@keyframes aparecer {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}

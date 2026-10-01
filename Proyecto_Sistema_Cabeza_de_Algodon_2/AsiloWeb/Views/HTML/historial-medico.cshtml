@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial Médico - Asilo Cabeza de Algodón</title>
+    <link rel="stylesheet" href="~/CSS/dashboard.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+   <header class="barra-superior">
+    <div class="logo-top"></div>
+    <div class="usuario-info">
+        <button class="btn-notificacion" title="Notificaciones">
+            <i class="fa-solid fa-bell"></i>
+            <span class="badge-notificacion" id="contador-notificaciones">0</span>
+        </button>
+        
+        <div class="perfil-usuario">
+            <div class="contenedor-avatar">
+                <div class="avatar" id="avatar-usuario">G</div>
+                <span class="estado-activo" title="En línea"></span>
+            </div>
+            <div class="datos-usuario">
+                <span class="nombre-usuario" id="nombre-usuario">Dr. Raymundo</span>
+                <span class="rol-usuario" id="rol-usuario">Administrador</span>
+            </div>
+        </div>
+    </div>
+</header>
+    
+    <div class="menu-contenido">
+       <nav class="menu-lateral">
+    <a href="MENU.html" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+        <i class="fa-solid fa-house"></i> INICIO  </a>
+    
+    <a href="pacientes.html" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
+        <i class="fa-solid fa-hospital-user"></i> PACIENTES </a>
+    <!-- Solicitudes y Citas -->
+    <a href="solicitudes-citas.html" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
+        <i class="fa-solid fa-calendar-check"></i> SOLICITUDES Y CITAS</a>
+    
+    <a href="historial-medico.html" class="opcion-menu activa" data-rol="ADMINISTRADOR,DOCTOR">
+        <i class="fa-solid fa-notes-medical"></i> HISTORIAL MÉDICO</a>
+    
+    <a href="laboratorio-farmacia.html" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA">
+        <i class="fa-solid fa-vials"></i> LAB Y FARMACIA</a>
+    
+    <a href="reportes.html" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
+        <i class="fa-solid fa-chart-line"></i> REPORTES </a>
+
+    <a href="caja.html" class="opcion-menu" data-rol="ADMINISTRADOR">
+        <i class="fa-solid fa-cash-register"></i> CAJA</a>
+    
+    <a href="configuracion.html" class="opcion-menu" data-rol="ADMINISTRADOR">
+        <i class="fa-solid fa-gear"></i> CONFIGURACIÓN  </a>
+        <!-- BOTÓN DE SALIR ABAJO DEL MENÚ -->
+    <a href="../login.html" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+        <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
+    </a>
+</nav>
+        
+        <main class="area-trabajo">
+            <h1><i class="fa-solid fa-notes-medical"></i> Ficha Médica e Historial Clínico</h1>
+            <p>Consulta de expedientes y registro de nuevas evaluaciones médicas</p>
+            <br>
+
+            <!-- CONSULTA Y BÚSQUEDA REAL -->
+            <div class="formulario-datos">
+                <h2><i class="fa-solid fa-folder-open"></i> Consultar Expediente del Residente</h2>
+                <br>
+                <div class="grupo-campo">
+                    <label>Seleccionar Residente:</label>
+                    <select id="select-paciente-historial" name="id_paciente" required>
+                        <option value="">-- Cargar Pacientes desde la BD --</option>
+                    </select>
+                </div>
+            </div>
+
+            <br>
+            <!-- CONTENEDOR DONDE TU JAVASCRIPT / BACKEND RENDERIZARÁ LA LISTA DE VISITAS DE LA BD -->
+            <div id="contenedor-historial">
+                <!-- Se llena dinámicamente mediante Fetch / AJAX desde tu Base de Datos -->
+            </div>
+
+            <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
+
+            <!-- FORMULARIO DE NUEVA FICHA CLÍNICA -->
+            <form class="formulario-datos" id="form-ficha-medica">
+                <h2><i class="fa-solid fa-file-medical"></i> Nueva Evaluación / Ficha Clínica del Día</h2>
+                <br>
+                <div class="grupo-campo">
+                    <label>Motivo de Consulta / Síntomas:</label>
+                    <input type="text" id="motivo" name="motivo" required placeholder="Ingrese motivo...">
+                </div>
+                <div class="grupo-campo">
+                    <label>Diagnóstico Médico:</label>
+                    <textarea id="diagnostico" name="diagnostico" rows="3" required placeholder="Ingrese diagnóstico..."></textarea>
+                </div>
+                <div class="grupo-campo">
+                    <label>Tratamiento / Prescripción Médica:</label>
+                    <textarea id="tratamiento" name="tratamiento" rows="2" required placeholder="Ingrese tratamiento..."></textarea>
+                </div>
+                <div class="grupo-campo">
+                    <label>Observaciones Adicionales:</label>
+                    <input type="text" id="observaciones" name="observaciones" placeholder="Ingrese observaciones...">
+                </div>
+                
+                <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Registrar Ficha Clínica</button>
+            </form>
+        </main>
+    </div>
+    <!-- SCRIPT CONTROLADOR DE ROLES -->
+    <script src="~/JS/roles.js"></script>
+    <script src="~/JS/historial-medico.js"></script>
+</body>
+</html>

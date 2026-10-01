@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  pacientes_service:
+    build: ./pacientes_service
+    ports:
+      - "8000:8000"
+    container_name: pacientes_crud_microservice
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+
+  email_service:
+    build: ./email_service
+    ports:
+      - "8001:8001"
+    container_name: email_microservice
+
+  pdf_service:
+    build: ./pdf_service
+    ports:
+      - "8002:8002"
+    container_name: pdf_microservice
