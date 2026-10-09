@@ -2,15 +2,7 @@
 Microservicio: Pacientes (Residentes)
 Asilo Cabeza de Algodón
 
-CRUD real sobre la tabla "TBL_PACIENTES" del ERD oficial del proyecto,
-en la base SQL Server AsiloCabezaAlgodon. Junto con pdf_service y
-email_service, es uno de los 3 microservicios que sí se mantienen como
-tales (arquitectura MVC en capas + microservicios auxiliares, según el
-documento de Diseño Arquitectónico del proyecto). Todo lo demás
-(historial médico, citas, laboratorio/farmacia, caja, login) vive dentro
-del backend .NET con Entity Framework.
-
-Rutas iguales a las que ya llama tu wwwroot/JS/pacientes.js:
+Rutas iguales a las que ya llama wwwroot/JS/pacientes.js:
   GET    /api/Residentes
   GET    /api/Residentes/{id}
   POST   /api/Residentes
@@ -26,11 +18,9 @@ from typing import Optional, List
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import create_engine, Column, Integer, String, Date, DateTime, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, Date, DateTime, Boolean, or_
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 
-# Ver la nota sobre autenticación SQL Server (usuario/contraseña vs
-# Trusted_Connection) en los otros microservicios: aplica igual aquí.
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "mssql+pyodbc://usuario:password@localhost,1433/AsiloCabezaAlgodon"
@@ -50,9 +40,6 @@ def get_db():
         db.close()
 
 
-# ---------------------------------------------------------------------------
-# Modelo — mismos nombres de tabla/columnas que BackendAsilo.Models.Residente
-# ---------------------------------------------------------------------------
 class Residente(Base):
     __tablename__ = "TBL_PACIENTES"
 
@@ -67,11 +54,8 @@ class Residente(Base):
     correo_tutor = Column("correo_tutor", String(150), nullable=True)
     estado = Column("estado", Boolean, default=True)
 
+# Esquemas Pydantic--------------------------------------
 
-# ---------------------------------------------------------------------------
-# Esquemas Pydantic (nombres en camelCase para calzar con lo que ya manda/lee
-# pacientes.js: noExpediente, nombreCompleto, fechaNacimiento, etc.)
-# ---------------------------------------------------------------------------
 class ResidenteBase(BaseModel):
     noExpediente: str
     nombreCompleto: str
@@ -112,8 +96,6 @@ class ResidenteOut(BaseModel):
     correoTutor: Optional[str] = None
     estado: bool
 
-    # Mapea los nombres de columna en snake_case del modelo ORM hacia el
-    # camelCase que espera el frontend.
     @classmethod
     def from_orm_model(cls, r: "Residente") -> "ResidenteOut":
         return cls(
@@ -129,10 +111,8 @@ class ResidenteOut(BaseModel):
             estado=bool(r.estado),
         )
 
+# App------------------------
 
-# ---------------------------------------------------------------------------
-# App
-# ---------------------------------------------------------------------------
 app = FastAPI(title="Pacientes Service - Cabeza de Algodón")
 
 app.add_middleware(
@@ -146,8 +126,6 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
-    # No borra ni recrea la tabla si ya existe (la creó EF Core, por ejemplo);
-    # solo la crea si todavía no existe.
     Base.metadata.create_all(bind=engine)
 
 
@@ -160,6 +138,29 @@ def read_root():
 def listar_residentes(db: Session = Depends(get_db)):
     residentes = db.query(Residente).order_by(Residente.nombre_completo).all()
     return [ResidenteOut.from_orm_model(r) for r in residentes]
+
+
+@app.get("/api/Residentes/busqueda/autocomplete")
+def buscar_residentes(q: str = "", db: Session = Depends(get_db)):
+    if not q:
+        return []
+
+    q_clean = q.strip()
+    
+    residentes = db.query(Residente).filter(
+        or_(
+            Residente.nombre_completo.contains(q_clean),
+            Residente.no_expediente.contains(q_clean)
+        )
+    ).limit(10).all()
+
+    return [
+        {
+            "id": r.id_residente,
+            "text": f"{r.no_expediente} - {r.nombre_completo}"
+        } 
+        for r in residentes
+    ]
 
 
 @app.get("/api/Residentes/{id_residente}", response_model=ResidenteOut)

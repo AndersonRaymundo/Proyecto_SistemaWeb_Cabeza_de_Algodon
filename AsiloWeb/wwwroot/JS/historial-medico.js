@@ -2,22 +2,14 @@
 // Pacientes sigue siendo microservicio (8000). El registro clinico ahora
 // vive en el backend .NET (CitasController), mismo origen.
 
-const PACIENTES_API_URL = "http://localhost:8000/api/Residentes";
+const PACIENTES_BUSQUEDA_URL = "http://localhost:8000/api/Residentes/busqueda/autocomplete";
 const CITAS_API_URL = "/api/Citas";
 
-document.addEventListener("DOMContentLoaded", () => {
-    cargarSelectResidentes();
+let tomSelectInstance = null;
 
-    const selectPaciente = document.getElementById("select-paciente-historial");
-    if (selectPaciente) {
-        selectPaciente.addEventListener("change", () => {
-            if (selectPaciente.value) {
-                cargarHistorial(selectPaciente.value);
-            } else {
-                document.getElementById("contenedor-historial").innerHTML = "";
-            }
-        });
-    }
+document.addEventListener("DOMContentLoaded", () => {
+    // Inicializar TomSelect con el nuevo endpoint de búsqueda
+    inicializarTomSelect();
 
     const form = document.getElementById("form-ficha-medica");
     if (form) {
@@ -25,6 +17,32 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
+function inicializarTomSelect() {
+    const selectElem = document.getElementById("select-paciente-historial");
+    if (!selectElem) return;
+
+    tomSelectInstance = new TomSelect('#select-paciente-historial', {
+        valueField: 'id',
+        labelField: 'text',
+        searchField: 'text',
+        placeholder: "Escriba el nombre o expediente...",
+        load: function (query, callback) {
+            if (!query.length) return callback();
+
+            fetch(`${PACIENTES_BUSQUEDA_URL}?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(json => callback(json))
+                .catch(() => callback());
+        },
+        onChange: function (idResidente) {
+            if (idResidente) {
+                cargarHistorial(idResidente);
+            } else {
+                document.getElementById("contenedor-historial").innerHTML = "";
+            }
+        }
+    });
+}
 async function cargarSelectResidentes() {
     const select = document.getElementById("select-paciente-historial");
     if (!select) return;
@@ -83,9 +101,10 @@ async function cargarHistorial(idResidente) {
 
 async function registrarFicha(event) {
     event.preventDefault();
-
+                                   
     const select = document.getElementById("select-paciente-historial");
-    const idResidente = select.value;
+   // Obtiene el valor seleccionado desde TomSelect
+const idResidente = tomSelectInstance ? tomSelectInstance.getValue() : document.getElementById("select-paciente-historial").value;
 
     if (!idResidente) {
         mostrarModal("Falta información", "Seleccione primero un residente.", "error");

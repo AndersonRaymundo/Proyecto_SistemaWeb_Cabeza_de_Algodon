@@ -6,6 +6,7 @@
     <title>Historial Médico - Asilo Cabeza de Algodón</title>
     <link rel="stylesheet" href="~/CSS/dashboard.css"> 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
 </head>
 <body>
    <header class="barra-superior">
@@ -68,32 +69,34 @@
         </a>
     </nav>
         
-        <main class="area-trabajo">
-            <h1><i class="fa-solid fa-notes-medical"></i> Ficha Médica e Historial Clínico</h1>
-            <p>Consulta de expedientes y registro de nuevas evaluaciones médicas</p>
-            <br>
+     <main class="area-trabajo">
+    <h1><i class="fa-solid fa-notes-medical"></i> Ficha Médica e Historial Clínico</h1>
+    <p>Consulta de expedientes y registro de nuevas evaluaciones médicas</p>
+    <br>
 
-            <!-- CONSULTA Y BÚSQUEDA REAL -->
-            <div class="formulario-datos">
-                <h2><i class="fa-solid fa-folder-open"></i> Consultar Expediente del Residente</h2>
-                <br>
-                <div class="grupo-campo">
-                    <label>Seleccionar Residente:</label>
-                    <select id="select-paciente-historial" name="id_paciente" required>
-                        <option value="">-- Cargar Pacientes desde la BD --</option>
-                    </select>
-                </div>
-            </div>
+    <!-- CONSULTA Y BÚSQUEDA L -->
+    <div class="formulario-datos">
+        <h2><i class="fa-solid fa-folder-open"></i> Consultar Expediente del Residente</h2>
+        <br>
+        <div class="grupo-campo">
+            <label>Seleccionar Residente:</label>
+            <!-- Select actualizado con el ID que usará JavaScript -->
+            <select id="select-paciente-historial" name="id_paciente" placeholder="Escriba el nombre o expediente..."></select>
+        </div>
+    </div>
 
-            <br>
-            <!-- CONTENEDOR DONDE TU JAVASCRIPT / BACKEND RENDERIZARÁ LA LISTA DE VISITAS DE LA BD -->
-            <div id="contenedor-historial">
-                <!-- Se llena dinámicamente mediante Fetch / AJAX desde tu Base de Datos -->
-            </div>
+    <br>
+    <!--Contenedor donde javascrip/backend. renderizara la lista de visitas de la bd -->
+    <div id="contenedor-historial">
+        <!-- Se llena dinámicamente mediante Fetch / AJAX desde la bd -->
+    </div>
+
+    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
+
 
             <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
 
-            <!-- FORMULARIO DE NUEVA FICHA CLÍNICA -->
+            <!-- Formulario de nueva ficha medica -->
             <form class="formulario-datos" id="form-ficha-medica">
                 <h2><i class="fa-solid fa-file-medical"></i> Nueva Evaluación / Ficha Clínica del Día</h2>
                 <br>
@@ -121,5 +124,29 @@
     <!-- SCRIPT CONTROLADOR DE ROLES -->
     <script src="~/JS/roles.js"></script>
     <script src="~/JS/historial-medico.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        new TomSelect('#select-paciente-historial', {
+            valueField: 'id',
+            labelField: 'text',
+            searchField: 'text',
+            load: function(query, callback) {
+                if (!query.length) return callback();
+                
+                // Consulta directo al endpoint de búsqueda del microservicio
+                fetch('http://localhost:8000/api/Residentes/buscar?q=' + encodeURIComponent(query))
+                    .then(response => response.json())
+                    .then(json => {
+                        callback(json);
+                    })
+                    .catch(() => {
+                        callback();
+                    });
+            }
+        });
+    });
+</script>
 </body>
 </html>
