@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="~/CSS/dashboard.css"> 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
-<body>
+<body class="pagina-laboratorio">
   
 <header class="barra-superior">
     <div class="logo-top"></div>
@@ -35,19 +35,19 @@
     
     <!-- MENÚ LATERAL -->
     <nav class="menu-lateral">
-        <a href="/Home/MENU" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+        <a href="/Home/MENU" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
             <i class="fa-solid fa-house"></i> INICIO
         </a>
         <a href="/Residentes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
             <i class="fa-solid fa-hospital-user"></i> PACIENTES
         </a>
-        <a href="/Citas" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
+        <a href="/Citas" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FUNDACION">
             <i class="fa-solid fa-calendar-check"></i> SOLICITUDES Y CITAS
         </a>
         <a href="/Historial" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
             <i class="fa-solid fa-notes-medical"></i> HISTORIAL MÉDICO
         </a>
-        <a href="/LaboratorioFarmacia" class="opcion-menu activa" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA">
+        <a href="/LaboratorioFarmacia" class="opcion-menu activa" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA,LABORATORIO">
             <i class="fa-solid fa-vials"></i> LAB Y FARMACIA
         </a>
         <a href="/Reportes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
@@ -64,73 +64,147 @@
         </a>
 
         <!-- CERRAR SESIÓN -->
-        <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+        <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
             <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
         </a>
     </nav>
         
         <main class="area-trabajo">
-            <h1><i class="fa-solid fa-vials"></i> Resultados de Laboratorio y Despacho de Farmacia</h1>
-            <p>Registro de resultados de exámenes clínicos y cargos de medicamentos con tarifa preferencial</p>
-            <br>
-            
-            <form class="formulario-datos" id="form-lab-farmacia">
-                <h2><i class="fa-solid fa-microscope"></i> Exámenes de Laboratorio</h2>
-                <br>
-                <div class="grupo-campo">
-                    <label>Seleccionar Residente:</label>
-                    <select id="select-residente-lab" required>
-                        <option value="">-- Cargar Pacientes desde la BD --</option>
-                    </select>
-                </div>
-                <div class="grupo-campo">
-                    <label>Nombre del Examen:</label>
-                    <input type="text" id="nombre-examen" placeholder="Ej. Perfil Lipídico">
-                </div>
-                <div class="grupo-campo">
-                    <label>Resultados del Análisis:</label>
-                    <textarea id="resultados-examen" rows="3" placeholder="Ingrese el reporte de resultados del laboratorio..."></textarea>
-                </div>
-                <div class="grupo-campo">
-                    <label>Costo del Examen con Descuento Fundación (Q):</label>
-                    <input type="number" step="0.01" id="costo-examen" placeholder="150.00">
-                </div>
-                
-                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ccc;">
-                
-                <h2><i class="fa-solid fa-pills"></i> Receta y Medicamentos</h2>
-                <br>
-                <div class="grupo-campo">
-                    <label>Medicamento Recetado / Cajón:</label>
-                    <input type="text" id="medicamento" placeholder="Ej. Losartán 50mg / Metformina 850mg">
-                </div>
-                <div class="grupo-campo">
-                    <label>Instrucciones de Dosis:</label>
-                    <input type="text" id="dosis-instrucciones" placeholder="Ej. 1 tableta cada 12 horas por 30 días">
-                </div>
-                <div class="grupo-campo">
-                    <label>Cantidad:</label>
-                    <input type="text" id="cantidad-medicamento" placeholder="Ej. 30 tabletas">
-                </div>
-                <div class="grupo-campo">
-                    <label>Costo Medicamento Carga Familiar (Q):</label>
-                    <input type="number" step="0.01" id="costo-medicamento" placeholder="85.00">
-                </div>
-                
-                <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Registrar Examen y Farmacia</button>
-            </form>
+            <h1><i class="fa-solid fa-vials"></i> Laboratorio y Farmacia</h1>
+            <p id="nota-descuento">Los exámenes y medicamentos recetados en una visita médica llegan aquí; al completarlos se cargan a la cuenta del familiar.</p>
 
-            <br>
-            <div class="formulario-datos">
-                <h2><i class="fa-solid fa-list"></i> Últimos Exámenes y Recetas Registrados</h2>
-                <div id="contenedor-lab-farmacia">
-                    <!-- Se llena dinámicamente mediante Fetch / AJAX -->
-                </div>
+            <div class="pestanas">
+                <button type="button" class="pestana activa" id="tab-btn-lab" data-pestana="seccion-laboratorio">
+                    <i class="fa-solid fa-microscope"></i> Laboratorio <span class="contador" id="contador-examenes">0</span>
+                </button>
+                <button type="button" class="pestana" id="tab-btn-farmacia" data-pestana="seccion-farmacia">
+                    <i class="fa-solid fa-pills"></i> Farmacia <span class="contador" id="contador-medicamentos">0</span>
+                </button>
             </div>
+
+            <!-- ======================== PESTAÑA LABORATORIO ======================== -->
+            <section id="seccion-laboratorio" class="pestana-contenido activa">
+                <div class="barra-herramientas">
+                    <span class="espacio"></span>
+                    <button type="button" class="btn-guardar" data-abrir="panel-examen">
+                        <i class="fa-solid fa-flask"></i> Registrar examen directo
+                    </button>
+                </div>
+                <div class="formulario-datos">
+                    <h2><i class="fa-solid fa-hourglass-half"></i> Exámenes pendientes de resultado</h2>
+                    <div id="contenedor-examenes-pendientes"></div>
+                </div>
+                <div class="formulario-datos">
+                    <h2><i class="fa-solid fa-list-check"></i> Exámenes con resultado</h2>
+                    <div id="contenedor-examenes"></div>
+                </div>
+            </section>
+
+            <!-- ======================== PESTAÑA FARMACIA ======================== -->
+            <section id="seccion-farmacia" class="pestana-contenido">
+                <div class="barra-herramientas">
+                    <span class="espacio"></span>
+                    <button type="button" class="btn-guardar" data-abrir="panel-medicamento">
+                        <i class="fa-solid fa-prescription-bottle-medical"></i> Registrar despacho directo
+                    </button>
+                </div>
+                <div class="formulario-datos">
+                    <h2><i class="fa-solid fa-hourglass-half"></i> Medicamentos pendientes de despacho</h2>
+                    <div id="contenedor-medicamentos-pendientes"></div>
+                </div>
+                <div class="formulario-datos">
+                    <h2><i class="fa-solid fa-list-check"></i> Despachos realizados</h2>
+                    <div id="contenedor-medicamentos"></div>
+                </div>
+            </section>
         </main>
     </div>
+
+    <!-- VENTANA: Registrar examen directo -->
+    <div class="panel-fondo" id="panel-examen">
+        <div class="panel" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-flask"></i> Registrar examen directo</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <p>Para pacientes que llegan al laboratorio sin una visita previa. El costo se carga a la cuenta del familiar.</p>
+                <form id="form-examen-directo">
+                    <div class="fila-2">
+                        <div class="grupo-campo">
+                            <label>Residente:</label>
+                            <select id="select-residente-examen" required><option value="">-- Cargar Pacientes desde la BD --</option></select>
+                        </div>
+                        <div class="grupo-campo">
+                            <label>Nombre del examen:</label>
+                            <input type="text" id="nombre-examen" required placeholder="Ej. Perfil lipídico">
+                        </div>
+                    </div>
+                    <div class="grupo-campo">
+                        <label>Resultados (opcional):</label>
+                        <textarea id="resultados-examen" rows="3" placeholder="Reporte de resultados del laboratorio..."></textarea>
+                    </div>
+                    <div class="grupo-campo">
+                        <label>Precio de lista del examen (Q):</label>
+                        <input type="number" step="0.01" min="0" id="precio-examen" placeholder="0.00">
+                        <small id="final-examen" style="color:#1e7e34;"></small>
+                    </div>
+                    <div class="panel-pie">
+                        <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Registrar examen</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- VENTANA: Registrar despacho directo -->
+    <div class="panel-fondo" id="panel-medicamento">
+        <div class="panel" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-prescription-bottle-medical"></i> Registrar despacho directo</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <p>Para medicamentos entregados sin una receta previa en el sistema. El costo se carga a la cuenta del familiar.</p>
+                <form id="form-medicamento-directo">
+                    <div class="fila-2">
+                        <div class="grupo-campo">
+                            <label>Residente:</label>
+                            <select id="select-residente-medicamento" required><option value="">-- Cargar Pacientes desde la BD --</option></select>
+                        </div>
+                        <div class="grupo-campo">
+                            <label>Medicamento:</label>
+                            <input type="text" id="nombre-medicamento" required placeholder="Ej. Losartán 50mg">
+                        </div>
+                    </div>
+                    <div class="fila-2">
+                        <div class="grupo-campo">
+                            <label>Cantidad:</label>
+                            <input type="text" id="cantidad-medicamento" placeholder="Ej. 30 tabletas">
+                        </div>
+                        <div class="grupo-campo">
+                            <label>Tiempo de aplicación:</label>
+                            <input type="text" id="tiempo-medicamento" placeholder="Ej. 1 cada 12 h por 30 días">
+                        </div>
+                    </div>
+                    <div class="grupo-campo">
+                        <label>Precio de lista del medicamento (Q):</label>
+                        <input type="number" step="0.01" min="0" id="precio-medicamento" placeholder="0.00">
+                        <small id="final-medicamento" style="color:#1e7e34;"></small>
+                    </div>
+                    <div class="panel-pie">
+                        <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Registrar despacho</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- SCRIPT CONTROLADOR DE ROLES -->
     <script src="~/JS/roles.js"></script>
+    <script src="~/JS/ui.js"></script>
     <script src="~/JS/laboratorio-farmacia.js"></script>
 </body>
 </html>

@@ -1,9 +1,26 @@
-using System.Net.Http;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
 
 namespace AsiloWeb.Services
 {
+    // Estructura generica de un reporte. El backend .NET reune los datos
+    // reales de la base de datos y el microservicio de PDF solo se encarga
+    // de dibujar el documento (CU-05).
+    public class ReporteSeccion
+    {
+        public string Encabezado { get; set; } = string.Empty;
+        public List<string> Columnas { get; set; } = new();
+        public List<List<string>> Filas { get; set; } = new();
+        public List<string> Totales { get; set; } = new();
+    }
+
+    public class ReporteDto
+    {
+        public string Titulo { get; set; } = string.Empty;
+        public string Subtitulo { get; set; } = string.Empty;
+        public List<string> Filtros { get; set; } = new();
+        public List<ReporteSeccion> Secciones { get; set; } = new();
+    }
+
     public class PdfService
     {
         private readonly HttpClient _httpClient;
@@ -14,25 +31,18 @@ namespace AsiloWeb.Services
             _httpClient = httpClient;
         }
 
-        // 1. Análisis Médicos por Paciente
-        public async Task<byte[]> ObtenerAnalisisMedicoAsync(int pacienteId)
+        public async Task<byte[]?> GenerarReporteAsync(ReporteDto reporte)
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/reporte/analisis-medico/{pacienteId}");
-            return response.IsSuccessStatusCode ? await response.Content.ReadAsByteArrayAsync() : null;
-        }
-
-        // 2. Reporte de Cobros y Donaciones
-        public async Task<byte[]> ObtenerReporteCobrosDonacionesAsync(int mes, int anio)
-        {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/reporte/cobros-donaciones?mes={mes}&anio={anio}");
-            return response.IsSuccessStatusCode ? await response.Content.ReadAsByteArrayAsync() : null;
-        }
-
-        // 3. Pagos Realizados a la Fundación
-        public async Task<byte[]> ObtenerPagosFundacionAsync(int pacienteId)
-        {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/reporte/pagos-fundacion/{pacienteId}");
-            return response.IsSuccessStatusCode ? await response.Content.ReadAsByteArrayAsync() : null;
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"{BaseUrl}/generate-report", reporte);
+                if (!response.IsSuccessStatusCode) return null;
+                return await response.Content.ReadAsByteArrayAsync();
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

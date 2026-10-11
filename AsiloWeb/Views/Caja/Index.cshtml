@@ -12,7 +12,7 @@
     <!-- FontAwesome 6 Correcto -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="pagina-caja">
       <header class="barra-superior">
     <div class="logo-top"></div>
     <div class="usuario-info">
@@ -39,19 +39,19 @@
     
     <!-- MENÚ LATERAL -->
     <nav class="menu-lateral">
-        <a href="/Home/MENU" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+        <a href="/Home/MENU" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
             <i class="fa-solid fa-house"></i> INICIO
         </a>
         <a href="/Residentes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
             <i class="fa-solid fa-hospital-user"></i> PACIENTES
         </a>
-        <a href="/Citas" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
+        <a href="/Citas" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FUNDACION">
             <i class="fa-solid fa-calendar-check"></i> SOLICITUDES Y CITAS
         </a>
         <a href="/Historial" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
             <i class="fa-solid fa-notes-medical"></i> HISTORIAL MÉDICO
         </a>
-        <a href="/LaboratorioFarmacia" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA">
+        <a href="/LaboratorioFarmacia" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA,LABORATORIO">
             <i class="fa-solid fa-vials"></i> LAB Y FARMACIA
         </a>
         <a href="/Reportes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
@@ -68,70 +68,194 @@
         </a>
 
         <!-- CERRAR SESIÓN -->
-        <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+        <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
             <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
         </a>
     </nav>
 
         <!-- ÁREA DE TRABAJO -->
         <main class="area-trabajo">
-            <h1><i class="fa-solid fa-cash-register"></i> Módulo de Caja y Finanzas</h1>
-            <p>Gestión de ingresos, mensualidades de residentes y comprobantes de pago.</p>
+            <h1><i class="fa-solid fa-cash-register"></i> Caja y Finanzas del Asilo</h1>
+            <p>Cobros a familiares, donaciones recibidas, gastos operativos y control de citas por cobrar</p>
 
-            <div class="formulario-datos">
-                <h2><i class="fa-solid fa-receipt"></i> Registrar Movimiento de Cuentas</h2>
-                <form id="form-cobro">
-                    <div class="grupo-campo">
-                        <label><i class="fa-solid fa-user"></i> Seleccionar Residente:</label>
-                        <select id="select-residente-caja">
-                            <option value="">-- Cargar Pacientes desde BD --</option>
-                        </select>
-                    </div>
-                    <div class="grupo-campo">
-                        <label><i class="fa-solid fa-tags"></i> Tipo de Cobro:</label>
-                        <select id="tipo-cobro">
-                            <option value="Mensualidad">Mensualidad</option>
-                            <option value="Consulta">Consulta médica</option>
-                            <option value="Laboratorio">Laboratorio</option>
-                            <option value="Farmacia">Farmacia</option>
-                            <option value="Otro">Otro</option>
-                        </select>
-                    </div>
-                    <div class="grupo-campo">
-                        <label><i class="fa-solid fa-file-invoice"></i> Concepto / Detalle de Pago:</label>
-                        <input type="text" id="concepto-cobro" placeholder="Ej. Cuota mensualidad - Septiembre">
-                    </div>
-                    <div class="grupo-campo">
-                        <label><i class="fa-solid fa-money-bill-wave"></i> Monto Total (Q):</label>
-                        <input type="number" step="0.01" id="monto-cobro" placeholder="0.00">
-                    </div>
-                    <button type="submit" class="btn-guardar">
-                        <i class="fa-solid fa-floppy-disk"></i> Registrar Transacción
+            <div class="pestanas">
+                <button type="button" class="pestana activa" data-pestana="tab-resumen"><i class="fa-solid fa-chart-pie"></i> Resumen</button>
+                <button type="button" class="pestana" data-pestana="tab-cobros"><i class="fa-solid fa-receipt"></i> Cobros a familiares</button>
+                <button type="button" class="pestana" data-pestana="tab-donaciones"><i class="fa-solid fa-hand-holding-heart"></i> Donaciones</button>
+                <button type="button" class="pestana" data-pestana="tab-gastos"><i class="fa-solid fa-file-invoice-dollar"></i> Gastos</button>
+            </div>
+
+            <!-- ======================== PESTAÑA RESUMEN ======================== -->
+            <section id="tab-resumen" class="pestana-contenido activa">
+                <div class="formulario-datos">
+                    <h2><i class="fa-solid fa-chart-pie"></i> Resumen financiero</h2>
+                    <div id="contenedor-resumen-caja"></div>
+                </div>
+                <div class="formulario-datos">
+                    <h2><i class="fa-solid fa-hourglass-half"></i> Citas aún no canceladas por el familiar</h2>
+                    <div id="contenedor-citas-pendientes"></div>
+                </div>
+            </section>
+
+            <!-- ======================== PESTAÑA COBROS ======================== -->
+            <section id="tab-cobros" class="pestana-contenido">
+                <div class="barra-herramientas">
+                    <select id="filtro-cobros">
+                        <option value="">Todos los cobros</option>
+                        <option value="Pendiente">Pendientes</option>
+                        <option value="Pagado">Cancelados</option>
+                    </select>
+                    <span class="espacio"></span>
+                    <button type="button" class="btn-guardar" data-abrir="panel-cobro">
+                        <i class="fa-solid fa-plus"></i> Registrar cuota o cobro
                     </button>
-                </form>
-            </div>
-
-            <br>
-            <div class="formulario-datos">
-                <h2><i class="fa-solid fa-chart-pie"></i> Resumen Financiero</h2>
-                <div id="contenedor-resumen-caja">
-                    <!-- Se llena dinámicamente mediante Fetch / AJAX -->
                 </div>
-            </div>
-
-            <br>
-            <div class="formulario-datos">
-                <h2><i class="fa-solid fa-list"></i> Cobros Registrados</h2>
-                <div id="contenedor-cobros">
-                    <!-- Se llena dinámicamente mediante Fetch / AJAX -->
+                <div class="formulario-datos">
+                    <h2><i class="fa-solid fa-list"></i> Cobros a familiares</h2>
+                    <p>Las consultas, exámenes y medicamentos se cargan solos a la cuenta del familiar, con el descuento de la fundación. Aquí se registran además las cuotas mensuales.</p>
+                    <div id="contenedor-cobros"></div>
                 </div>
-            </div>
+            </section>
+
+            <!-- ======================== PESTAÑA DONACIONES ======================== -->
+            <section id="tab-donaciones" class="pestana-contenido">
+                <div class="barra-herramientas">
+                    <span class="espacio"></span>
+                    <button type="button" class="btn-guardar" data-abrir="panel-donacion">
+                        <i class="fa-solid fa-plus"></i> Registrar donación
+                    </button>
+                </div>
+                <div class="formulario-datos">
+                    <h2><i class="fa-solid fa-hand-holding-heart"></i> Donaciones recibidas</h2>
+                    <div id="contenedor-donaciones"></div>
+                </div>
+            </section>
+
+            <!-- ======================== PESTAÑA GASTOS ======================== -->
+            <section id="tab-gastos" class="pestana-contenido">
+                <div class="barra-herramientas">
+                    <span class="espacio"></span>
+                    <button type="button" class="btn-guardar" data-abrir="panel-gasto">
+                        <i class="fa-solid fa-plus"></i> Registrar gasto
+                    </button>
+                </div>
+                <div class="formulario-datos">
+                    <h2><i class="fa-solid fa-file-invoice-dollar"></i> Gastos del asilo</h2>
+                    <div id="contenedor-gastos"></div>
+                </div>
+            </section>
         </main>
 
     </div>
 
+    <!-- VENTANA: Registrar cuota o cobro a un familiar -->
+    <div class="panel-fondo" id="panel-cobro">
+        <div class="panel" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-receipt"></i> Registrar cuota o cobro a un familiar</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <form id="form-cobro">
+                    <div class="fila-2">
+                        <div class="grupo-campo">
+                            <label>Seleccionar residente:</label>
+                            <select id="select-residente-caja" required><option value="">-- Cargar Pacientes desde BD --</option></select>
+                        </div>
+                        <div class="grupo-campo">
+                            <label>Tipo de cobro:</label>
+                            <select id="tipo-cobro">
+                                <option value="Mensualidad">Cuota mensual</option>
+                                <option value="Otro">Otro cargo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="fila-2">
+                        <div class="grupo-campo">
+                            <label>Concepto / detalle:</label>
+                            <input type="text" id="concepto-cobro" placeholder="Ej. Cuota mensualidad - Septiembre">
+                        </div>
+                        <div class="grupo-campo">
+                            <label>Monto total (Q):</label>
+                            <input type="number" step="0.01" min="0" id="monto-cobro" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <div class="panel-pie">
+                        <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Registrar cobro</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- VENTANA: Registrar donación -->
+    <div class="panel-fondo" id="panel-donacion">
+        <div class="panel" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-hand-holding-heart"></i> Registrar donación</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <form id="form-donacion">
+                    <div class="grupo-campo">
+                        <label>Donante:</label>
+                        <input type="text" id="donante" required placeholder="Nombre de la persona o entidad">
+                    </div>
+                    <div class="fila-2">
+                        <div class="grupo-campo">
+                            <label>Tipo de donante:</label>
+                            <select id="tipo-donacion" required>
+                                <option value="Empresa Internacional">Empresa internacional</option>
+                                <option value="Empresa Nacional">Empresa nacional</option>
+                                <option value="Gobierno">Gobierno</option>
+                                <option value="Particular">Persona particular</option>
+                            </select>
+                        </div>
+                        <div class="grupo-campo">
+                            <label>Monto (Q):</label>
+                            <input type="number" step="0.01" min="0.01" id="monto-donacion" required placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="panel-pie">
+                        <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Registrar donación</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- VENTANA: Registrar gasto del asilo -->
+    <div class="panel-fondo" id="panel-gasto">
+        <div class="panel" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-file-invoice-dollar"></i> Registrar gasto del asilo</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <form id="form-gasto">
+                    <div class="grupo-campo">
+                        <label>Concepto:</label>
+                        <input type="text" id="concepto-gasto" required placeholder="Ej. Pago de energía eléctrica - Septiembre">
+                    </div>
+                    <div class="grupo-campo">
+                        <label>Monto (Q):</label>
+                        <input type="number" step="0.01" min="0.01" id="monto-gasto" required placeholder="0.00">
+                    </div>
+                    <div class="panel-pie">
+                        <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Registrar gasto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
     <!-- SCRIPT DE ROLES Y SESIÓN -->
     <script src="~/JS/roles.js"></script>
+    <script src="~/JS/ui.js"></script>
     <script src="~/JS/caja.js"></script>
 </body>
 </html>

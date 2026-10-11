@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="~/CSS/dashboard.css"> 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
-<body>
+<body class="pagina-reportes">
    <header class="barra-superior">
     <div class="logo-top"></div>
     <div class="usuario-info">
@@ -34,19 +34,19 @@
     
     <!-- MENÚ LATERAL -->
     <nav class="menu-lateral">
-        <a href="/Home/MENU" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+        <a href="/Home/MENU" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
             <i class="fa-solid fa-house"></i> INICIO
         </a>
         <a href="/Residentes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
             <i class="fa-solid fa-hospital-user"></i> PACIENTES
         </a>
-        <a href="/Citas" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
+        <a href="/Citas" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FUNDACION">
             <i class="fa-solid fa-calendar-check"></i> SOLICITUDES Y CITAS
         </a>
         <a href="/Historial" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
             <i class="fa-solid fa-notes-medical"></i> HISTORIAL MÉDICO
         </a>
-        <a href="/LaboratorioFarmacia" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA">
+        <a href="/LaboratorioFarmacia" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA,LABORATORIO">
             <i class="fa-solid fa-vials"></i> LAB Y FARMACIA
         </a>
         <a href="/Reportes" class="opcion-menu activa" data-rol="ADMINISTRADOR,DOCTOR">
@@ -63,57 +63,91 @@
         </a>
 
         <!-- CERRAR SESIÓN -->
-        <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+        <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
             <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
         </a>
     </nav>
         
       <main class="area-trabajo">
             <h1><i class="fa-solid fa-chart-line"></i> Módulo de Reportes Estadísticos e Informes</h1>
-            <p>Generación de documentos en formato PDF consumiendo microservicio desacoplado</p>
+            <p>Reportes en PDF con los datos reales del sistema, generados por el microservicio de PDF</p>
             <br>
             <div class="lista-reportes">
-                
-                <!-- TARJETA 1 -->
-                <div class="tarjeta-reporte">
-                    <h3><i class="fa-solid fa-file-pdf"></i> Análisis Médicos por Paciente</h3>
-                    <p>Exporta la ficha médica, medicamentos y padecimientos del residente.</p>
-                    <button class="btn-descarga" onclick="generarReportePDF('001', 'Análisis Médicos por Paciente', 'Ficha médica, medicamentos y padecimientos')">
+                <div class="tarjeta-reporte" data-reporte="CostosCitas">
+                    <h3><i class="fa-solid fa-file-invoice-dollar"></i> Costos de Citas por Paciente</h3>
+                    <p>Costo de cada cita: consulta, exámenes de laboratorio y medicamentos.</p>
+                    <div class="filtros">
+                        <div><label>Residente</label>
+                            <select class="sel-residente" data-param="idPaciente"><option value="">Todos los residentes</option></select></div>
+                    </div>
+                    <button class="btn-descarga" onclick="descargarReporte(this)">
                         <i class="fa-solid fa-download"></i> Exportar PDF
                     </button>
                 </div>
                 <br>
-                
-               <div class="tarjetas-contenedor">
-    <!-- TARJETA 1 -->
-    <div class="tarjeta-reporte">
-        <h3><i class="fa-solid fa-file-pdf"></i> Análisis Médicos por Paciente</h3>
-        <p>Exporta la ficha médica, medicamentos y padecimientos del residente.</p>
-        <a asp-controller="Reportes" asp-action="DescargarAnalisisMedico" asp-route-id="1" class="btn-descarga">
-            <i class="fa-solid fa-download"></i> Exportar PDF
-        </a>
-    </div>
-    <br>
-    
-    <!-- TARJETA 2 -->
-    <div class="tarjeta-reporte">
-        <h3><i class="fa-solid fa-file-pdf"></i> Reporte de Cobros y Donaciones</h3>
-        <p>Consolidado de entradas financieras, mensualidades y gastos del asilo.</p>
-        <a asp-controller="Reportes" asp-action="DescargarCobrosDonaciones" asp-route-mes="9" asp-route-anio="2026" class="btn-descarga">
-            <i class="fa-solid fa-download"></i> Exportar PDF
-        </a>
-    </div>
-    <br>
-    
-    <!-- TARJETA 3 -->
-    <div class="tarjeta-reporte">
-        <h3><i class="fa-solid fa-file-pdf"></i> Pagos Realizados a la Fundación</h3>
-        <p>Detalle de costos de consultas, exámenes y medicamentos con descuento.</p>
-        <a asp-controller="Reportes" asp-action="DescargarPagosFundacion" asp-route-id="1" class="btn-descarga">
-            <i class="fa-solid fa-download"></i> Exportar PDF
-        </a>
-    </div>
-</div>
+                <div class="tarjeta-reporte" data-reporte="FichaMedica">
+                    <h3><i class="fa-solid fa-file-medical"></i> Ficha Médica por Paciente</h3>
+                    <p>Motivo de reclusión, ficha base, historial de consultas y medicación del residente.</p>
+                    <div class="filtros">
+                        <div><label>Residente (obligatorio)</label>
+                            <select class="sel-residente sel-obligatorio" data-param="idPaciente" required><option value="">-- Seleccionar --</option></select></div>
+                    </div>
+                    <button class="btn-descarga" onclick="descargarReporte(this)">
+                        <i class="fa-solid fa-download"></i> Exportar PDF
+                    </button>
+                </div>
+                <br>
+                <div class="tarjeta-reporte" data-reporte="CobrosPaciente">
+                    <h3><i class="fa-solid fa-receipt"></i> Cobros por Paciente y Fechas</h3>
+                    <p>Cargos a la cuenta del familiar con el detalle médico, por rango de fechas.</p>
+                    <div class="filtros">
+                        <div><label>Residente</label>
+                            <select class="sel-residente" data-param="idPaciente"><option value="">Todos los residentes</option></select></div>
+                        <div><label>Desde</label><input type="date" data-param="desde"></div>
+                        <div><label>Hasta</label><input type="date" data-param="hasta"></div>
+                    </div>
+                    <button class="btn-descarga" onclick="descargarReporte(this)">
+                        <i class="fa-solid fa-download"></i> Exportar PDF
+                    </button>
+                </div>
+                <br>
+                <div class="tarjeta-reporte" data-reporte="PagosFundacion">
+                    <h3><i class="fa-solid fa-hospital"></i> Pagos a la Fundación</h3>
+                    <p>Consultas, exámenes y medicamentos con descuento, y el total adeudado a la fundación.</p>
+                    <div class="filtros">
+                        <div><label>Desde</label><input type="date" data-param="desde"></div>
+                        <div><label>Hasta</label><input type="date" data-param="hasta"></div>
+                    </div>
+                    <button class="btn-descarga" onclick="descargarReporte(this)">
+                        <i class="fa-solid fa-download"></i> Exportar PDF
+                    </button>
+                </div>
+                <br>
+                <div class="tarjeta-reporte" data-reporte="Entradas">
+                    <h3><i class="fa-solid fa-sack-dollar"></i> Entradas de Dinero</h3>
+                    <p>Donaciones recibidas y cobros / cuotas cancelados por los familiares.</p>
+                    <div class="filtros">
+                        <div><label>Desde</label><input type="date" data-param="desde"></div>
+                        <div><label>Hasta</label><input type="date" data-param="hasta"></div>
+                    </div>
+                    <button class="btn-descarga" onclick="descargarReporte(this)">
+                        <i class="fa-solid fa-download"></i> Exportar PDF
+                    </button>
+                </div>
+                <br>
+                <div class="tarjeta-reporte" data-reporte="ExamenesMedicamentos">
+                    <h3><i class="fa-solid fa-vials"></i> Exámenes y Medicamentos por Paciente</h3>
+                    <p>Exámenes de laboratorio realizados y medicamentos aplicados.</p>
+                    <div class="filtros">
+                        <div><label>Residente</label>
+                            <select class="sel-residente" data-param="idPaciente"><option value="">Todos los residentes</option></select></div>
+                    </div>
+                    <button class="btn-descarga" onclick="descargarReporte(this)">
+                        <i class="fa-solid fa-download"></i> Exportar PDF
+                    </button>
+                </div>
+                <br>
+            </div>
         </main>
     </div>
 

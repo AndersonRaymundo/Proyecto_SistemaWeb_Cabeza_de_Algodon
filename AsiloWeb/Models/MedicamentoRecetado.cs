@@ -38,5 +38,10 @@ namespace AsiloWeb.Models
 
         [Column("fecha_despacho")]
         public DateTime FechaDespacho { get; set; } = DateTime.Now;
+
+        // RF-09: el medico lo receta (Despachado = false) y farmacia lo
+        // despacha despues (Despachado = true) asignando el costo.
+        [Column("despachado")]
+        public bool Despachado { get; set; } = false;
     }
 }

@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/CSS/dashboard.css"> 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
-<body>
+<body class="pagina-pacientes">
     <header class="barra-superior">
         <div class="logo-top"></div>
         <div class="usuario-info">
@@ -34,19 +34,19 @@
         
         <!-- MENÚ LATERAL -->
         <nav class="menu-lateral">
-            <a href="/Home/MENU" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+            <a href="/Home/MENU" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
                 <i class="fa-solid fa-house"></i> INICIO
             </a>
             <a href="/Residentes" class="opcion-menu activa" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
                 <i class="fa-solid fa-hospital-user"></i> PACIENTES
             </a>
-            <a href="/Citas" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
+            <a href="/Citas" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FUNDACION">
                 <i class="fa-solid fa-calendar-check"></i> SOLICITUDES Y CITAS
             </a>
             <a href="/Historial" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
                 <i class="fa-solid fa-notes-medical"></i> HISTORIAL MÉDICO
             </a>
-            <a href="/LaboratorioFarmacia" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA">
+            <a href="/LaboratorioFarmacia" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA,LABORATORIO">
                 <i class="fa-solid fa-vials"></i> LAB Y FARMACIA
             </a>
             <a href="/Reportes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
@@ -60,82 +60,45 @@
             </a>
 
             <!-- CERRAR SESIÓN -->
-            <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+            <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
                 <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
             </a>
         </nav>
         
         <main class="area-trabajo">
-            <h1><i class="fa-solid fa-hospital-user"></i> Módulo de Gestión de Pacientes / Residentes</h1>
-            <p>Registro, edición y control de estado de los residentes del asilo</p>
-            <br>
+            <h1><i class="fa-solid fa-hospital-user"></i> Gestión de Pacientes / Residentes</h1>
+            <p>Consulta, registro y control de estado de los residentes del asilo</p>
 
-            <!-- FORMULARIO DE REGISTRO / EDICIÓN -->
-            <div class="tarjeta-formulario" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 25px;">
-                <h2><i class="fa-solid fa-user-plus"></i> Registro de Residente</h2>
-                <br>
-                <form id="formResidente" onsubmit="guardarResidente(event)">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
-                        
-                        <div>
-                            <label for="txtExpediente"><strong>No. Expediente:</strong></label>
-                            <input type="text" id="txtExpediente" class="form-control" placeholder="Ej. EXP-2026-01" required style="width: 100%; padding: 8px; margin-top: 5px;">
-                        </div>
-
-                        <div>
-                            <label for="txtNombre"><strong>Nombre Completo:</strong></label>
-                            <input type="text" id="txtNombre" class="form-control" placeholder="Nombre completo" required style="width: 100%; padding: 8px; margin-top: 5px;">
-                        </div>
-
-                        <div>
-                            <label for="txtFechaNacimiento"><strong>Fecha de Nacimiento:</strong></label>
-                            <input type="date" id="txtFechaNacimiento" class="form-control" required style="width: 100%; padding: 8px; margin-top: 5px;">
-                        </div>
-
-                        <div>
-                            <label for="txtPatologia"><strong>Patología / Condición:</strong></label>
-                            <input type="text" id="txtPatologia" class="form-control" placeholder="Padecimientos principales" style="width: 100%; padding: 8px; margin-top: 5px;">
-                        </div>
-
-                        <div>
-                            <label for="txtTutor"><strong>Nombre del Tutor:</strong></label>
-                            <input type="text" id="txtTutor" class="form-control" placeholder="Nombre de encargado" style="width: 100%; padding: 8px; margin-top: 5px;">
-                        </div>
-
-                        <div>
-                            <label for="txtTelefono"><strong>Teléfono del Tutor:</strong></label>
-                            <input type="tel" id="txtTelefono" class="form-control" placeholder="Teléfono de contacto" style="width: 100%; padding: 8px; margin-top: 5px;">
-                        </div>
-
-                        <div>
-                            <label for="txtCorreo"><strong>Correo del Tutor:</strong></label>
-                            <input type="email" id="txtCorreo" class="form-control" placeholder="correo@ejemplo.com" style="width: 100%; padding: 8px; margin-top: 5px;">
-                        </div>
-
-                    </div>
-
-                    <div style="margin-top: 20px; text-align: right;">
-                        <button type="submit" class="btn-guardar" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer;">
-                            <i class="fa-solid fa-floppy-disk"></i> Registrar Residente
-                        </button>
-                    </div>
-                </form>
+            <!-- BARRA DE HERRAMIENTAS: buscador, filtro y botón de registro -->
+            <div class="barra-herramientas">
+                <div class="buscador">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="search" id="buscadorResidentes" placeholder="Buscar por nombre, expediente o tutor..." oninput="filtrarResidentes()">
+                </div>
+                <select id="filtroEstadoResidentes" onchange="filtrarResidentes()">
+                    <option value="">Todos los estados</option>
+                    <option value="activo">Activos</option>
+                    <option value="inactivo">Inactivos</option>
+                </select>
+                <span class="conteo" id="conteoResidentes"></span>
+                <span class="espacio"></span>
+                <button type="button" class="btn-guardar" onclick="nuevoResidente()">
+                    <i class="fa-solid fa-user-plus"></i> Nuevo residente
+                </button>
             </div>
 
-            <!-- TABLA DE RESIDENTES -->
-            <div class="tarjeta-tabla" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                <h2><i class="fa-solid fa-list"></i> Listado de Residentes</h2>
-                <br>
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <!-- LISTADO DE RESIDENTES -->
+            <div class="formulario-datos sin-relleno">
+                <div class="tabla-contenedor">
+                    <table class="tabla-datos">
                         <thead>
-                            <tr style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
-                                <th style="padding: 12px;">Expediente</th>
-                                <th style="padding: 12px;">Nombre Completo</th>
-                                <th style="padding: 12px;">Tutor</th>
-                                <th style="padding: 12px;">Teléfono Tutor</th>
-                                <th style="padding: 12px;">Estado</th>
-                                <th style="padding: 12px; text-align: center;">Acciones</th>
+                            <tr>
+                                <th>Expediente</th>
+                                <th>Nombre completo</th>
+                                <th>Tutor</th>
+                                <th>Teléfono tutor</th>
+                                <th>Estado</th>
+                                <th class="centrado">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tablaResidentesBody">
@@ -144,58 +107,108 @@
                     </table>
                 </div>
             </div>
-
         </main>
     </div>
 
-    <!-- MODAL PARA ENVIAR CORREO -->
-    <div id="modalEmail" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 9999;">
-        <div style="background: white; border-radius: 8px; padding: 25px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-            <h3 style="margin-top: 0; color: #1a365d;"><i class="fa-solid fa-envelope"></i> Enviar Notificación al Tutor</h3>
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
-            
-            <form id="formEnviarCorreo" onsubmit="enviarCorreoTutor(event)">
-                <input type="hidden" id="emailResidenteNombre">
-                
-                <div style="margin-bottom: 12px;">
-                    <label style="font-size: 0.9rem; font-weight: bold;">Destinatario:</label>
-                    <input type="email" id="emailDestino" class="form-control" readonly style="width: 100%; padding: 8px; margin-top: 4px; background: #e9ecef;">
-                </div>
+    <!-- VENTANA: REGISTRO / EDICIÓN DE RESIDENTE -->
+    <div class="panel-fondo" id="panel-residente">
+        <div class="panel ancho" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-user-plus"></i> <span id="tituloPanelResidente">Registrar residente</span></h2>
+                <button type="button" class="panel-cerrar" onclick="cancelarEdicion()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <form id="formResidente" onsubmit="guardarResidente(event)">
+                    <div class="fila-2">
+                    <div class="grupo-campo">
+                        <label for="txtExpediente">No. de expediente</label>
+                        <input type="text" id="txtExpediente" placeholder="Ej. EXP-2026-01" required>
+                    </div>
+                    <div class="grupo-campo">
+                        <label for="txtNombre">Nombre completo</label>
+                        <input type="text" id="txtNombre" placeholder="Nombre completo del residente" required>
+                    </div>
+                    </div>
+                    <div class="fila-2">
+                    <div class="grupo-campo">
+                        <label for="txtFechaNacimiento">Fecha de nacimiento</label>
+                        <input type="date" id="txtFechaNacimiento" placeholder="" required>
+                    </div>
+                    <div class="grupo-campo">
+                        <label for="txtPatologia">Patología / condición</label>
+                        <input type="text" id="txtPatologia" placeholder="Padecimientos principales">
+                    </div>
+                    </div>
+                    <div class="fila-3">
+                    <div class="grupo-campo">
+                        <label for="txtTutor">Nombre del tutor</label>
+                        <input type="text" id="txtTutor" placeholder="Nombre del encargado">
+                    </div>
+                    <div class="grupo-campo">
+                        <label for="txtTelefono">Teléfono del tutor</label>
+                        <input type="tel" id="txtTelefono" placeholder="Teléfono de contacto">
+                    </div>
+                    <div class="grupo-campo">
+                        <label for="txtCorreo">Correo del tutor</label>
+                        <input type="email" id="txtCorreo" placeholder="correo@ejemplo.com">
+                    </div>
+                    </div>
+                    <div class="grupo-campo">
+                        <label for="txtMedicamentosCajon">Medicamentos de cajón (uso continuo)</label>
+                        <input type="text" id="txtMedicamentosCajon" placeholder="Ej. Losartán 50mg, Metformina 850mg (se guardan en la ficha médica base)">
+                    </div>
+                    <div class="panel-pie">
+                        <button type="button" class="btn-guardar btn-secundario" onclick="cancelarEdicion()">Cancelar</button>
+                        <button type="submit" class="btn-guardar" id="btnGuardarResidente"><i class="fa-solid fa-floppy-disk"></i> Registrar residente</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
-                <div style="margin-bottom: 12px;">
-                    <label style="font-size: 0.9rem; font-weight: bold;">Motivo / Tipo de Notificación:</label>
-                    <select id="emailTipo" class="form-control" style="width: 100%; padding: 8px; margin-top: 4px;" onchange="actualizarAsuntoPredeterminado()">
-                        <option value="MEDICAMENTO">Notificación de Medicamento / Farmacia</option>
-                        <option value="CITA">Recordatorio de Cita Médica</option>
-                        <option value="ESTADO">Informativo de Estado de Salud</option>
-                        <option value="GENERAL">Aviso General</option>
-                    </select>
-                </div>
-
-                <div style="margin-bottom: 12px;">
-                    <label style="font-size: 0.9rem; font-weight: bold;">Asunto:</label>
-                    <input type="text" id="emailAsunto" class="form-control" required style="width: 100%; padding: 8px; margin-top: 4px;">
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <label style="font-size: 0.9rem; font-weight: bold;">Mensaje:</label>
-                    <textarea id="emailMensaje" rows="4" class="form-control" required placeholder="Escriba la información relevante para el tutor..." style="width: 100%; padding: 8px; margin-top: 4px; resize: vertical;"></textarea>
-                </div>
-
-                <div style="text-align: right;">
-                    <button type="button" onclick="cerrarModalEmail()" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-right: 8px;">
-                        Cancelar
-                    </button>
-                    <button type="submit" id="btnEnviarEmailSubmit" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer;">
-                        <i class="fa-solid fa-paper-plane"></i> Enviar Correo
-                    </button>
-                </div>
-            </form>
+    <!-- VENTANA: ENVIAR CORREO AL TUTOR (la abre/cierra pacientes.js) -->
+    <div class="panel-fondo" id="modalEmail">
+        <div class="panel" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-envelope"></i> Enviar notificación al tutor</h2>
+                <button type="button" class="panel-cerrar" onclick="cerrarModalEmail()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <form id="formEnviarCorreo" onsubmit="enviarCorreoTutor(event)">
+                    <input type="hidden" id="emailResidenteNombre">
+                    <div class="grupo-campo">
+                        <label>Destinatario</label>
+                        <input type="email" id="emailDestino" readonly>
+                    </div>
+                    <div class="grupo-campo">
+                        <label>Motivo / tipo de notificación</label>
+                        <select id="emailTipo" onchange="actualizarAsuntoPredeterminado()">
+                            <option value="MEDICAMENTO">Notificación de medicamento / farmacia</option>
+                            <option value="CITA">Recordatorio de cita médica</option>
+                            <option value="ESTADO">Informativo de estado de salud</option>
+                            <option value="GENERAL">Aviso general</option>
+                        </select>
+                    </div>
+                    <div class="grupo-campo">
+                        <label>Asunto</label>
+                        <input type="text" id="emailAsunto" required>
+                    </div>
+                    <div class="grupo-campo">
+                        <label>Mensaje</label>
+                        <textarea id="emailMensaje" rows="4" required placeholder="Escriba la información relevante para el tutor..."></textarea>
+                    </div>
+                    <div class="panel-pie">
+                        <button type="button" class="btn-guardar btn-secundario" onclick="cerrarModalEmail()">Cancelar</button>
+                        <button type="submit" class="btn-guardar" id="btnEnviarEmailSubmit"><i class="fa-solid fa-paper-plane"></i> Enviar correo</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
     <!-- SCRIPTS -->
     <script src="/JS/roles.js"></script>
+    <script src="/JS/ui.js"></script>
     <script src="/JS/pacientes.js"></script>
 </body>
 </html>

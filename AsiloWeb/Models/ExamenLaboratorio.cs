@@ -21,6 +21,10 @@ namespace AsiloWeb.Models
         [Column("id_paciente")]
         public int IdPaciente { get; set; }
 
+        // Visita medica que solicito el examen (RF-07). Opcional.
+        [Column("id_cita")]
+        public int? IdCita { get; set; }
+
         [Column("tipo_examen")]
         public string TipoExamen { get; set; } = string.Empty;
 

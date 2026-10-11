@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AsiloWeb.Data;
@@ -9,6 +10,7 @@ namespace AsiloWeb.Controllers
     // RF-13 (donaciones, cuotas y gastos), CU-04.
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "ADMINISTRADOR")]
     public class CajaController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -106,7 +108,50 @@ namespace AsiloWeb.Controllers
             if (pago == null) return NotFound();
             pago.Estado = datos.Estado;
             await _context.SaveChangesAsync();
+
+            // RF-12: si el cobro pertenece a una cita, su estado de pago se
+            // recalcula (queda "Pagado" solo cuando ya no hay cobros pendientes).
+            if (pago.IdCita.HasValue)
+            {
+                var cita = await _context.CitasMedicas.FindAsync(pago.IdCita.Value);
+                if (cita != null)
+                {
+                    var quedanPendientes = await _context.PagosFundacion
+                        .AnyAsync(p => p.IdCita == pago.IdCita && p.Estado == "Pendiente");
+                    cita.EstadoPago = quedanPendientes ? "Pendiente" : "Pagado";
+                    await _context.SaveChangesAsync();
+                }
+            }
             return Ok(pago);
+        }
+
+        // RF-12: citas atendidas que todavia no estan completamente canceladas
+        [HttpGet("citas-pendientes-pago")]
+        public async Task<IActionResult> CitasPendientesDePago()
+        {
+            var cobros = await _context.PagosFundacion
+                .Where(p => p.IdCita != null && p.Estado == "Pendiente")
+                .ToListAsync();
+
+            var saldos = cobros
+                .GroupBy(p => p.IdCita!.Value)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Monto));
+
+            var ids = saldos.Keys.ToList();
+            var citas = await _context.CitasMedicas
+                .Where(c => ids.Contains(c.IdCita))
+                .OrderBy(c => c.FechaCita)
+                .ToListAsync();
+
+            return Ok(citas.Select(c => new
+            {
+                c.IdCita,
+                c.IdPaciente,
+                c.EspecialidadSolicitada,
+                c.FechaCita,
+                c.Estado,
+                saldoPendiente = saldos[c.IdCita]
+            }));
         }
 
         // ---- Gastos operativos (RF-13) ----

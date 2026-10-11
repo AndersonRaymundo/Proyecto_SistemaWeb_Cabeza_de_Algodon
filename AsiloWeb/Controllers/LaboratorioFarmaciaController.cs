@@ -1,78 +1,85 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AsiloWeb.Data;
 using AsiloWeb.Models;
+using AsiloWeb.Services;
 
 namespace AsiloWeb.Controllers
 {
-    // RF-08 (laboratorio) y RF-09 (farmacia/despacho).
+    // RF-08 (laboratorio registra resultados), RF-09 (farmacia controla el
+    // despacho) y RF-10 (el costo se carga solo a la cuenta del familiar).
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "ADMINISTRADOR,DOCTOR,FARMACIA,LABORATORIO")]
     public class LaboratorioFarmaciaController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly FacturacionService _facturacion;
+        private readonly ExpedienteService _expediente;
 
-        public LaboratorioFarmaciaController(AppDbContext context)
+        public LaboratorioFarmaciaController(AppDbContext context, FacturacionService facturacion, ExpedienteService expediente)
         {
             _context = context;
+            _facturacion = facturacion;
+            _expediente = expediente;
         }
 
-        // Busca la ficha medica base del paciente; si no existe todavia, crea
-        // una vacia automaticamente (RF-08 no exige que el laboratorio sepa
-        // el id_ficha de memoria, solo el paciente).
-        private async Task<FichaMedica> ObtenerOCrearFichaAsync(int idPaciente)
-        {
-            var ficha = await _context.FichasMedicas.FirstOrDefaultAsync(f => f.IdPaciente == idPaciente);
-            if (ficha == null)
-            {
-                ficha = new FichaMedica { IdPaciente = idPaciente, DiagnosticoBase = "" };
-                _context.FichasMedicas.Add(ficha);
-                await _context.SaveChangesAsync();
-            }
-            return ficha;
-        }
+        private int IdUsuarioActual =>
+            int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
 
-        // ---- Examenes de laboratorio ----
+        // =====================  LABORATORIO  =====================
 
         public class ExamenRequest
         {
             public int IdPaciente { get; set; }
             public string TipoExamen { get; set; } = string.Empty;
             public string? Resultados { get; set; }
-            public decimal Costo { get; set; }
+            public decimal PrecioLista { get; set; }
         }
 
+        // Examen directo (paciente que llega al laboratorio sin visita previa)
         [HttpPost("examenes")]
+        [Authorize(Roles = "ADMINISTRADOR,DOCTOR,LABORATORIO")]
         public async Task<IActionResult> CrearExamen(ExamenRequest datos)
         {
-            var ficha = await ObtenerOCrearFichaAsync(datos.IdPaciente);
+            var ficha = await _expediente.ObtenerOCrearFichaAsync(datos.IdPaciente, IdUsuarioActual);
             var examen = new ExamenLaboratorio
             {
                 IdFicha = ficha.IdFicha,
                 IdPaciente = datos.IdPaciente,
                 TipoExamen = datos.TipoExamen,
                 Resultados = datos.Resultados,
-                Costo = datos.Costo
+                Costo = _facturacion.AplicarDescuento(datos.PrecioLista)
             };
             _context.ExamenesLaboratorio.Add(examen);
             await _context.SaveChangesAsync();
+
+            await _facturacion.CargarAFamiliaAsync(datos.IdPaciente, $"Examen: {datos.TipoExamen}", datos.PrecioLista, null);
             return Ok(examen);
         }
 
+        // soloPendientes=true -> examenes solicitados en una visita que aun no tienen resultado
         [HttpGet("examenes")]
-        public async Task<IActionResult> ListarExamenes()
+        [Authorize(Roles = "ADMINISTRADOR,DOCTOR,LABORATORIO")]
+        public async Task<IActionResult> ListarExamenes([FromQuery] bool soloPendientes = false)
         {
-            var examenes = await _context.ExamenesLaboratorio
-                .OrderByDescending(e => e.FechaRegistro)
-                .ToListAsync();
+            var query = _context.ExamenesLaboratorio.AsQueryable();
+            if (soloPendientes)
+                query = query.Where(e => e.Resultados == null || e.Resultados == "");
+
+            var examenes = await query.OrderByDescending(e => e.FechaRegistro).ToListAsync();
             return Ok(examenes);
         }
 
         [HttpGet("examenes/residente/{idPaciente}")]
+        [Authorize(Roles = "ADMINISTRADOR,DOCTOR,LABORATORIO")]
         public async Task<IActionResult> ExamenesPorResidente(int idPaciente)
         {
             var examenes = await _context.ExamenesLaboratorio
                 .Where(e => e.IdPaciente == idPaciente)
+                .OrderByDescending(e => e.FechaRegistro)
                 .ToListAsync();
             return Ok(examenes);
         }
@@ -80,19 +87,32 @@ namespace AsiloWeb.Controllers
         public class ResultadoRequest
         {
             public string Resultados { get; set; } = string.Empty;
+            public decimal PrecioLista { get; set; }
         }
 
+        // RF-08: el laboratorio registra el resultado; si el examen aun no tenia
+        // costo, se aplica el descuento y se carga al familiar (RF-10).
         [HttpPut("examenes/{id}/resultado")]
+        [Authorize(Roles = "ADMINISTRADOR,DOCTOR,LABORATORIO")]
         public async Task<IActionResult> RegistrarResultado(int id, ResultadoRequest datos)
         {
             var examen = await _context.ExamenesLaboratorio.FindAsync(id);
             if (examen == null) return NotFound();
+
             examen.Resultados = datos.Resultados;
+            examen.FechaRegistro = DateTime.Now;
+
+            var cobrar = examen.Costo == 0 && datos.PrecioLista > 0;
+            if (cobrar) examen.Costo = _facturacion.AplicarDescuento(datos.PrecioLista);
             await _context.SaveChangesAsync();
+
+            if (cobrar)
+                await _facturacion.CargarAFamiliaAsync(examen.IdPaciente, $"Examen: {examen.TipoExamen}", datos.PrecioLista, examen.IdCita);
+
             return Ok(examen);
         }
 
-        // ---- Medicamentos recetados / despacho de farmacia ----
+        // =====================  FARMACIA  =====================
 
         public class MedicamentoRequest
         {
@@ -100,10 +120,12 @@ namespace AsiloWeb.Controllers
             public string NombreMedicamento { get; set; } = string.Empty;
             public string? Cantidad { get; set; }
             public string? TiempoAplicacion { get; set; }
-            public decimal Costo { get; set; }
+            public decimal PrecioLista { get; set; }
         }
 
+        // Despacho directo (sin receta previa en una visita)
         [HttpPost("medicamentos")]
+        [Authorize(Roles = "ADMINISTRADOR,DOCTOR,FARMACIA")]
         public async Task<IActionResult> CrearMedicamento(MedicamentoRequest datos)
         {
             var medicamento = new MedicamentoRecetado
@@ -112,84 +134,67 @@ namespace AsiloWeb.Controllers
                 NombreMedicamento = datos.NombreMedicamento,
                 Cantidad = datos.Cantidad,
                 TiempoAplicacion = datos.TiempoAplicacion,
-                Costo = datos.Costo
+                Costo = _facturacion.AplicarDescuento(datos.PrecioLista),
+                Despachado = true,
+                FechaDespacho = DateTime.Now
             };
             _context.MedicamentosRecetados.Add(medicamento);
             await _context.SaveChangesAsync();
+
+            await _facturacion.CargarAFamiliaAsync(datos.IdPaciente, $"Medicamento: {datos.NombreMedicamento}", datos.PrecioLista, null);
             return Ok(medicamento);
         }
 
+        // soloPendientes=true -> recetados en una visita que farmacia aun no despacha
         [HttpGet("medicamentos")]
-        public async Task<IActionResult> ListarMedicamentos()
+        [Authorize(Roles = "ADMINISTRADOR,DOCTOR,FARMACIA")]
+        public async Task<IActionResult> ListarMedicamentos([FromQuery] bool soloPendientes = false)
+        {
+            var query = _context.MedicamentosRecetados.AsQueryable();
+            if (soloPendientes)
+                query = query.Where(m => !m.Despachado);
+
+            var medicamentos = await query.OrderByDescending(m => m.FechaDespacho).ToListAsync();
+            return Ok(medicamentos);
+        }
+
+        [HttpGet("medicamentos/residente/{idPaciente}")]
+        [Authorize(Roles = "ADMINISTRADOR,DOCTOR,FARMACIA")]
+        public async Task<IActionResult> MedicamentosPorResidente(int idPaciente)
         {
             var medicamentos = await _context.MedicamentosRecetados
+                .Where(m => m.IdPaciente == idPaciente)
                 .OrderByDescending(m => m.FechaDespacho)
                 .ToListAsync();
             return Ok(medicamentos);
         }
 
-        [HttpGet("medicamentos/residente/{idPaciente}")]
-        public async Task<IActionResult> MedicamentosPorResidente(int idPaciente)
+        public class DespacharRequest
         {
-            var medicamentos = await _context.MedicamentosRecetados
-                .Where(m => m.IdPaciente == idPaciente)
-                .ToListAsync();
-            return Ok(medicamentos);
-        }
-
-        // Endpoint combinado: coincide con el formulario unico del frontend
-        // (registra examen y/o medicamento en una sola llamada, eligiendo
-        // solo al residente).
-        public class RegistroCompletoRequest
-        {
-            public int IdPaciente { get; set; }
-            public string? TipoExamen { get; set; }
-            public string? Resultados { get; set; }
-            public decimal CostoExamen { get; set; }
-            public string? NombreMedicamento { get; set; }
+            public decimal PrecioLista { get; set; }
             public string? Cantidad { get; set; }
-            public string? TiempoAplicacion { get; set; }
-            public decimal CostoMedicamento { get; set; }
         }
 
-        [HttpPost("registro-completo")]
-        public async Task<IActionResult> RegistroCompleto(RegistroCompletoRequest datos)
+        // RF-09: farmacia despacha el medicamento recetado y asocia su costo a la visita
+        [HttpPut("medicamentos/{id}/despachar")]
+        [Authorize(Roles = "ADMINISTRADOR,DOCTOR,FARMACIA")]
+        public async Task<IActionResult> Despachar(int id, DespacharRequest datos)
         {
-            ExamenLaboratorio? examen = null;
-            MedicamentoRecetado? medicamento = null;
+            var medicamento = await _context.MedicamentosRecetados.FindAsync(id);
+            if (medicamento == null) return NotFound();
+            if (medicamento.Despachado)
+                return BadRequest(new { message = "Este medicamento ya fue despachado." });
 
-            if (!string.IsNullOrWhiteSpace(datos.TipoExamen))
-            {
-                var ficha = await ObtenerOCrearFichaAsync(datos.IdPaciente);
-                examen = new ExamenLaboratorio
-                {
-                    IdFicha = ficha.IdFicha,
-                    IdPaciente = datos.IdPaciente,
-                    TipoExamen = datos.TipoExamen,
-                    Resultados = datos.Resultados,
-                    Costo = datos.CostoExamen
-                };
-                _context.ExamenesLaboratorio.Add(examen);
-            }
-
-            if (!string.IsNullOrWhiteSpace(datos.NombreMedicamento))
-            {
-                medicamento = new MedicamentoRecetado
-                {
-                    IdPaciente = datos.IdPaciente,
-                    NombreMedicamento = datos.NombreMedicamento,
-                    Cantidad = datos.Cantidad,
-                    TiempoAplicacion = datos.TiempoAplicacion,
-                    Costo = datos.CostoMedicamento
-                };
-                _context.MedicamentosRecetados.Add(medicamento);
-            }
-
-            if (examen == null && medicamento == null)
-                return BadRequest(new { message = "Debe incluir al menos un examen o un medicamento." });
-
+            medicamento.Despachado = true;
+            medicamento.FechaDespacho = DateTime.Now;
+            medicamento.Costo = _facturacion.AplicarDescuento(datos.PrecioLista);
+            if (!string.IsNullOrWhiteSpace(datos.Cantidad)) medicamento.Cantidad = datos.Cantidad;
             await _context.SaveChangesAsync();
-            return Ok(new { examen, medicamento });
+
+            await _facturacion.CargarAFamiliaAsync(
+                medicamento.IdPaciente, $"Medicamento: {medicamento.NombreMedicamento}", datos.PrecioLista, medicamento.IdCita);
+
+            return Ok(medicamento);
         }
     }
 }

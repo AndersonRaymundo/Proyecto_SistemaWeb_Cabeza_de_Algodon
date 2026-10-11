@@ -1,3 +1,7 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AsiloWeb.Data;
@@ -9,6 +13,7 @@ namespace AsiloWeb.Controllers
     // Bcrypt), y bloquea la cuenta 15 minutos tras 3 intentos fallidos.
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -27,6 +32,7 @@ namespace AsiloWeb.Controllers
         }
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login(LoginRequest datos)
         {
             var usuario = await _context.Usuarios
@@ -69,6 +75,20 @@ namespace AsiloWeb.Controllers
             usuario.IntentosFallidos = 0;
             await _context.SaveChangesAsync();
 
+            // Sesion en el servidor (cookie): es lo que protege las paginas y la API (RNF-02)
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString()),
+                new Claim(ClaimTypes.Name, usuario.NombreUsuario),
+                new Claim("NombreCompleto", usuario.NombreCompleto),
+                new Claim(ClaimTypes.Role, usuario.Rol)
+            };
+            var identidad = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(identidad),
+                new AuthenticationProperties { IsPersistent = false });
+
             return Ok(new
             {
                 idUsuario = usuario.IdUsuario,
@@ -79,6 +99,30 @@ namespace AsiloWeb.Controllers
         }
 
         // --- Gestión de usuarios (para una futura pantalla de Configuración) ---
+
+        // Devuelve quien tiene la sesion abierta segun el servidor (no segun el navegador)
+        [HttpGet("sesion")]
+        public IActionResult Sesion()
+        {
+            return Ok(new
+            {
+                idUsuario = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0,
+                nombreUsuario = User.Identity?.Name,
+                nombreCompleto = User.FindFirstValue("NombreCompleto"),
+                rol = User.FindFirstValue(ClaimTypes.Role)
+            });
+        }
+
+        [HttpPost("logout")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return Ok(new { message = "Sesión cerrada." });
+        }
+
+        private static readonly string[] RolesValidos =
+            { "ADMINISTRADOR", "DOCTOR", "ENFERMERO", "FARMACIA", "FUNDACION", "LABORATORIO" };
 
         public class UsuarioCreateRequest
         {
@@ -107,8 +151,12 @@ namespace AsiloWeb.Controllers
         }
 
         [HttpPost("usuarios")]
+        [Authorize(Roles = "ADMINISTRADOR")]
         public async Task<IActionResult> CrearUsuario(UsuarioCreateRequest datos)
         {
+            if (!RolesValidos.Contains(datos.Rol))
+                return BadRequest(new { message = "Rol inválido." });
+
             if (await _context.Usuarios.AnyAsync(u => u.NombreUsuario == datos.NombreUsuario))
                 return Conflict(new { message = "Ese nombre de usuario ya existe." });
 

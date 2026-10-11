@@ -9,7 +9,7 @@
 
 </head>
 
-<body>
+<body class="pagina-inicio">
  <header class="barra-superior">
     <div class="logo-top"></div>
     <div class="usuario-info">
@@ -38,19 +38,19 @@
     
     <!-- MENÚ LATERAL -->
     <nav class="menu-lateral">
-        <a href="/Home/MENU" class="opcion-menu activa" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+        <a href="/Home/MENU" class="opcion-menu activa" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
             <i class="fa-solid fa-house"></i> INICIO
         </a>
         <a href="/Residentes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
             <i class="fa-solid fa-hospital-user"></i> PACIENTES
         </a>
-        <a href="/Citas" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
+        <a href="/Citas" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FUNDACION">
             <i class="fa-solid fa-calendar-check"></i> SOLICITUDES Y CITAS
         </a>
         <a href="/Historial" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
             <i class="fa-solid fa-notes-medical"></i> HISTORIAL MÉDICO
         </a>
-        <a href="/LaboratorioFarmacia" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA">
+        <a href="/LaboratorioFarmacia" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA,LABORATORIO">
             <i class="fa-solid fa-vials"></i> LAB Y FARMACIA
         </a>
         <a href="/Reportes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
@@ -67,16 +67,58 @@
         </a>
 
         <!-- CERRAR SESIÓN -->
-        <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+        <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
             <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
         </a>
     </nav>
 
     <main class="area-trabajo">
-        <div class="logo-menu">   
-            <h1>Bienvenido al Sistema</h1>
-            <img src="~/imagen sesion/logo.jpg" alt="logo" class="logo-inico">
-            <p>Selecciona una opción del menú lateral para comenzar.</p>
+            <div class="bienvenida">
+                <div>
+                    <h1>Bienvenido(a), <span id="bienvenida-nombre">al Sistema</span></h1>
+                    <p>Sistema de administración del asilo de ancianos Cabeza de Algodón. Seleccione un módulo para comenzar a trabajar.</p>
+                    <span class="fecha-hoy"><i class="fa-solid fa-calendar-day"></i> <span id="fecha-hoy"></span></span>
+                </div>
+                <img src="~/imagen sesion/logo.jpg" alt="Cabeza de Algodón">
+            </div>
+
+            <div class="modulos-titulo">Accesos rápidos</div>
+            <div class="modulos">
+                <a href="/Residentes" class="tarjeta-modulo" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
+                    <div class="icono"><i class="fa-solid fa-hospital-user"></i></div>
+                    <strong>Pacientes</strong>
+                    <span class="desc">Registro, edición y estado de los residentes del asilo.</span>
+                </a>
+                <a href="/Citas" class="tarjeta-modulo" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FUNDACION">
+                    <div class="icono"><i class="fa-solid fa-calendar-check"></i></div>
+                    <strong>Solicitudes y Citas</strong>
+                    <span class="desc">Remisiones, agenda de la Fundación y visitas médicas.</span>
+                </a>
+                <a href="/Historial" class="tarjeta-modulo" data-rol="ADMINISTRADOR,DOCTOR">
+                    <div class="icono"><i class="fa-solid fa-notes-medical"></i></div>
+                    <strong>Historial Médico</strong>
+                    <span class="desc">Expediente clínico completo de cada residente.</span>
+                </a>
+                <a href="/LaboratorioFarmacia" class="tarjeta-modulo" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA,LABORATORIO">
+                    <div class="icono"><i class="fa-solid fa-vials"></i></div>
+                    <strong>Lab y Farmacia</strong>
+                    <span class="desc">Resultados de exámenes y despacho de medicamentos.</span>
+                </a>
+                <a href="/Reportes" class="tarjeta-modulo" data-rol="ADMINISTRADOR,DOCTOR">
+                    <div class="icono"><i class="fa-solid fa-chart-line"></i></div>
+                    <strong>Reportes</strong>
+                    <span class="desc">Informes en PDF con los datos del sistema.</span>
+                </a>
+                <a href="/Caja" class="tarjeta-modulo" data-rol="ADMINISTRADOR">
+                    <div class="icono"><i class="fa-solid fa-cash-register"></i></div>
+                    <strong>Caja y Finanzas</strong>
+                    <span class="desc">Cobros, donaciones, gastos y cuentas por cobrar.</span>
+                </a>
+                <a href="/Paginas/Configuracion" class="tarjeta-modulo" data-rol="ADMINISTRADOR">
+                    <div class="icono"><i class="fa-solid fa-gear"></i></div>
+                    <strong>Configuración</strong>
+                    <span class="desc">Parámetros generales de la institución.</span>
+                </a>
             </div>
         </main>
 

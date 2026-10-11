@@ -35,5 +35,10 @@ namespace AsiloWeb.Models
         // Pendiente | Pagado
         [Column("estado")]
         public string Estado { get; set; } = "Pendiente";
+
+        // RF-12: cita que origino el cobro (si aplica), para saber que citas
+        // aun no estan completamente canceladas por el familiar.
+        [Column("id_cita")]
+        public int? IdCita { get; set; }
     }
 }

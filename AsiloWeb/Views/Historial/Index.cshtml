@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
 </head>
-<body>
+<body class="pagina-historial">
    <header class="barra-superior">
     <div class="logo-top"></div>
     <div class="usuario-info">
@@ -35,19 +35,19 @@
     
     <!-- MENÚ LATERAL -->
     <nav class="menu-lateral">
-        <a href="/Home/MENU" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+        <a href="/Home/MENU" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
             <i class="fa-solid fa-house"></i> INICIO
         </a>
         <a href="/Residentes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
             <i class="fa-solid fa-hospital-user"></i> PACIENTES
         </a>
-        <a href="/Citas" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
+        <a href="/Citas" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FUNDACION">
             <i class="fa-solid fa-calendar-check"></i> SOLICITUDES Y CITAS
         </a>
         <a href="/Historial" class="opcion-menu activa" data-rol="ADMINISTRADOR,DOCTOR">
             <i class="fa-solid fa-notes-medical"></i> HISTORIAL MÉDICO
         </a>
-        <a href="/LaboratorioFarmacia" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA">
+        <a href="/LaboratorioFarmacia" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA,LABORATORIO">
             <i class="fa-solid fa-vials"></i> LAB Y FARMACIA
         </a>
         <a href="/Reportes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
@@ -64,89 +64,98 @@
         </a>
 
         <!-- CERRAR SESIÓN -->
-        <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA">
+        <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
             <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
         </a>
     </nav>
         
      <main class="area-trabajo">
-    <h1><i class="fa-solid fa-notes-medical"></i> Ficha Médica e Historial Clínico</h1>
-    <p>Consulta de expedientes y registro de nuevas evaluaciones médicas</p>
-    <br>
+            <h1><i class="fa-solid fa-notes-medical"></i> Ficha Médica e Historial Clínico</h1>
+            <p>Consulta del expediente completo del residente y registro de nuevas evaluaciones médicas</p>
 
-    <!-- CONSULTA Y BÚSQUEDA L -->
-    <div class="formulario-datos">
-        <h2><i class="fa-solid fa-folder-open"></i> Consultar Expediente del Residente</h2>
-        <br>
-        <div class="grupo-campo">
-            <label>Seleccionar Residente:</label>
-            <!-- Select actualizado con el ID que usará JavaScript -->
-            <select id="select-paciente-historial" name="id_paciente" placeholder="Escriba el nombre o expediente..."></select>
+            <div class="formulario-datos">
+                <h2><i class="fa-solid fa-folder-open"></i> Expediente del residente</h2>
+                <div class="selector-residente">
+                    <div class="grupo-campo">
+                        <label>Seleccionar residente:</label>
+                        <select id="select-paciente-historial" name="id_paciente" placeholder="Escriba el nombre o expediente..."></select>
+                    </div>
+                    <button type="button" class="btn-guardar" id="btnNuevaEvaluacion" data-abrir="panel-evaluacion" disabled>
+                        <i class="fa-solid fa-file-medical"></i> Nueva evaluación
+                    </button>
+                </div>
+            </div>
+
+            <!-- Aquí se dibuja el expediente en pestañas: ficha base, consultas, exámenes y medicación -->
+            <div id="contenedor-historial">
+                <div class="formulario-datos"><p class="vacio">Seleccione un residente para consultar su expediente clínico.</p></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- VENTANA: Nueva evaluación / ficha clínica del día -->
+    <div class="panel-fondo" id="panel-evaluacion">
+        <div class="panel ancho" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-file-medical"></i> Nueva evaluación / ficha clínica del día</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <p>Se registra para el residente seleccionado. Los exámenes pasan a Laboratorio y el medicamento a Farmacia.</p>
+                <form id="form-ficha-medica">
+                    <div class="fila-2">
+                        <div class="grupo-campo">
+                            <label>Motivo de consulta / síntomas:</label>
+                            <input type="text" id="motivo" name="motivo" required placeholder="Ingrese motivo...">
+                        </div>
+                        <div class="grupo-campo">
+                            <label>Examen de laboratorio a solicitar (opcional):</label>
+                            <input type="text" id="examen-solicitado" placeholder="Ej. Perfil lipídico">
+                        </div>
+                    </div>
+                    <div class="grupo-campo">
+                        <label>Diagnóstico médico:</label>
+                        <textarea id="diagnostico" name="diagnostico" rows="3" required placeholder="Ingrese diagnóstico..."></textarea>
+                    </div>
+                    <div class="grupo-campo">
+                        <label>Medicamento / tratamiento recetado (opcional):</label>
+                        <textarea id="tratamiento" name="tratamiento" rows="2" placeholder="Ej. Losartán 50mg"></textarea>
+                    </div>
+                    <div class="fila-2">
+                        <div class="grupo-campo">
+                            <label>Cantidad:</label>
+                            <input type="text" id="cantidad-medicamento" placeholder="Ej. 30 tabletas">
+                        </div>
+                        <div class="grupo-campo">
+                            <label>Tiempo de aplicación:</label>
+                            <input type="text" id="tiempo-aplicacion" placeholder="Ej. 1 cada 12 h por 30 días">
+                        </div>
+                    </div>
+                    <div class="fila-2">
+                        <div class="grupo-campo">
+                            <label>Precio de la consulta, precio de lista (Q):</label>
+                            <input type="number" step="0.01" min="0" id="precio-consulta" placeholder="0.00">
+                            <small id="precio-final" style="color:#1e7e34;"></small>
+                        </div>
+                        <div class="grupo-campo">
+                            <label>Observaciones adicionales:</label>
+                            <input type="text" id="observaciones" name="observaciones" placeholder="Ingrese observaciones...">
+                        </div>
+                    </div>
+                <div class="panel-pie">
+                    <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
+                    <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Registrar ficha clínica</button>
+                </div>
+                </form>
+            </div>
         </div>
     </div>
 
-    <br>
-    <!--Contenedor donde javascrip/backend. renderizara la lista de visitas de la bd -->
-    <div id="contenedor-historial">
-        <!-- Se llena dinámicamente mediante Fetch / AJAX desde la bd -->
-    </div>
-
-    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
-
-
-            <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
-
-            <!-- Formulario de nueva ficha medica -->
-            <form class="formulario-datos" id="form-ficha-medica">
-                <h2><i class="fa-solid fa-file-medical"></i> Nueva Evaluación / Ficha Clínica del Día</h2>
-                <br>
-                <div class="grupo-campo">
-                    <label>Motivo de Consulta / Síntomas:</label>
-                    <input type="text" id="motivo" name="motivo" required placeholder="Ingrese motivo...">
-                </div>
-                <div class="grupo-campo">
-                    <label>Diagnóstico Médico:</label>
-                    <textarea id="diagnostico" name="diagnostico" rows="3" required placeholder="Ingrese diagnóstico..."></textarea>
-                </div>
-                <div class="grupo-campo">
-                    <label>Tratamiento / Prescripción Médica:</label>
-                    <textarea id="tratamiento" name="tratamiento" rows="2" required placeholder="Ingrese tratamiento..."></textarea>
-                </div>
-                <div class="grupo-campo">
-                    <label>Observaciones Adicionales:</label>
-                    <input type="text" id="observaciones" name="observaciones" placeholder="Ingrese observaciones...">
-                </div>
-                
-                <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Registrar Ficha Clínica</button>
-            </form>
-        </main>
-    </div>
     <!-- SCRIPT CONTROLADOR DE ROLES -->
     <script src="~/JS/roles.js"></script>
+    <script src="~/JS/ui.js"></script>
     <script src="~/JS/historial-medico.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        new TomSelect('#select-paciente-historial', {
-            valueField: 'id',
-            labelField: 'text',
-            searchField: 'text',
-            load: function(query, callback) {
-                if (!query.length) return callback();
-                
-                // Consulta directo al endpoint de búsqueda del microservicio
-                fetch('http://localhost:8000/api/Residentes/buscar?q=' + encodeURIComponent(query))
-                    .then(response => response.json())
-                    .then(json => {
-                        callback(json);
-                    })
-                    .catch(() => {
-                        callback();
-                    });
-            }
-        });
-    });
-</script>
 </body>
 </html>

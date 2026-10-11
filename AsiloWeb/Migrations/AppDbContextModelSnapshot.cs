@@ -140,6 +140,10 @@ namespace BackendAsilo.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("fecha_registro");
 
+                    b.Property<int?>("IdCita")
+                        .HasColumnType("int")
+                        .HasColumnName("id_cita");
+
                     b.Property<int>("IdFicha")
                         .HasColumnType("int")
                         .HasColumnName("id_ficha");
@@ -243,6 +247,10 @@ namespace BackendAsilo.Migrations
                         .HasColumnType("decimal(10,2)")
                         .HasColumnName("costo");
 
+                    b.Property<bool>("Despachado")
+                        .HasColumnType("bit")
+                        .HasColumnName("despachado");
+
                     b.Property<DateTime>("FechaDespacho")
                         .HasColumnType("datetime2")
                         .HasColumnName("fecha_despacho");
@@ -291,6 +299,10 @@ namespace BackendAsilo.Migrations
                     b.Property<DateTime>("FechaPago")
                         .HasColumnType("datetime2")
                         .HasColumnName("fecha_pago");
+
+                    b.Property<int?>("IdCita")
+                        .HasColumnType("int")
+                        .HasColumnName("id_cita");
 
                     b.Property<int>("IdPaciente")
                         .HasColumnType("int")

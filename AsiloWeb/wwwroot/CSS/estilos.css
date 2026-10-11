@@ -1,3 +1,24 @@
+/* ==========================================================================
+   SISTEMA DE ADMINISTRACIÓN - ASILO CABEZA DE ALGODÓN
+   Archivo: estilos.css
+   Estilos de la PANTALLA DE LOGIN (Views/Auth/Login.cshtml).
+   Las demás pantallas usan dashboard.css.
+
+   ÍNDICE
+   ------------------------------------------------------------------------
+   1. Reinicio y fondo
+   2. Tarjeta de acceso y logo
+   3. Campos de usuario y contraseña
+   4. Botón "MOSTRAR" contraseña
+   5. Enlace "¿Olvidaste la contraseña?"
+   6. Botón "Iniciar Sesión"
+   7. Ventana de bienvenida (modal)
+   ========================================================================== */
+
+/* ==========================================================================
+   1. REINICIO Y FONDO
+   Degradado azul de fondo y tarjeta centrada en la pantalla.
+   ========================================================================== */
 /* Reseteo básico para eliminar bordes feos del navegador */
 * {
     box-sizing: border-box;
@@ -15,6 +36,10 @@ body {
     align-items: center;
 }
 
+/* ==========================================================================
+   2. TARJETA DE ACCESO Y LOGO
+   Caja blanca central con el logo institucional (.logo-login) y los títulos.
+   ========================================================================== */
 /* Estilo de la tarjeta blanca */
 .logo-login {
   max-width: 280px; /* Controla el tamaño para que no ocupe toda la pantalla */
@@ -46,6 +71,10 @@ body {
     text-align: center;
 }
 
+/* ==========================================================================
+   3. CAMPOS DE USUARIO Y CONTRASEÑA
+   Cada campo es una línea inferior con su etiqueta e icono arriba.
+   ========================================================================== */
 /* 1. La línea gris inferior que abraza todo el campo */
 .contenedor-fila {
   margin-bottom: 20px;
@@ -74,6 +103,10 @@ body {
     margin-bottom: 4px;
 }
 
+/* ==========================================================================
+   4. BOTÓN "MOSTRAR" CONTRASEÑA
+   Alterna la contraseña entre oculta y visible (lo controla MostrarContra.js).
+   ========================================================================== */
 /* Quita el borde feo del botón y lo pega justo debajo de la línea */
 .btn-mostrar {
     background: transparent;
@@ -92,11 +125,17 @@ body {
     color: #004080;
 }
 
+/* ==========================================================================
+   5. ENLACE "¿OLVIDASTE LA CONTRASEÑA?"
+   ========================================================================== */
 .olvidoContra p{
 font-size: 14px;
 text-align: left;
 }
 
+/* ==========================================================================
+   6. BOTÓN "INICIAR SESIÓN"
+   ========================================================================== */
 /* 4. Estilo para tu botón */
 .boton {
   background-color: #0b559b;
@@ -112,10 +151,17 @@ text-align: left;
   gap: 8px;
 }
 
-/* Efecto al pasar el mouse sobre el botón */
+/* Color base del botón y efecto al pasar el mouse */
 .boton {
     background-color: #3b5998;
 }
+.boton:hover {
+    background-color: #0b559b;
+}
+/* ==========================================================================
+   7. VENTANA DE BIENVENIDA (MODAL)
+   Mensaje "¡Bienvenido al Sistema!" que aparece al ingresar correctamente.
+   ========================================================================== */
 /* Fondo oscuro semitransparente */
 .modal-fondo {
     display: none; /* Oculto por defecto */

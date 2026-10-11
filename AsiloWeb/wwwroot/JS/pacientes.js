@@ -17,7 +17,7 @@ async function cargarResidentes() {
         
         if (tablaBody) {
             if (!Array.isArray(residentes) || residentes.length === 0) {
-                tablaBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 15px; color: #777;">No hay residentes registrados.</td></tr>`;
+                tablaBody.innerHTML = `<tr><td colspan="6" class="centrado" style="padding: 28px; color: #64748b;">Aún no hay residentes registrados.</td></tr>`;
                 return;
             }
 
@@ -32,24 +32,20 @@ async function cargarResidentes() {
                 const est = (r.estado !== undefined ? r.estado : r.Estado) ?? true;
 
                 filas += `
-                    <tr style="border-bottom: 1px solid #e9ecef;">
-                        <td style="padding: 12px; font-weight: 600; color: #2c3e50;">${exp}</td>
-                        <td style="padding: 12px; color: #333;">${nom}</td>
-                        <td style="padding: 12px; color: #555;">${tut}</td>
-                        <td style="padding: 12px; color: #555;">${tel}</td>
-                        <td style="padding: 12px;">
-                            <span style="background: ${est ? '#e6f4ea' : '#fce8e6'}; color: ${est ? '#1e7e34' : '#c5221f'}; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: bold;">
-                                ${est ? 'Activo' : 'Inactivo'}
-                            </span>
-                        </td>
-                        <td style="padding: 12px; text-align: center;">
-                            <button onclick='abrirModalEmail("${correo}", "${nom}", "${tut}")' title="Enviar Correo al Tutor" style="background: #007bff; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; margin-right: 4px;">
+                    <tr data-estado="${est ? 'activo' : 'inactivo'}">
+                        <td>${exp}</td>
+                        <td>${nom}</td>
+                        <td>${tut}</td>
+                        <td>${tel}</td>
+                        <td><span class="badge ${est ? 'badge-exito' : 'badge-peligro'}">${est ? 'Activo' : 'Inactivo'}</span></td>
+                        <td class="centrado">
+                            <button class="btn-icono azul" onclick='abrirModalEmail("${correo}", "${nom}", "${tut}")' title="Enviar Correo al Tutor">
                                 <i class="fa-solid fa-envelope"></i>
                             </button>
-                            <button onclick='prepararEdicion(${JSON.stringify(r)})' title="Editar" style="background: #17a2b8; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; margin-right: 4px;">
+                            <button class="btn-icono celeste" onclick='prepararEdicion(${JSON.stringify(r)})' title="Editar">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
-                            <button onclick="cambiarEstado(${id}, ${!est})" title="${est ? 'Dar de Baja' : 'Reactivar'}" style="background: ${est ? '#ffc107' : '#28a745'}; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;">
+                            <button class="btn-icono ${est ? 'ambar' : 'verde'}" onclick="cambiarEstado(${id}, ${!est})" title="${est ? 'Dar de Baja' : 'Reactivar'}">
                                 <i class="fa-solid ${est ? 'fa-user-slash' : 'fa-user-check'}"></i>
                             </button>
                         </td>
@@ -57,6 +53,7 @@ async function cargarResidentes() {
                 `;
             });
             tablaBody.innerHTML = filas;
+            filtrarResidentes();
         }
     } catch (err) {
         console.error("Error al cargar la tabla:", err);
@@ -72,6 +69,7 @@ async function guardarResidente(event) {
     const correoTutor = document.getElementById('txtCorreo').value;
     const nombreTutor = document.getElementById('txtTutor').value;
     const nombrePaciente = document.getElementById('txtNombre').value;
+    const medicamentosCajon = document.getElementById('txtMedicamentosCajon').value;
 
     const residentePayload = {
         idResidente: idResidenteEdicion || 0,
@@ -98,6 +96,16 @@ async function guardarResidente(event) {
         });
 
         if (respuesta.ok) {
+            // RF-01: psicopatologia y medicamentos de cajon van a la ficha medica base
+            let idGuardado = idResidenteEdicion;
+            try {
+                const guardado = await respuesta.clone().json();
+                idGuardado = guardado.idResidente || idGuardado;
+            } catch (e) { /* respuesta sin cuerpo */ }
+            if (idGuardado) {
+                await guardarFichaBase(idGuardado, residentePayload.patologia, medicamentosCajon);
+            }
+
             mostrarModal("¡Éxito!", `Residente ${esEdicion ? 'actualizado' : 'registrado'} correctamente.`, "exito");
             
             // Envío automático de bienvenida únicamente al REGISTRAR (no al editar)
@@ -114,6 +122,37 @@ async function guardarResidente(event) {
     } catch (err) {
         console.error("Error de red:", err);
         mostrarModal("Error de Conexión", "No se pudo conectar con el servidor.", "error");
+    }
+}
+
+// Guarda / actualiza la ficha medica base del residente en el backend .NET (TBL_FICHAS_MEDICAS)
+async function guardarFichaBase(idPaciente, diagnosticoBase, medicamentosContinuos) {
+    try {
+        await fetch('/api/Historial/ficha-base', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                idPaciente: idPaciente,
+                idDoctor: parseInt(localStorage.getItem('id_usuario'), 10) || 0,
+                diagnosticoBase: diagnosticoBase || '',
+                medicamentosContinuos: medicamentosContinuos || null
+            })
+        });
+    } catch (err) {
+        console.error('No se pudo guardar la ficha base:', err);
+    }
+}
+
+// Carga los medicamentos de cajon guardados al editar un residente
+async function cargarFichaBase(idPaciente) {
+    try {
+        const res = await fetch(`/api/Historial/residente/${idPaciente}`);
+        if (!res.ok) return;
+        const fichas = await res.json();
+        const campo = document.getElementById('txtMedicamentosCajon');
+        if (campo) campo.value = (fichas[fichas.length - 1] || {}).medicamentosContinuos || '';
+    } catch (err) {
+        console.error('No se pudo cargar la ficha base:', err);
     }
 }
 
@@ -135,52 +174,77 @@ function dispararNotificacionAutomaticaIngreso(correo, tutor, paciente) {
     }).catch(err => console.error("Error en notificación automática:", err));
 }
 
+// ---- Ventana de registro / edición ------------------------------------------
+function textoBotonGuardar(editando) {
+    const btn = document.getElementById('btnGuardarResidente');
+    if (btn) {
+        btn.innerHTML = editando
+            ? '<i class="fa-solid fa-rotate"></i> Actualizar residente'
+            : '<i class="fa-solid fa-floppy-disk"></i> Registrar residente';
+    }
+    const titulo = document.getElementById('tituloPanelResidente');
+    if (titulo) titulo.textContent = editando ? 'Editar residente' : 'Registrar residente';
+}
+
+function resetearFormulario() {
+    idResidenteEdicion = null;
+    document.getElementById('formResidente').reset();
+    textoBotonGuardar(false);
+}
+
+// Botón "Nuevo residente"
+function nuevoResidente() {
+    resetearFormulario();
+    abrirPanel('panel-residente');
+}
+
 // Cargar datos en el formulario para editar
 function prepararEdicion(r) {
     idResidenteEdicion = r.idResidente || r.IdResidente;
 
     document.getElementById('txtExpediente').value = r.noExpediente || r.NoExpediente || '';
     document.getElementById('txtNombre').value = r.nombreCompleto || r.NombreCompleto || '';
-    
+
     const fechaNac = r.fechaNacimiento || r.FechaNacimiento || '';
     document.getElementById('txtFechaNacimiento').value = fechaNac ? fechaNac.split('T')[0] : '';
-    
+
     document.getElementById('txtPatologia').value = r.patologia || r.Patologia || '';
     document.getElementById('txtTutor').value = r.nombreTutor || r.NombreTutor || '';
     document.getElementById('txtTelefono').value = r.telefonoTutor || r.TelefonoTutor || '';
     document.getElementById('txtCorreo').value = r.correoTutor || r.CorreoTutor || '';
+    document.getElementById('txtMedicamentosCajon').value = '';
+    cargarFichaBase(idResidenteEdicion);
 
-    const btnGuardar = document.querySelector('.btn-guardar');
-    if (btnGuardar) {
-        btnGuardar.innerHTML = `<i class="fa-solid fa-rotate"></i> Actualizar Residente`;
-        btnGuardar.style.background = '#17a2b8';
-    }
-
-    if (!document.getElementById('btnCancelarEdicion')) {
-        const btnCancelar = document.createElement('button');
-        btnCancelar.id = 'btnCancelarEdicion';
-        btnCancelar.type = 'button';
-        btnCancelar.className = 'btn-guardar';
-        btnCancelar.style.background = '#6c757d';
-        btnCancelar.style.marginLeft = '10px';
-        btnCancelar.innerHTML = `<i class="fa-solid fa-xmark"></i> Cancelar`;
-        btnCancelar.onclick = cancelarEdicion;
-        btnGuardar.parentNode.appendChild(btnCancelar);
-    }
+    textoBotonGuardar(true);
+    abrirPanel('panel-residente');
 }
 
+// Cierra la ventana y deja el formulario limpio
 function cancelarEdicion() {
-    idResidenteEdicion = null;
-    document.getElementById('formResidente').reset();
+    resetearFormulario();
+    cerrarPanel('panel-residente');
+}
 
-    const btnGuardar = document.querySelector('.btn-guardar');
-    if (btnGuardar) {
-        btnGuardar.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Registrar Residente`;
-        btnGuardar.style.background = '';
-    }
+// ---- Buscador y filtro de la tabla ----------------------------------------------
+function normalizar(texto) {
+    return (texto || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
 
-    const btnCancelar = document.getElementById('btnCancelarEdicion');
-    if (btnCancelar) btnCancelar.remove();
+function filtrarResidentes() {
+    const campo = document.getElementById('buscadorResidentes');
+    const q = normalizar(campo ? campo.value : '');
+    const estado = (document.getElementById('filtroEstadoResidentes') || {}).value || '';
+
+    let total = 0, visibles = 0;
+    document.querySelectorAll('#tablaResidentesBody tr[data-estado]').forEach(tr => {
+        total++;
+        const coincide = normalizar(tr.textContent).includes(q) && (!estado || tr.dataset.estado === estado);
+        tr.style.display = coincide ? '' : 'none';
+        if (coincide) visibles++;
+    });
+
+    const conteo = document.getElementById('conteoResidentes');
+    if (conteo) conteo.textContent = total ? `${visibles} de ${total} residentes` : '';
 }
 
 // 3. BORRADO LÓGICO / CAMBIO DE ESTADO

@@ -1,22 +1,85 @@
 /* ==========================================================================
    SISTEMA DE ADMINISTRACIÓN - ASILO CABEZA DE ALGODÓN
    Archivo: dashboard.css
+   Estilos de todas las pantallas internas (el Login usa estilos.css).
+
+   ÍNDICE
+   ------------------------------------------------------------------------
+   1. VARIABLES Y REINICIO ................ colores, tipografía, medidas
+   2. ESTRUCTURA GENERAL
+        2.1 Barra superior
+        2.2 Menú lateral
+        2.3 Área de trabajo y título de página
+   3. COMPONENTES COMPARTIDOS
+        3.1 Tarjetas
+        3.2 Formularios y campos
+        3.3 Botones
+        3.4 Etiquetas (badges)
+        3.5 Tablas
+        3.6 Barra de herramientas y buscador
+        3.7 Pestañas
+        3.8 Ventanas emergentes (paneles)
+   4. PANTALLAS (cada una se identifica con la clase del <body>)
+        4.1 Inicio ............... .pagina-inicio
+        4.2 Pacientes ............. .pagina-pacientes
+        4.3 Solicitudes y Citas .... .pagina-citas
+        4.4 Historial Médico ....... .pagina-historial
+        4.5 Laboratorio y Farmacia . .pagina-laboratorio
+        4.6 Reportes ............... .pagina-reportes
+        4.7 Caja y Finanzas ........ .pagina-caja
+        4.8 Configuración .......... .pagina-configuracion
+   5. PANTALLAS ADAPTABLES (responsive)
    ========================================================================== */
 
-/* 1. VARIABLES GLOBALES Y RESET */
+
+/* ==========================================================================
+   1. VARIABLES Y REINICIO
+   Paleta tomada del logo institucional (azul) + colores de estado.
+   ========================================================================== */
 :root {
-    --color-principal: #0ea5e9;
-    --color-principal-hover: #0284c7;
-    --color-fondo: #ffffff;
-    --color-blanco: #ffffff;
-    --color-sidebar: #1a2536;
-    --color-sidebar-hover: #2a384d;
-    --color-texto-oscuro: #0f172a;
-    --color-texto-mutado: #94a3b8;
-    --color-borde: #e2e8f0;
+    /* marca */
+    --primario: #1f5fa6;
+    --primario-hover: #184d88;
+    --primario-claro: #e8f0fa;
+    --primario-borde: #c7dbf1;
+
+    /* menú lateral */
+    --sidebar: #0f2740;
+    --sidebar-oscuro: #0a1c30;
+
+    /* superficies y bordes */
+    --fondo: #f1f5f9;
+    --superficie: #ffffff;
+    --borde: #e2e8f0;
+    --borde-fuerte: #cbd5e1;
+
+    /* texto */
+    --texto: #0f172a;
+    --texto-2: #334155;
+    --muted: #64748b;
+
+    /* estados */
+    --exito: #15803d;      --exito-bg: #e7f6ec;
+    --alerta: #a16207;     --alerta-bg: #fef3c7;
+    --peligro: #b91c1c;    --peligro-bg: #fde8e8;
+    --info: #0369a1;       --info-bg: #e0f2fe;
+
+    /* medidas y sombras */
+    --radio: 14px;
+    --radio-sm: 10px;
+    --sombra: 0 1px 2px rgba(15, 23, 42, .04), 0 8px 20px -10px rgba(15, 23, 42, .14);
     --fuente-base: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    --sombra-tarjeta: 0 10px 25px -5px rgba(104, 53, 53, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-    --radio-borde: 12px;
+
+    /* nombres anteriores (compatibilidad con otras hojas) */
+    --color-principal: var(--primario);
+    --color-principal-hover: var(--primario-hover);
+    --color-sidebar: var(--sidebar);
+    --color-borde: var(--borde);
+    --color-texto-oscuro: var(--texto);
+    --color-texto-mutado: var(--muted);
+    --color-blanco: #ffffff;
+    --radio-borde: var(--radio);
+    --sombra-tarjeta: var(--sombra);
 }
 
 * {
@@ -27,83 +90,128 @@
 }
 
 body {
-    background-color: var(--color-fondo);
-    color: var(--color-texto-oscuro);
+    background-color: var(--fondo);
+    color: var(--texto);
     display: flex;
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* 2. BARRA SUPERIOR (TOPBAR) */
+
+/* ==========================================================================
+   2. ESTRUCTURA GENERAL (igual en todas las pantallas)
+   ========================================================================== */
+
+/* ---- 2.1 Barra superior ------------------------------------------------ */
 .barra-superior {
-    background-color: var(--color-sidebar);
-    height: 60px;
-    padding: 0 30px;
+    background-color: var(--superficie);
+    height: 64px;
+    padding: 0 32px 0 28px;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
     position: relative;
     z-index: 100;
+    border-bottom: 1px solid var(--borde);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .05);
+    flex-shrink: 0;
 }
+
+/* Etiqueta institucional a la izquierda (el div ya existía vacío en cada vista) */
+.logo-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--texto-2);
+    font-size: .92rem;
+    font-weight: 600;
+}
+.logo-top::before {
+    content: "\f0f8";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--primario-claro);
+    color: var(--primario);
+    font-size: .95rem;
+}
+.logo-top::after { content: "Sistema de Administración del Asilo"; }
 
 .usuario-info {
     display: flex;
     align-items: center;
-    gap: 18px;
-    color: var(--color-blanco);
+    gap: 20px;
+    color: var(--texto);
 }
 
 .btn-notificacion {
-    background: none;
-    border: none;
-    font-size: 1.1rem;
-    color: var(--color-blanco);
+    background: var(--fondo);
+    border: 1px solid var(--borde);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    font-size: .95rem;
+    color: var(--muted);
     cursor: pointer;
     position: relative;
+    transition: background .15s, color .15s;
 }
+.btn-notificacion:hover { background: var(--primario-claro); color: var(--primario); }
 
 .badge-notificacion {
     position: absolute;
-    top: -6px;
-    right: -8px;
+    top: -4px;
+    right: -4px;
     background-color: #ef4444;
-    color: var(--color-blanco);
-    font-size: 0.65rem;
-    font-weight: bold;
-    padding: 2px 5px;
-    border-radius: 50%;
+    color: #fff;
+    font-size: .62rem;
+    font-weight: 700;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 999px;
+    border: 2px solid #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.contenedor-avatar {
-    position: relative;
-    display: inline-block;
-}
+.contenedor-avatar { position: relative; display: inline-block; }
 
 .perfil-usuario {
     display: flex;
     align-items: center;
     gap: 12px;
+    padding-left: 20px;
+    border-left: 1px solid var(--borde);
 }
 
 .avatar {
-    width: 32px;
-    height: 32px;
-    background-color: #00a8ff;
-    color: var(--color-blanco);
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #3b82c4, var(--primario));
+    color: #fff;
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-weight: bold;
-    font-size: 0.9rem;
+    font-weight: 700;
+    font-size: 1rem;
+    box-shadow: 0 2px 6px rgba(31, 95, 166, .35);
 }
 
 .estado-activo {
-    width: 9px;
-    height: 9px;
-    background-color: #10b981;
-    border: 2px solid var(--color-sidebar);
+    width: 11px;
+    height: 11px;
+    background-color: #22c55e;
+    border: 2px solid #fff;
     border-radius: 50%;
     position: absolute;
     bottom: 0;
@@ -113,20 +221,20 @@ body {
 .datos-usuario {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
     text-align: left;
 }
-
-.nombre-usuario {
-    font-weight: 600;
-    font-size: 0.88rem;
-    color: var(--color-blanco);
-    line-height: 1.2;
-}
-
+.nombre-usuario { font-weight: 700; font-size: .88rem; color: var(--texto); line-height: 1.1; }
 .rol-usuario {
-    font-size: 0.72rem;
-    color: #94a3b8;
-    font-weight: 500;
+    font-size: .64rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--primario);
+    background: var(--primario-claro);
+    padding: 2px 8px;
+    border-radius: 999px;
 }
 
 .btn-salir {
@@ -134,227 +242,556 @@ body {
     align-items: center;
     gap: 6px;
     background-color: transparent;
-    color: #ef4444;
+    color: var(--peligro);
     text-decoration: none;
-    font-size: 0.85rem;
+    font-size: .85rem;
     font-weight: 600;
     padding: 6px 12px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
+    border-radius: 8px;
+    transition: all .2s ease;
 }
+.btn-salir:hover { background-color: var(--peligro); color: #fff; }
 
-.btn-salir:hover {
-    background-color: #ef4444;
-    color: #ffffff;
-}
-
-/* 3. ESTRUCTURA Y MENÚ LATERAL */
+/* ---- 2.2 Menú lateral -------------------------------------------------- */
 .menu-contenido {
     display: flex;
     flex: 1;
-    height: calc(100vh - 60px);
+    height: calc(100vh - 64px);
     overflow: hidden;
 }
 
 .menu-lateral {
-    width: 250px;
-    background-color: var(--color-sidebar);
+    width: 264px;
+    background: linear-gradient(180deg, var(--sidebar) 0%, var(--sidebar-oscuro) 100%);
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding-top: 10px;
+    padding: 0 0 12px;
     flex-shrink: 0;
+    overflow-y: auto;
+}
+
+/* Marca institucional en la parte superior del menú */
+.menu-lateral::before {
+    content: "";
+    display: block;
+    flex-shrink: 0;
+    height: 128px;
+    margin: 18px 16px 14px;
+    border-radius: 14px;
+    background: #1329ba url("../imagen%20sesion/logo.jpg") center / 128% auto no-repeat;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .28);
 }
 
 .opcion-menu {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 15px 25px;
-    color: #cbd5e1;
+    margin: 2px 12px;
+    padding: 12px 16px;
+    border-radius: var(--radio-sm);
+    color: #b6c4d6;
     text-decoration: none;
-    font-size: 0.82rem;
+    font-size: .8rem;
     font-weight: 700;
-    letter-spacing: 0.5px;
-    transition: all 0.2s ease;
+    letter-spacing: .06em;
+    transition: background .18s ease, color .18s ease;
 }
+.opcion-menu i { font-size: 1rem; width: 20px; text-align: center; color: #7f95ad; transition: color .18s ease; }
+.opcion-menu:hover { background-color: rgba(255, 255, 255, .07); color: #fff; }
+.opcion-menu:hover i { color: #cfe3f8; }
 
-.opcion-menu:hover {
-    background-color: var(--color-sidebar-hover);
-    color: var(--color-blanco);
+/* opción de la pantalla actual */
+.opcion-menu.activa { background-color: rgba(255, 255, 255, .12); color: #fff; box-shadow: inset 3px 0 0 #5eb0ff; }
+.opcion-menu.activa i { color: #7cc0ff; }
+
+/* cerrar sesión: siempre al fondo del menú */
+.opcion-menu.opcion-salir {
+    margin-top: auto;
+    margin-bottom: 4px;
+    color: #f2a5a5;
+    border-top: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 0 0 var(--radio-sm) var(--radio-sm);
 }
+.opcion-menu.opcion-salir i { color: #f08a8a; }
+.opcion-menu.opcion-salir:hover { background-color: rgba(239, 68, 68, .18); color: #ffd6d6; }
 
-.opcion-menu.activa {
-    background-color: var(--color-sidebar-hover);
-    color: var(--color-blanco);
-}
-
-.opcion-menu i {
-    font-size: 1.1rem;
-    width: 20px;
-    text-align: center;
-}
-
-/* 4. ÁREA DE TRABAJO Y ALINEACIÓN */
+/* ---- 2.3 Área de trabajo y título de página ------------------------------ */
 .area-trabajo {
     flex: 1;
-    padding: 40px;
+    padding: 32px 40px 56px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start; /* Alinea los formularios desde arriba */
+    justify-content: flex-start;
+    scrollbar-width: thin;
+    scrollbar-color: #c3cddb transparent;
 }
+.area-trabajo > * { width: 100%; max-width: 1040px; flex-shrink: 0; }
+.area-trabajo > br,
+.formulario-datos br,
+.lista-reportes > br { display: none; }
 
-.area-trabajo h1 {
-    font-size: 1.6rem;
-    color: var(--color-texto-oscuro);
-    margin-bottom: 8px;
-    width: 100%;
-    max-width: 850px;
-    text-align: left;
-}
-
-.area-trabajo p {
-    color: var(--color-texto-mutado);
-    font-size: 0.95rem;
-    margin-bottom: 25px;
-    width: 100%;
-    max-width: 850px;
-    text-align: left;
-}
-
-/* 5. TARJETA DE INICIO (MENU.HTML) - PANTALLA COMPLETA */
-.logo-menu {
-    background-color: var(--color-blanco);
-    width: 100%;                  /* Ocupa todo el ancho */
-    height: 100%;                 /* Ocupa todo el alto disponible */
-    min-height: calc(100vh - 140px); /* Garantiza llenado total del marco */
-   
-    border-radius: var(--radio-borde);
-    box-shadow: var(--sombra-tarjeta);
+.area-trabajo > h1 {
     display: flex;
-    flex-direction: column;
-    justify-content: center;      /* Centra todo verticalmente */
-    align-items: center;          /* Centra todo horizontalmente */
-    text-align: center;
-    box-sizing: border-box;
-}
-
-.logo-menu h1 {
-    font-size: 2.8rem;            /* Título grande y destacado */
-    font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-/* LOGO EN TAMAÑO PROPORCIONAL */
-.logo-inico, .logo-menu img {
-    width: 680px !important;      /* Logo en dimensión imponente */
-    max-width: 85% !important;
-    height: auto !important;
-    margin: 20px 0 35px 0 !important;
-    object-fit: contain;
-}
-
-.logo-menu p {
-    color: #000000;
-    font-size: 1.2rem;            /* Leyenda legible */
-    text-align: center;
-}
-
-/* 6. FORMULARIOS Y CONTENEDORES (PACIENTES, CAJA, HISTORIAL) */
-.formulario-datos {
-    background-color: var(--color-blanco);
-    padding: 35px;
-    border-radius: var(--radio-borde);
-    box-shadow: var(--sombra-tarjeta);
-    width: 100%;
-    max-width: 850px;
-    margin-bottom: 30px;
-}
-
-.formulario-datos h2 {
-    font-size: 1.2rem;
-    color: var(--color-texto-oscuro);
-    margin-bottom: 20px;
-}
-
-.grupo-campo {
-    margin-bottom: 20px;
+    align-items: center;
+    gap: 14px;
+    font-size: 1.65rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    color: var(--texto);
+    margin-bottom: 6px;
     text-align: left;
 }
+.area-trabajo > h1 i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 13px;
+    background: var(--primario-claro);
+    color: var(--primario);
+    font-size: 1.15rem;
+}
+.area-trabajo > p {
+    color: var(--muted);
+    font-size: .95rem;
+    margin: 0 0 26px 60px;
+    max-width: 980px;
+    text-align: left;
+}
+body.panel-abierto .area-trabajo { overflow: hidden; }
 
-.grupo-campo label {
+
+/* ==========================================================================
+   3. COMPONENTES COMPARTIDOS
+   ========================================================================== */
+
+/* ---- 3.1 Tarjetas ------------------------------------------------------- */
+.formulario-datos,
+.tarjeta-formulario,
+.tarjeta-tabla {
+    background-color: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+    padding: 26px 28px;
+    margin-bottom: 22px;
+}
+
+.formulario-datos h2,
+.tarjeta-formulario h2,
+.tarjeta-tabla h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.06rem;
+    font-weight: 700;
+    color: var(--texto);
+    padding-bottom: 14px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--borde);
+}
+.formulario-datos h2 i,
+.tarjeta-formulario h2 i,
+.tarjeta-tabla h2 i { color: var(--primario); font-size: 1rem; }
+
+.formulario-datos p,
+.tarjeta-formulario p { color: var(--texto-2); font-size: .92rem; line-height: 1.5; }
+
+/* textos de ayuda que van antes de un formulario o de una lista */
+.formulario-datos > p,
+.formulario-datos > form > p { margin-bottom: 16px; }
+.formulario-datos hr, .area-trabajo > hr { border: 0; border-top: 1px solid var(--borde); }
+
+/* elementos de lista que el JS dibuja como tarjetas dentro de otra tarjeta */
+.formulario-datos .formulario-datos {
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    box-shadow: none;
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    background: #fbfcfe;
+    transition: border-color .15s, box-shadow .15s;
+}
+.formulario-datos .formulario-datos:hover { border-color: var(--primario-borde); box-shadow: 0 2px 8px rgba(31, 95, 166, .08); }
+.formulario-datos .formulario-datos p { margin: 3px 0; }
+
+/* ---- 3.2 Formularios y campos -------------------------------------------- */
+.grupo-campo { margin-bottom: 18px; text-align: left; }
+.grupo-campo label,
+.formulario-datos label,
+.panel label {
     display: block;
-    font-size: 0.88rem;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--color-texto-oscuro);
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+    margin-bottom: 7px;
+    color: var(--texto-2);
 }
+.grupo-campo small { display: block; margin-top: 6px; font-weight: 600; }
 
-.grupo-campo input,
-.grupo-campo select,
-.grupo-campo textarea {
+/* filas de 2 o 3 campos */
+.fila-2, .fila-3 { display: grid; gap: 0 20px; }
+.fila-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fila-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* fila de controles sueltos (selector + fecha + botón) dentro de una lista */
+.fila-controles { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-top: 10px; }
+.fila-controles label { margin-bottom: 5px; }
+
+:is(.area-trabajo, .panel) :is(input, select, textarea):not([type="checkbox"], [type="radio"], [type="hidden"]),
+.form-control {
     width: 100%;
-    padding: 12px 16px;
-    border: 1px solid var(--color-borde);
-    border-radius: 8px;
-    font-size: 0.95rem;
-    background-color: #ffffff;
+    padding: 11px 14px;
+    border: 1px solid var(--borde-fuerte);
+    border-radius: var(--radio-sm);
+    font-size: .93rem;
+    color: var(--texto);
+    background-color: #fff;
+    transition: border-color .15s, box-shadow .15s;
+}
+:is(.area-trabajo, .panel) :is(input, select):not([type="checkbox"], [type="radio"], [type="hidden"]) { height: 44px; }
+:is(.area-trabajo, .panel) textarea { resize: vertical; line-height: 1.45; }
+:is(.area-trabajo, .panel) :is(input, textarea)::placeholder { color: #94a3b8; }
+
+:is(.area-trabajo, .panel) select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 38px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5l5 5 5-5'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    cursor: pointer;
 }
 
-.grupo-campo input:focus,
-.grupo-campo select:focus,
-.grupo-campo textarea:focus {
+:is(.area-trabajo, .panel) :is(input, select, textarea):focus,
+.form-control:focus {
     outline: none;
-    border-color: var(--color-principal);
+    border-color: var(--primario);
+    box-shadow: 0 0 0 3px rgba(31, 95, 166, .16);
 }
+:is(.area-trabajo, .panel) input[readonly] { background: #f1f5f9; color: var(--muted); }
 
+/* buscador con autocompletado (TomSelect) acorde al resto de campos */
+.ts-wrapper .ts-control {
+    padding: 8px 12px !important;
+    border: 1px solid var(--borde-fuerte) !important;
+    border-radius: var(--radio-sm) !important;
+    min-height: 44px;
+    box-shadow: none !important;
+    font-size: .93rem;
+}
+.ts-wrapper.focus .ts-control { border-color: var(--primario) !important; box-shadow: 0 0 0 3px rgba(31, 95, 166, .16) !important; }
+.ts-dropdown { border-radius: var(--radio-sm) !important; border-color: var(--borde-fuerte) !important; box-shadow: 0 10px 24px -8px rgba(15, 23, 42, .25) !important; }
+
+/* ---- 3.3 Botones -------------------------------------------------------- */
 .btn-guardar {
-    background-color: var(--color-principal);
-    color: var(--color-blanco);
+    background-color: var(--primario);
+    color: #fff;
     border: none;
-    padding: 12px 28px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.95rem;
+    padding: 11px 24px;
+    border-radius: var(--radio-sm);
+    font-weight: 700;
+    font-size: .92rem;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    gap: 9px;
+    margin-top: 6px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .12), 0 4px 10px -4px rgba(31, 95, 166, .5);
+    transition: background-color .15s, transform .1s, box-shadow .15s;
+}
+.btn-guardar:hover { background-color: var(--primario-hover); transform: translateY(-1px); }
+.btn-guardar:active { transform: translateY(0); }
+.btn-guardar:focus-visible { outline: 3px solid rgba(31, 95, 166, .3); outline-offset: 2px; }
+.btn-guardar:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-secundario { background: #fff; color: var(--texto-2); border: 1px solid var(--borde-fuerte); box-shadow: none; }
+.btn-secundario:hover { background: #f8fafc; color: var(--texto); }
+
+/* botones cuadrados con icono (acciones de tabla) */
+.btn-icono {
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: .85rem;
+    margin: 0 2px;
+    transition: transform .1s, filter .15s;
+}
+.btn-icono:hover { transform: translateY(-1px); filter: brightness(.95); }
+.btn-icono.azul    { background: var(--primario-claro); color: var(--primario); }
+.btn-icono.celeste { background: var(--info-bg);        color: var(--info); }
+.btn-icono.ambar   { background: var(--alerta-bg);      color: var(--alerta); }
+.btn-icono.verde   { background: var(--exito-bg);       color: var(--exito); }
+.btn-icono.rojo    { background: var(--peligro-bg);     color: var(--peligro); }
+
+/* ---- 3.4 Etiquetas (badges) ---------------------------------------------- */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 11px;
+    border-radius: 999px;
+    font-size: .76rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge-exito   { background: var(--exito-bg);   color: var(--exito); }
+.badge-alerta  { background: var(--alerta-bg);  color: var(--alerta); }
+.badge-peligro { background: var(--peligro-bg); color: var(--peligro); }
+.badge-info    { background: var(--info-bg);    color: var(--info); }
+
+/* ---- 3.5 Tablas ----------------------------------------------------------- */
+.tabla-contenedor { overflow-x: auto; border: 1px solid var(--borde); border-radius: 12px; }
+.tabla-datos { width: 100%; border-collapse: collapse; background-color: #fff; font-size: .9rem; }
+.tabla-datos th,
+.tabla-datos td { padding: 13px 16px; text-align: left; border-bottom: 1px solid var(--borde); vertical-align: middle; }
+.tabla-datos thead th {
+    background-color: #f8fafc;
+    color: var(--muted);
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.tabla-datos tbody tr { transition: background .12s; }
+.tabla-datos tbody tr:hover { background-color: #f6f9fd; }
+.tabla-datos tbody tr:last-child td { border-bottom: none; }
+.tabla-datos .centrado { text-align: center; white-space: nowrap; }
+/* tarjeta que contiene solo una tabla: la tabla llena la tarjeta */
+.sin-relleno { padding: 0 !important; overflow: hidden; }
+.sin-relleno .tabla-contenedor { border: 0; border-radius: 0; }
+
+/* ---- 3.6 Barra de herramientas y buscador ----------------------------------- */
+/* Va entre el título y el contenido: buscador / filtro a la izquierda, botón de acción a la derecha */
+.barra-herramientas { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.barra-herramientas .espacio { flex: 1; }
+.barra-herramientas .btn-guardar { margin-top: 0; }
+.barra-herramientas .conteo { color: var(--muted); font-size: .85rem; font-weight: 600; }
+
+.buscador { position: relative; flex: 0 1 380px; min-width: 240px; }
+.buscador i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
+.area-trabajo .buscador input { padding-left: 40px; }
+.area-trabajo .barra-herramientas select { width: auto; min-width: 190px; }
+
+/* ---- 3.7 Pestañas ------------------------------------------------------------ */
+.pestanas { display: flex; gap: 4px; border-bottom: 2px solid var(--borde); margin-bottom: 22px; overflow-x: auto; }
+.pestana {
+    display: inline-flex;
+    align-items: center;
     gap: 8px;
-    margin-top: 10px;
+    padding: 12px 18px;
+    margin-bottom: -2px;
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: none;
+    color: var(--muted);
+    font-size: .9rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color .15s, border-color .15s;
 }
+.pestana:hover { color: var(--texto); }
+.pestana.activa { color: var(--primario); border-bottom-color: var(--primario); }
+.pestana .contador { background: var(--primario-claro); color: var(--primario); border-radius: 999px; font-size: .72rem; padding: 1px 9px; }
+.pestana-contenido { display: none; }
+.pestana-contenido.activa { display: block; }
 
-.btn-guardar:hover {
-    background-color: var(--color-principal-hover);
+/* ---- 3.8 Ventanas emergentes (paneles) ------------------------------------------ */
+/* Se abren con data-abrir="id" (ver ui.js). Contienen los formularios de registro. */
+.panel-fondo {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    padding: 6vh 20px;
+    overflow-y: auto;
+    align-items: flex-start;
+    justify-content: center;
+    background: rgba(15, 23, 42, .55);
+    backdrop-filter: blur(2px);
 }
-
-/* ESTILOS PARA LA TABLA DE RESIDENTES */
-.tabla-datos {
+.panel-fondo.abierto { display: flex; }
+.panel {
     width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    background-color: #ffffff;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    max-width: 720px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 30px 60px -20px rgba(15, 23, 42, .5);
+    animation: panel-entrada .18s ease-out;
 }
-
-.tabla-datos th, 
-.tabla-datos td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #e9ecef;
+.panel.ancho { max-width: 860px; }
+.panel-cabecera { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--borde); }
+.panel-cabecera h2 { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; font-weight: 800; color: var(--texto); margin: 0; padding: 0; border: 0; }
+.panel-cabecera h2 i { color: var(--primario); }
+.panel-cerrar {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: var(--fondo);
+    color: var(--muted);
+    cursor: pointer;
+    transition: background .15s, color .15s;
 }
+.panel-cerrar:hover { background: var(--peligro-bg); color: var(--peligro); }
+.panel-cuerpo { padding: 24px; }
+.panel-cuerpo > p { color: var(--muted); font-size: .88rem; line-height: 1.5; margin-bottom: 18px; }
+.panel-pie { display: flex; justify-content: flex-end; gap: 10px; padding-top: 6px; }
+.panel-pie .btn-guardar { margin-top: 0; }
+@keyframes panel-entrada { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
-.tabla-datos thead tr {
-    background-color: #f8f9fa;
-    color: #2c3e50;
-    font-weight: bold;
+
+/* ==========================================================================
+   4. PANTALLAS
+   Cada vista tiene la clase de su pantalla en el <body>, por ejemplo
+   <body class="pagina-caja">, y aquí abajo va lo que es propio de ella.
+   ========================================================================== */
+
+/* ---- 4.1 INICIO  (Views/Home/MENU.cshtml) ---------------------------------------- */
+/* Panel de bienvenida y accesos rápidos a los módulos según el rol */
+.pagina-inicio .bienvenida {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 30px 34px;
+    margin-bottom: 26px;
+    color: #fff;
+    background: linear-gradient(120deg, #1f5fa6 0%, #0f3d73 100%);
+    border-radius: var(--radio);
+    box-shadow: 0 14px 30px -14px rgba(15, 61, 115, .6);
 }
+.pagina-inicio .bienvenida h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px; color: #fff; }
+.pagina-inicio .bienvenida p { color: #cfe0f3; font-size: .98rem; line-height: 1.5; max-width: 520px; }
+.pagina-inicio .fecha-hoy {
+    display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 6px 14px;
+    border-radius: 999px; background: rgba(255, 255, 255, .14); font-size: .82rem; font-weight: 600; color: #fff;
+}
+.pagina-inicio .bienvenida img { width: 190px; height: 118px; object-fit: cover; border-radius: 12px; background: #fff; flex-shrink: 0; }
 
-.tabla-datos tbody tr:hover {
-    background-color: #f1f3f5;
+.pagina-inicio .modulos-titulo { font-size: .76rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+.pagina-inicio .modulos { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.pagina-inicio .tarjeta-modulo {
+    display: flex; flex-direction: column; gap: 6px; padding: 20px;
+    background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio);
+    box-shadow: var(--sombra); text-decoration: none; color: var(--texto);
+    transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pagina-inicio .tarjeta-modulo:hover { transform: translateY(-3px); border-color: var(--primario-borde); box-shadow: 0 14px 26px -12px rgba(31, 95, 166, .35); }
+.pagina-inicio .tarjeta-modulo .icono {
+    width: 46px; height: 46px; border-radius: 13px; margin-bottom: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--primario-claro); color: var(--primario); font-size: 1.15rem;
+}
+.pagina-inicio .tarjeta-modulo strong { font-size: .98rem; font-weight: 700; }
+.pagina-inicio .tarjeta-modulo span.desc { font-size: .84rem; color: var(--muted); line-height: 1.45; }
+
+/* ---- 4.2 PACIENTES  (Views/Residentes/Index.cshtml) ------------------------------ */
+/* Lista de residentes con buscador y filtro; el registro se hace en una ventana emergente */
+.pagina-pacientes .tabla-datos td:first-child { font-weight: 700; color: var(--texto); white-space: nowrap; }
+.pagina-pacientes .tabla-datos td:nth-child(4) { white-space: nowrap; }
+
+/* ---- 4.3 SOLICITUDES Y CITAS  (Views/Citas/Index.cshtml) ---------------------------- */
+/* Lista de solicitudes con su agenda; la nueva solicitud y la visita médica van en ventanas */
+.pagina-citas .formulario-datos .formulario-datos { border-left: 4px solid var(--borde-fuerte); }
+
+/* ---- 4.4 HISTORIAL MÉDICO  (Views/Historial/Index.cshtml) ------------------------------ */
+/* Expediente del residente dividido en pestañas: ficha base, consultas, exámenes y medicación */
+.pagina-historial .selector-residente { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+.pagina-historial .selector-residente .grupo-campo { flex: 1; min-width: 280px; margin-bottom: 0; }
+.pagina-historial .selector-residente .btn-guardar { margin-top: 0; }
+.pagina-historial .registro-clinico { padding: 14px 18px; margin-bottom: 12px; border: 1px solid var(--borde); border-left: 4px solid var(--primario); border-radius: 10px; background: #fbfcfe; }
+.pagina-historial .registro-clinico p { margin: 3px 0; color: var(--texto-2); font-size: .92rem; }
+.pagina-historial .registro-clinico .titulo { font-weight: 700; color: var(--texto); }
+.pagina-historial .dato-clinico { display: grid; grid-template-columns: 220px 1fr; gap: 6px 18px; padding: 12px 0; border-bottom: 1px solid var(--borde); font-size: .92rem; }
+.pagina-historial .dato-clinico:last-child { border-bottom: none; }
+.pagina-historial .dato-clinico span:first-child { color: var(--muted); font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; padding-top: 2px; }
+.pagina-historial .vacio { color: var(--muted); padding: 18px 0; text-align: center; }
+
+/* ---- 4.5 LABORATORIO Y FARMACIA  (Views/LaboratorioFarmacia/Index.cshtml) ----------------- */
+/* Dos pestañas (Laboratorio / Farmacia); cada rol ve solo la suya. Pendientes arriba, registros abajo. */
+.pagina-laboratorio .item-pendiente { padding: 14px 16px; margin-bottom: 10px; border: 1px solid var(--borde); border-left: 4px solid var(--alerta); border-radius: 10px; background: #fffdf6; }
+.pagina-laboratorio .item-pendiente p { margin: 0; color: var(--texto); font-size: .92rem; }
+.pagina-laboratorio .item-hecho { display: flex; justify-content: space-between; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--borde); font-size: .9rem; color: var(--texto-2); }
+.pagina-laboratorio .item-hecho:last-child { border-bottom: none; }
+
+/* ---- 4.6 REPORTES  (Views/Reportes/Index.cshtml) --------------------------------------------- */
+/* Cuadrícula de reportes: cada tarjeta tiene sus filtros y su botón de descarga */
+.pagina-reportes .lista-reportes { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 20px; }
+.pagina-reportes .tarjeta-reporte {
+    display: flex; flex-direction: column; background: var(--superficie);
+    border: 1px solid var(--borde); border-top: 4px solid var(--primario);
+    border-radius: var(--radio); box-shadow: var(--sombra); padding: 22px 24px;
+}
+.pagina-reportes .tarjeta-reporte h3 { display: flex; align-items: center; gap: 10px; font-size: 1.02rem; font-weight: 700; color: var(--texto); margin-bottom: 6px; }
+.pagina-reportes .tarjeta-reporte h3 i { color: var(--primario); }
+.pagina-reportes .tarjeta-reporte > p { color: var(--muted); font-size: .88rem; line-height: 1.45; }
+.pagina-reportes .tarjeta-reporte label { display: block; font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+.pagina-reportes .tarjeta-reporte .filtros { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 16px 0 18px; }
+.pagina-reportes .btn-descarga {
+    margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 9px;
+    padding: 10px 20px; background: var(--primario); color: #fff; border: none; border-radius: var(--radio-sm);
+    font-weight: 700; font-size: .88rem; cursor: pointer; box-shadow: 0 4px 10px -4px rgba(31, 95, 166, .5);
+    transition: background-color .15s, transform .1s;
+}
+.pagina-reportes .btn-descarga:hover { background: var(--primario-hover); transform: translateY(-1px); }
+.pagina-reportes .btn-descarga:disabled { opacity: .6; cursor: wait; transform: none; }
+
+/* ---- 4.7 CAJA Y FINANZAS  (Views/Caja/Index.cshtml) --------------------------------------------- */
+/* Cuatro pestañas: Resumen, Cobros, Donaciones y Gastos. Cada una con su lista y su botón de registro. */
+.pagina-caja .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.pagina-caja .kpi {
+    --kpi: var(--primario);
+    background: #fff; border: 1px solid var(--borde); border-top: 3px solid var(--kpi);
+    border-radius: 12px; padding: 16px 18px;
+}
+.pagina-caja .kpi span { display: block; color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.pagina-caja .kpi strong { display: block; margin-top: 6px; font-size: 1.5rem; font-weight: 800; color: var(--kpi); }
+.pagina-caja .kpi.verde  { --kpi: var(--exito); }
+.pagina-caja .kpi.rojo   { --kpi: var(--peligro); }
+.pagina-caja .kpi.ambar  { --kpi: var(--alerta); }
+.pagina-caja .kpi.azul   { --kpi: var(--primario); }
+.pagina-caja .fila-movimiento { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--borde); font-size: .92rem; }
+.pagina-caja .fila-movimiento:last-child { border-bottom: none; }
+.pagina-caja .fila-movimiento .monto { font-weight: 800; white-space: nowrap; }
+.pagina-caja .fila-movimiento .monto.verde { color: var(--exito); }
+.pagina-caja .fila-movimiento .monto.rojo  { color: var(--peligro); }
+
+/* ---- 4.8 CONFIGURACIÓN  (Views/Paginas/Index.cshtml) ------------------------------------------------ */
+/* Parámetros generales de la institución (por ahora solo diseño, sin lógica) */
+.pagina-configuracion .formulario-datos { max-width: 860px; }
+
+
+/* ==========================================================================
+   5. PANTALLAS ADAPTABLES (responsive)
+   ========================================================================== */
+@media (max-width: 1100px) {
+    .menu-lateral { width: 78px; }
+    .menu-lateral::before { height: 46px; width: 46px; margin: 14px auto; border-radius: 12px; background-size: 285% auto; background-position: center 47%; }
+    .opcion-menu { font-size: 0; gap: 0; justify-content: center; padding: 14px 0; margin: 2px 10px; }
+    .opcion-menu i { font-size: 1.15rem; }
+    .area-trabajo { padding: 24px 22px 48px; }
+    .logo-top::after { content: "Asilo Cabeza de Algodón"; }
+}
+@media (max-width: 760px) {
+    .fila-2, .fila-3 { grid-template-columns: 1fr; }
+    .pagina-reportes .lista-reportes { grid-template-columns: 1fr; }
+    .pagina-inicio .bienvenida { flex-direction: column; align-items: flex-start; }
+    .pagina-inicio .bienvenida img { display: none; }
+    .pagina-historial .dato-clinico { grid-template-columns: 1fr; }
+    .datos-usuario { display: none; }
+    .logo-top::after { display: none; }
 }

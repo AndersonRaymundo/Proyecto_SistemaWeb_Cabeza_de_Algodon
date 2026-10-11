@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using AsiloWeb.Data;
 using AsiloWeb.Models;
@@ -18,6 +19,41 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // consumen desde el backend .NET).
 builder.Services.AddHttpClient<PdfService>();
 builder.Services.AddHttpClient<EmailService>();
+builder.Services.AddHttpClient<PacientesService>();
+
+// Servicios de negocio (descuento de la fundacion, cobro automatico, ficha base)
+builder.Services.AddScoped<FacturacionService>();
+builder.Services.AddScoped<ExpedienteService>();
+
+// Sesion en el servidor con cookie (RNF-02). Las paginas redirigen al Login
+// y la API responde 401/403 cuando no hay sesion o no alcanza el rol.
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "AsiloAuth";
+        options.Cookie.HttpOnly = true;
+        options.LoginPath = "/Auth/Login";
+        options.AccessDeniedPath = "/Home/MENU";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+        options.Events.OnRedirectToLogin = ctx =>
+        {
+            if (ctx.Request.Path.StartsWithSegments("/api"))
+                ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            else
+                ctx.Response.Redirect(ctx.RedirectUri);
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = ctx =>
+        {
+            if (ctx.Request.Path.StartsWithSegments("/api"))
+                ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            else
+                ctx.Response.Redirect(ctx.RedirectUri);
+            return Task.CompletedTask;
+        };
+    });
+builder.Services.AddAuthorization();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -46,16 +82,30 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
 
-    if (!db.Usuarios.Any())
+    var semillas = new[]
     {
-        db.Usuarios.AddRange(
-            new Usuario { NombreUsuario = "admin", PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"), NombreCompleto = "Administrador del Sistema", Rol = "ADMINISTRADOR" },
-            new Usuario { NombreUsuario = "doctor", PasswordHash = BCrypt.Net.BCrypt.HashPassword("doctor123"), NombreCompleto = "Dr. Raymundo", Rol = "DOCTOR" },
-            new Usuario { NombreUsuario = "enfermero", PasswordHash = BCrypt.Net.BCrypt.HashPassword("enfermero123"), NombreCompleto = "Licda. Sofia Lopez", Rol = "ENFERMERO" },
-            new Usuario { NombreUsuario = "farmacia", PasswordHash = BCrypt.Net.BCrypt.HashPassword("farmacia123"), NombreCompleto = "Encargado de Farmacia", Rol = "FARMACIA" }
-        );
-        db.SaveChanges();
+        (Login: "admin",       Clave: "admin123",       Nombre: "Administrador del Sistema", Rol: "ADMINISTRADOR"),
+        (Login: "doctor",      Clave: "doctor123",      Nombre: "Dr. Raymundo",             Rol: "DOCTOR"),
+        (Login: "enfermero",   Clave: "enfermero123",   Nombre: "Licda. Sofia Lopez",       Rol: "ENFERMERO"),
+        (Login: "farmacia",    Clave: "farmacia123",    Nombre: "Encargado de Farmacia",    Rol: "FARMACIA"),
+        (Login: "fundacion",   Clave: "fundacion123",   Nombre: "Personal de la Fundacion", Rol: "FUNDACION"),
+        (Login: "laboratorio", Clave: "laboratorio123", Nombre: "Personal de Laboratorio",  Rol: "LABORATORIO")
+    };
+
+    foreach (var semilla in semillas)
+    {
+        if (!db.Usuarios.Any(u => u.NombreUsuario == semilla.Login))
+        {
+            db.Usuarios.Add(new Usuario
+            {
+                NombreUsuario = semilla.Login,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(semilla.Clave),
+                NombreCompleto = semilla.Nombre,
+                Rol = semilla.Rol
+            });
+        }
     }
+    db.SaveChanges();
 }
 
 // Configurar el pipeline HTTP
@@ -72,6 +122,7 @@ app.UseRouting();
 
 app.UseCors("PermitirFrontend");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Mapear API Controllers normales
