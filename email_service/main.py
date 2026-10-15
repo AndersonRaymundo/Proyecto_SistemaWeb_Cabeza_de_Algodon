@@ -33,7 +33,6 @@ def read_root():
 
 @app.post("/send-email")
 def send_email(request: EmailRequest):
-    print(f"---> DATOS RECIBIDOS DESDE LA WEB: {request}", flush=True)  # <--- AGREGAR ESTA LÍNEA
     try:
         # Construcción del correo electrónico
         msg = MIMEMultipart()

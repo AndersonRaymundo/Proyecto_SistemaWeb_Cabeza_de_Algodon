@@ -2,14 +2,16 @@
 Microservicio: Pacientes (Residentes)
 Asilo Cabeza de Algodón
 
-Rutas iguales a las que ya llama wwwroot/JS/pacientes.js:
-  GET    /api/Residentes
-  GET    /api/Residentes/{id}
-  POST   /api/Residentes
-  PUT    /api/Residentes/{id}
-  DELETE /api/Residentes/{id}
+Lo consume la aplicación web (AsiloWeb) a través de /api/Pacientes, que reenvía
+las peticiones a estas rutas por la red interna:
+  GET  /api/Residentes
+  GET  /api/Residentes/busqueda/autocomplete?q=texto
+  GET  /api/Residentes/{id}
+  POST /api/Residentes
+  PUT  /api/Residentes/{id}
 
-Puerto: 8000 (igual al que ya usa pacientes.js)
+Un residente no se borra: se da de baja cambiando su estado, para conservar su historial.
+Puerto: 8000
 """
 import os
 from datetime import datetime, date
@@ -216,13 +218,3 @@ def actualizar_residente(id_residente: int, datos: ResidenteUpdate, db: Session 
     db.commit()
     db.refresh(residente)
     return ResidenteOut.from_orm_model(residente)
-
-
-@app.delete("/api/Residentes/{id_residente}", status_code=204)
-def eliminar_residente(id_residente: int, db: Session = Depends(get_db)):
-    residente = db.query(Residente).filter(Residente.id_residente == id_residente).first()
-    if not residente:
-        raise HTTPException(status_code=404, detail="Residente no encontrado")
-    db.delete(residente)
-    db.commit()
-    return None

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using AsiloWeb.Data;
 using AsiloWeb.Models;
@@ -14,12 +15,28 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("ConexionSQL")));
 
-// Conectores a los 3 microservicios que SI siguen siendo microservicios
-// (Pacientes lo consume el frontend directo por JS; PDF y Correo se
-// consumen desde el backend .NET).
-builder.Services.AddHttpClient<PdfService>();
-builder.Services.AddHttpClient<EmailService>();
-builder.Services.AddHttpClient<PacientesService>();
+// Conectores a los 3 microservicios (Pacientes, Correo y PDF).
+// Las direcciones salen de la configuracion ("Servicios:Pacientes", etc.) para
+// poder cambiarlas segun el entorno: en tu equipo son localhost y en la nube
+// (docker compose) son los nombres internos de cada contenedor.
+string Servicio(string nombre, string porDefecto) =>
+    builder.Configuration[$"Servicios:{nombre}"] ?? porDefecto;
+
+builder.Services.AddHttpClient<PdfService>(c => c.BaseAddress = new Uri(Servicio("Pdf", "http://localhost:8002")));
+builder.Services.AddHttpClient<EmailService>(c => c.BaseAddress = new Uri(Servicio("Correo", "http://localhost:8001")));
+builder.Services.AddHttpClient<PacientesService>(c => c.BaseAddress = new Uri(Servicio("Pacientes", "http://localhost:8000")));
+// Cliente que usa PacientesProxyController: el navegador ya no habla directo
+// con el microservicio de Pacientes, todo pasa por este sitio con sesion y roles.
+builder.Services.AddHttpClient("pacientes", c => c.BaseAddress = new Uri(Servicio("Pacientes", "http://localhost:8000")));
+
+// Detras del servidor HTTPS de la nube (Caddy) la app debe saber que el
+// visitante entro por https para generar bien cookies y redirecciones.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // Servicios de negocio (descuento de la fundacion, cobro automatico, ficha base)
 builder.Services.AddScoped<FacturacionService>();
@@ -96,10 +113,23 @@ using (var scope = app.Services.CreateScope())
     {
         if (!db.Usuarios.Any(u => u.NombreUsuario == semilla.Login))
         {
+            // La clave viene de la configuracion ("Semillas:admin", etc.). Las claves
+            // de prueba del codigo solo valen en desarrollo: fuera de el, si falta la
+            // clave de un usuario, ese usuario no se crea.
+            var claveConfigurada = builder.Configuration[$"Semillas:{semilla.Login}"];
+            var clave = !string.IsNullOrWhiteSpace(claveConfigurada)
+                ? claveConfigurada
+                : (app.Environment.IsDevelopment() ? semilla.Clave : null);
+            if (clave == null)
+            {
+                app.Logger.LogWarning("No se creo el usuario {Login}: falta la clave Semillas:{Login} en la configuracion.", semilla.Login, semilla.Login);
+                continue;
+            }
+
             db.Usuarios.Add(new Usuario
             {
                 NombreUsuario = semilla.Login,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(semilla.Clave),
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(clave),
                 NombreCompleto = semilla.Nombre,
                 Rol = semilla.Rol
             });
@@ -108,6 +138,9 @@ using (var scope = app.Services.CreateScope())
     db.SaveChanges();
 }
 
+// Primero lo primero: tomar la direccion y el protocolo reales del visitante
+app.UseForwardedHeaders();
+
 // Configurar el pipeline HTTP
 if (app.Environment.IsDevelopment())
 {
@@ -115,8 +148,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Habilitar carpetas publicas (wwwroot: css, js, imagenes)
-app.UseStaticFiles();
+// Habilitar carpetas publicas (wwwroot: css, js, imagenes).
+// Los css y js llevan ?v=<huella> en las paginas (asp-append-version), asi que el
+// navegador puede guardarlos una semana: si el archivo cambia, la direccion cambia
+// y se descarga de nuevo. Esto evita volver a pedirlos en cada pantalla.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+        ctx.Context.Response.Headers["Cache-Control"] = "public,max-age=604800"
+});
 
 app.UseRouting();
 
@@ -127,6 +167,9 @@ app.UseAuthorization();
 
 // Mapear API Controllers normales
 app.MapControllers();
+
+// Comprobacion simple de que el sitio esta vivo (sin sesion)
+app.MapGet("/salud", () => Results.Ok("ok")).AllowAnonymous();
 
 // Mapear la ruta por defecto para las Vistas MVC (.cshtml)
 app.MapControllerRoute(

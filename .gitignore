@@ -403,3 +403,9 @@ FodyWeavers.xsd
 # Credenciales locales (SQL Server, SMTP): NUNCA subir al repositorio
 .env
 **/.env
+.env.cloud
+# Respaldos de la base bajados de la nube (contienen datos reales)
+respaldos/
+
+# Copias comprimidas del proyecto
+*.zip

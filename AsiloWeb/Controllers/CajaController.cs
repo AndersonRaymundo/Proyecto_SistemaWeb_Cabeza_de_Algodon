@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -86,16 +87,6 @@ namespace AsiloWeb.Controllers
             return Ok(pagos);
         }
 
-        [HttpGet("pagos/residente/{idPaciente}")]
-        public async Task<IActionResult> PagosPorResidente(int idPaciente)
-        {
-            var pagos = await _context.PagosFundacion
-                .Where(p => p.IdPaciente == idPaciente)
-                .OrderByDescending(p => p.FechaPago)
-                .ToListAsync();
-            return Ok(pagos);
-        }
-
         public class EstadoPagoRequest
         {
             public string Estado { get; set; } = string.Empty; // Pendiente | Pagado
@@ -180,6 +171,53 @@ namespace AsiloWeb.Controllers
 
         // ---- Resumen financiero (incluye RF-11: deuda con la fundación, calculada) ----
 
+        // Total que el asilo le debe a la fundacion por consultas, examenes y medicamentos
+        private async Task<decimal> DeudaTotalConFundacionAsync()
+        {
+            var totalCitas = await _context.CitasMedicas.SumAsync(c => (decimal?)c.CostoTotal) ?? 0;
+            var totalExamenes = await _context.ExamenesLaboratorio.SumAsync(e => (decimal?)e.Costo) ?? 0;
+            var totalMedicamentos = await _context.MedicamentosRecetados.SumAsync(m => (decimal?)m.Costo) ?? 0;
+            return totalCitas + totalExamenes + totalMedicamentos;
+        }
+
+        // ---- Pagos del asilo a la fundacion (abonos a la deuda) ----
+        public class AbonoFundacionRequest
+        {
+            public decimal Monto { get; set; }
+            public string? Nota { get; set; }
+        }
+
+        [HttpPost("abonos-fundacion")]
+        public async Task<IActionResult> CrearAbonoFundacion(AbonoFundacionRequest datos)
+        {
+            if (datos.Monto <= 0)
+                return BadRequest(new { message = "El monto debe ser mayor que cero." });
+
+            var deuda = await DeudaTotalConFundacionAsync();
+            var pagado = await _context.AbonosFundacion.SumAsync(a => (decimal?)a.Monto) ?? 0;
+            var saldo = deuda - pagado;
+            if (datos.Monto > saldo + 0.005m)
+                return BadRequest(new { message = $"El pago no puede superar el saldo pendiente con la fundación (Q{saldo:N2})." });
+
+            int? idUsuario = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : (int?)null;
+            var abono = new AbonoFundacion
+            {
+                Monto = datos.Monto,
+                Nota = string.IsNullOrWhiteSpace(datos.Nota) ? null : datos.Nota.Trim(),
+                IdUsuario = idUsuario
+            };
+            _context.AbonosFundacion.Add(abono);
+            await _context.SaveChangesAsync();
+            return Ok(abono);
+        }
+
+        [HttpGet("abonos-fundacion")]
+        public async Task<IActionResult> ListarAbonosFundacion()
+        {
+            var abonos = await _context.AbonosFundacion.OrderByDescending(a => a.FechaPago).ToListAsync();
+            return Ok(abonos);
+        }
+
         [HttpGet("resumen")]
         public async Task<IActionResult> Resumen()
         {
@@ -188,12 +226,10 @@ namespace AsiloWeb.Controllers
             var totalPagosPendientes = await _context.PagosFundacion.Where(p => p.Estado == "Pendiente").SumAsync(p => (decimal?)p.Monto) ?? 0;
             var totalGastos = await _context.Gastos.SumAsync(g => (decimal?)g.Monto) ?? 0;
 
-            // RF-11: lo que el asilo le debe a la fundación = suma de costos de
-            // citas + exámenes + medicamentos ya registrados (no pagados por la fundación aparte).
-            var totalCitas = await _context.CitasMedicas.SumAsync(c => (decimal?)c.CostoTotal) ?? 0;
-            var totalExamenes = await _context.ExamenesLaboratorio.SumAsync(e => (decimal?)e.Costo) ?? 0;
-            var totalMedicamentos = await _context.MedicamentosRecetados.SumAsync(m => (decimal?)m.Costo) ?? 0;
-            var deudaConFundacion = totalCitas + totalExamenes + totalMedicamentos;
+            // RF-11: lo que el asilo le debe a la fundación (consultas + exámenes + medicamentos) menos lo que ya le pagó.
+            var deudaConFundacion = await DeudaTotalConFundacionAsync();
+            var pagadoAFundacion = await _context.AbonosFundacion.SumAsync(x => (decimal?)x.Monto) ?? 0;
+            var saldoFundacion = deudaConFundacion - pagadoAFundacion;
 
             return Ok(new
             {
@@ -202,7 +238,9 @@ namespace AsiloWeb.Controllers
                 totalPagosPendientes,
                 totalGastos,
                 deudaConFundacion,
-                balance = totalDonaciones + totalPagosCancelados - totalGastos
+                pagadoAFundacion,
+                saldoFundacion,
+                balance = totalDonaciones + totalPagosCancelados - totalGastos - pagadoAFundacion
             });
         }
     }

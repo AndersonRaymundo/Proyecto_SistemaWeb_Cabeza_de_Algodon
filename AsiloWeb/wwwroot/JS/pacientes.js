@@ -1,5 +1,5 @@
-const API_URL = 'http://localhost:8000/api/Residentes';
-const EMAIL_SERVICE_URL = 'http://localhost:8001/send-email';
+const API_URL = '/api/Pacientes';
+const EMAIL_SERVICE_URL = '/api/Notificaciones/correo';
 let idResidenteEdicion = null; // Almacena el ID cuando estamos editando un registro
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -69,7 +69,8 @@ async function guardarResidente(event) {
     const correoTutor = document.getElementById('txtCorreo').value;
     const nombreTutor = document.getElementById('txtTutor').value;
     const nombrePaciente = document.getElementById('txtNombre').value;
-    const medicamentosCajon = document.getElementById('txtMedicamentosCajon').value;
+    const patologias = leerLista('patologias');
+    const medicamentosCajon = leerLista('medicamentos');
 
     const residentePayload = {
         idResidente: idResidenteEdicion || 0,
@@ -77,7 +78,8 @@ async function guardarResidente(event) {
         nombreCompleto: nombrePaciente,
         fechaNacimiento: fechaNacFormatted,
         fechaIngreso: new Date().toISOString().split('T')[0],
-        patologia: document.getElementById('txtPatologia').value,
+        // Resumen en texto para el listado y los reportes (la columna admite 255 caracteres)
+        patologia: resumenPatologias(patologias),
         nombreTutor: nombreTutor,
         telefonoTutor: document.getElementById('txtTelefono').value,
         correoTutor: correoTutor,
@@ -103,7 +105,7 @@ async function guardarResidente(event) {
                 idGuardado = guardado.idResidente || idGuardado;
             } catch (e) { /* respuesta sin cuerpo */ }
             if (idGuardado) {
-                await guardarFichaBase(idGuardado, residentePayload.patologia, medicamentosCajon);
+                await guardarFichaBase(idGuardado, patologias, medicamentosCajon);
             }
 
             mostrarModal("¡Éxito!", `Residente ${esEdicion ? 'actualizado' : 'registrado'} correctamente.`, "exito");
@@ -126,7 +128,7 @@ async function guardarResidente(event) {
 }
 
 // Guarda / actualiza la ficha medica base del residente en el backend .NET (TBL_FICHAS_MEDICAS)
-async function guardarFichaBase(idPaciente, diagnosticoBase, medicamentosContinuos) {
+async function guardarFichaBase(idPaciente, patologias, medicamentosCajon) {
     try {
         await fetch('/api/Historial/ficha-base', {
             method: 'POST',
@@ -134,8 +136,8 @@ async function guardarFichaBase(idPaciente, diagnosticoBase, medicamentosContinu
             body: JSON.stringify({
                 idPaciente: idPaciente,
                 idDoctor: parseInt(localStorage.getItem('id_usuario'), 10) || 0,
-                diagnosticoBase: diagnosticoBase || '',
-                medicamentosContinuos: medicamentosContinuos || null
+                patologias: patologias,
+                medicamentosCajon: medicamentosCajon
             })
         });
     } catch (err) {
@@ -143,17 +145,114 @@ async function guardarFichaBase(idPaciente, diagnosticoBase, medicamentosContinu
     }
 }
 
-// Carga los medicamentos de cajon guardados al editar un residente
+// Carga las patologias y los medicamentos de cajon guardados al editar un residente
 async function cargarFichaBase(idPaciente) {
     try {
         const res = await fetch(`/api/Historial/residente/${idPaciente}`);
         if (!res.ok) return;
         const fichas = await res.json();
-        const campo = document.getElementById('txtMedicamentosCajon');
-        if (campo) campo.value = (fichas[fichas.length - 1] || {}).medicamentosContinuos || '';
+        const ficha = fichas[fichas.length - 1] || {};
+        // Si la ficha aun no tiene la lista, se queda la que salio del texto del residente
+        if ((ficha.patologias || []).length) pintarLista('patologias', ficha.patologias);
+        pintarLista('medicamentos', ficha.medicamentosCajon || []);
     } catch (err) {
         console.error('No se pudo cargar la ficha base:', err);
     }
+}
+
+// ---- Listas editables de la ficha base (un residente puede tener varias) --------
+// Cada lista define sus campos; el primero es obligatorio (filas sin él se ignoran).
+const LISTAS = {
+    patologias: {
+        contenedor: 'listaPatologias',
+        vacio: 'Sin patologías registradas.',
+        quitar: 'Quitar patología',
+        campos: [
+            { clave: 'nombre', placeholder: 'Patología (ej. Hipertensión)', maximo: 200 },
+            { clave: 'observaciones', placeholder: 'Observaciones (ej. controlada)', maximo: 200 }
+        ]
+    },
+    medicamentos: {
+        contenedor: 'listaMedicamentosCajon',
+        vacio: 'Sin medicamentos de cajón registrados.',
+        quitar: 'Quitar medicamento',
+        campos: [
+            { clave: 'nombreMedicamento', placeholder: 'Medicamento (ej. Losartán)', maximo: 200 },
+            { clave: 'dosis', placeholder: 'Dosis (ej. 50 mg)', maximo: 100 },
+            { clave: 'frecuencia', placeholder: 'Frecuencia (ej. cada 12 h)', maximo: 100 }
+        ]
+    }
+};
+
+function actualizarVacio(tipo) {
+    const lista = document.getElementById(LISTAS[tipo].contenedor);
+    const aviso = lista.querySelector('.vacio');
+    const hayFilas = lista.querySelector('.fila-lista') !== null;
+    if (!hayFilas && !aviso) {
+        const p = document.createElement('p');
+        p.className = 'vacio';
+        p.textContent = LISTAS[tipo].vacio;
+        lista.append(p);
+    } else if (hayFilas && aviso) {
+        aviso.remove();
+    }
+}
+
+function agregarFila(tipo, datos = {}) {
+    const config = LISTAS[tipo];
+    const fila = document.createElement('div');
+    fila.className = `fila-lista campos-${config.campos.length}`;
+
+    config.campos.forEach(campo => {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = campo.placeholder;
+        input.maxLength = campo.maximo;
+        input.value = datos[campo.clave] || '';
+        fila.append(input);
+    });
+
+    const quitar = document.createElement('button');
+    quitar.type = 'button';
+    quitar.className = 'btn-icono rojo';
+    quitar.title = config.quitar;
+    quitar.innerHTML = '<i class="fa-solid fa-trash"></i>';
+    quitar.onclick = () => { fila.remove(); actualizarVacio(tipo); };
+    fila.append(quitar);
+
+    document.getElementById(config.contenedor).append(fila);
+    actualizarVacio(tipo);
+    if (!datos[config.campos[0].clave]) fila.querySelector('input').focus();
+}
+
+function pintarLista(tipo, elementos) {
+    document.getElementById(LISTAS[tipo].contenedor).innerHTML = '';
+    elementos.forEach(e => agregarFila(tipo, e));
+    actualizarVacio(tipo);
+}
+
+// Devuelve lo escrito en la lista como objetos { clave: valor }; vacíos = null
+function leerLista(tipo) {
+    const config = LISTAS[tipo];
+    return [...document.querySelectorAll(`#${config.contenedor} .fila-lista`)]
+        .map(fila => {
+            const inputs = fila.querySelectorAll('input');
+            const item = {};
+            config.campos.forEach((campo, i) => { item[campo.clave] = inputs[i].value.trim() || null; });
+            return item;
+        })
+        .filter(item => item[config.campos[0].clave]);
+}
+
+// "Hipertensión, Diabetes tipo 2" (recortado a los 255 caracteres de TBL_PACIENTES)
+function resumenPatologias(patologias) {
+    const texto = patologias.map(p => p.nombre).join(', ');
+    return texto.length > 255 ? texto.slice(0, 254) + '…' : texto;
+}
+
+// Convierte el texto anterior ("A, B; C") en filas de la lista
+function patologiasDesdeTexto(texto) {
+    return (texto || '').split(/[,;]/).map(t => t.trim()).filter(Boolean).map(nombre => ({ nombre }));
 }
 
 // Envío automático de correo
@@ -189,6 +288,8 @@ function textoBotonGuardar(editando) {
 function resetearFormulario() {
     idResidenteEdicion = null;
     document.getElementById('formResidente').reset();
+    pintarLista('patologias', []);
+    pintarLista('medicamentos', []);
     textoBotonGuardar(false);
 }
 
@@ -208,11 +309,11 @@ function prepararEdicion(r) {
     const fechaNac = r.fechaNacimiento || r.FechaNacimiento || '';
     document.getElementById('txtFechaNacimiento').value = fechaNac ? fechaNac.split('T')[0] : '';
 
-    document.getElementById('txtPatologia').value = r.patologia || r.Patologia || '';
+    pintarLista('patologias', patologiasDesdeTexto(r.patologia || r.Patologia));
     document.getElementById('txtTutor').value = r.nombreTutor || r.NombreTutor || '';
     document.getElementById('txtTelefono').value = r.telefonoTutor || r.TelefonoTutor || '';
     document.getElementById('txtCorreo').value = r.correoTutor || r.CorreoTutor || '';
-    document.getElementById('txtMedicamentosCajon').value = '';
+    pintarLista('medicamentos', []);
     cargarFichaBase(idResidenteEdicion);
 
     textoBotonGuardar(true);
@@ -373,31 +474,3 @@ async function enviarCorreoTutor(event) {
     }
 }
 
-// 5. MODAL DINÁMICO UI GENERÁL
-function mostrarModal(titulo, mensaje, tipo) {
-    let modalExistente = document.getElementById('customModal');
-    if (modalExistente) modalExistente.remove();
-
-    const colorIcono = tipo === 'exito' ? '#2e7d32' : '#c62828';
-    const icono = tipo === 'exito' ? 'fa-circle-check' : 'fa-circle-xmark';
-
-    const modalHTML = `
-        <div id="customModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
-            <div style="background: white; border-radius: 12px; padding: 25px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-                <i class="fa-solid ${icono}" style="font-size: 3rem; color: ${colorIcono}; margin-bottom: 15px;"></i>
-                <h3 style="margin: 0 0 10px 0; color: #333;">${titulo}</h3>
-                <p style="color: #666; margin-bottom: 20px; font-size: 0.95rem;">${mensaje}</p>
-                <button onclick="cerrarModal()" style="background: ${colorIcono}; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                    Aceptar
-                </button>
-            </div>
-        </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-}
-
-function cerrarModal() {
-    const modal = document.getElementById('customModal');
-    if (modal) modal.remove();
-}

@@ -1,0 +1,171 @@
+# ===========================================================================
+# DESPLIEGUE EN LA NUBE - Sistema Asilo Cabeza de Algodon
+#
+# Levanta TODO el sistema en una sola maquina:
+#
+#   Internet --443--> caddy (HTTPS) --> web (ASP.NET Core) --+--> pacientes_service
+#                                                            +--> email_service
+#                                                            +--> pdf_service
+#                                                            +--> sqlserver (datos)
+#
+# Solo caddy publica puertos (80 y 443). La base de datos y los 3
+# microservicios quedan en la red interna y NO se ven desde internet.
+#
+# Uso:
+#   1. Copiar .env.cloud.example como .env.cloud y completar los valores.
+#   2. docker compose -f docker-compose.cloud.yml --env-file .env.cloud up -d --build
+# ===========================================================================
+name: asilo-cabeza-algodon
+
+services:
+
+  # ---------------------------------------------------------------- base de datos
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Express"
+      MSSQL_SA_PASSWORD: ${SA_PASSWORD:?Falta SA_PASSWORD en .env.cloud}
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+  # Crea la base de datos vacia la primera vez y el usuario "asilo_app" con el
+  # que se conectan la web y pacientes_service (sa queda solo para administrar).
+  # asilo_app solo tiene permisos dentro de AsiloCabezaAlgodon: leer, escribir y
+  # crear/modificar tablas (migraciones). Se ejecuta en cada arranque; si se
+  # cambia APP_DB_PASSWORD, aqui se actualiza la clave del usuario.
+  # Las tablas las crean despues pacientes_service (TBL_PACIENTES) y la web (migraciones).
+  db_init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: "no"
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD:?Falta SA_PASSWORD en .env.cloud}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Falta APP_DB_PASSWORD en .env.cloud}
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -e
+        SQL="/opt/mssql-tools18/bin/sqlcmd -C -b -S sqlserver -U sa -P $$SA_PASSWORD"
+        $$SQL -Q "
+          IF DB_ID('AsiloCabezaAlgodon') IS NULL CREATE DATABASE AsiloCabezaAlgodon;
+          IF SUSER_ID('asilo_app') IS NULL
+            CREATE LOGIN asilo_app WITH PASSWORD = N'$$APP_DB_PASSWORD', CHECK_POLICY = ON;
+          ELSE
+            ALTER LOGIN asilo_app WITH PASSWORD = N'$$APP_DB_PASSWORD';"
+        $$SQL -d AsiloCabezaAlgodon -Q "
+          IF USER_ID('asilo_app') IS NULL CREATE USER asilo_app FOR LOGIN asilo_app;
+          ALTER ROLE db_datareader ADD MEMBER asilo_app;
+          ALTER ROLE db_datawriter ADD MEMBER asilo_app;
+          ALTER ROLE db_ddladmin ADD MEMBER asilo_app;
+          GRANT REFERENCES TO asilo_app;"
+
+  # Respaldo completo de la base una vez al dia. Guarda los archivos .bak en
+  # /var/opt/mssql/backup (dentro del volumen sqldata) y borra los de mas de
+  # 7 dias. Para bajarlos a otra maquina, ver docs/despliegue-nube.md.
+  backup:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      db_init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD:?Falta SA_PASSWORD en .env.cloud}
+    volumes:
+      - sqldata:/var/opt/mssql
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        mkdir -p /var/opt/mssql/backup
+        while true; do
+          ARCHIVO=/var/opt/mssql/backup/AsiloCabezaAlgodon_$$(date +%Y%m%d_%H%M).bak
+          if /opt/mssql-tools18/bin/sqlcmd -C -b -S sqlserver -U sa -P "$$SA_PASSWORD" \
+               -Q "BACKUP DATABASE AsiloCabezaAlgodon TO DISK = N'$$ARCHIVO' WITH INIT, CHECKSUM"; then
+            echo "Respaldo creado: $$ARCHIVO"
+          else
+            echo "ERROR: no se pudo crear el respaldo $$ARCHIVO"
+          fi
+          find /var/opt/mssql/backup -name '*.bak' -mtime +7 -delete
+          sleep 86400
+        done
+
+  # ---------------------------------------------------------------- microservicios
+  pacientes_service:
+    build: ./pacientes_service
+    restart: unless-stopped
+    depends_on:
+      db_init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: "mssql+pyodbc://asilo_app:${APP_DB_PASSWORD:?Falta APP_DB_PASSWORD en .env.cloud}@sqlserver:1433/AsiloCabezaAlgodon?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes"
+
+  email_service:
+    build: ./email_service
+    restart: unless-stopped
+    environment:
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+
+  pdf_service:
+    build: ./pdf_service
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- aplicacion web
+  web:
+    build: ./AsiloWeb
+    restart: unless-stopped
+    depends_on:
+      db_init:
+        condition: service_completed_successfully
+      pacientes_service:
+        condition: service_started
+      email_service:
+        condition: service_started
+      pdf_service:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__ConexionSQL: "Server=sqlserver,1433;Database=AsiloCabezaAlgodon;User Id=asilo_app;Password=${APP_DB_PASSWORD:?Falta APP_DB_PASSWORD en .env.cloud};TrustServerCertificate=True;"
+      Servicios__Pacientes: "http://pacientes_service:8000"
+      Servicios__Correo: "http://email_service:8001"
+      Servicios__Pdf: "http://pdf_service:8002"
+      # Contrasenas de los usuarios de prueba (si faltan se usan las del codigo)
+      Semillas__admin: ${PASS_ADMIN:?Falta PASS_ADMIN en .env.cloud}
+      Semillas__doctor: ${PASS_DOCTOR:?Falta PASS_DOCTOR en .env.cloud}
+      Semillas__enfermero: ${PASS_ENFERMERO:?Falta PASS_ENFERMERO en .env.cloud}
+      Semillas__farmacia: ${PASS_FARMACIA:?Falta PASS_FARMACIA en .env.cloud}
+      Semillas__fundacion: ${PASS_FUNDACION:?Falta PASS_FUNDACION en .env.cloud}
+      Semillas__laboratorio: ${PASS_LABORATORIO:?Falta PASS_LABORATORIO en .env.cloud}
+
+  # ---------------------------------------------------------------- HTTPS publico
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMINIO: ${DOMINIO:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  sqldata:
+  caddy_data:
+  caddy_config:

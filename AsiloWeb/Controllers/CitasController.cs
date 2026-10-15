@@ -89,7 +89,7 @@ namespace AsiloWeb.Controllers
                     cuerpo);
             }
 
-            return CreatedAtAction(nameof(ObtenerPorId), new { id = cita.IdCita }, cita);
+            return StatusCode(StatusCodes.Status201Created, cita);
         }
 
         [HttpGet]
@@ -100,24 +100,6 @@ namespace AsiloWeb.Controllers
                 query = query.Where(c => c.Estado == estado);
 
             var citas = await query.OrderByDescending(c => c.FechaSolicitud).ToListAsync();
-            return Ok(citas);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> ObtenerPorId(int id)
-        {
-            var cita = await _context.CitasMedicas.FindAsync(id);
-            if (cita == null) return NotFound();
-            return Ok(cita);
-        }
-
-        [HttpGet("residente/{idPaciente}")]
-        public async Task<IActionResult> PorResidente(int idPaciente)
-        {
-            var citas = await _context.CitasMedicas
-                .Where(c => c.IdPaciente == idPaciente)
-                .OrderByDescending(c => c.FechaSolicitud)
-                .ToListAsync();
             return Ok(citas);
         }
 
@@ -170,6 +152,13 @@ namespace AsiloWeb.Controllers
         // ------------------------------------------------------------------
         // RF-07: el medico convierte la solicitud en visita medica
         // ------------------------------------------------------------------
+        public class MedicamentoVisita
+        {
+            public string Nombre { get; set; } = string.Empty;
+            public string? Cantidad { get; set; }
+            public string? TiempoAplicacion { get; set; }
+        }
+
         public class VisitaRequest
         {
             public string DiagnosticoConsulta { get; set; } = string.Empty;
@@ -179,6 +168,8 @@ namespace AsiloWeb.Controllers
             public string? Medicamento { get; set; }           // se manda a farmacia
             public string? Cantidad { get; set; }
             public string? TiempoAplicacion { get; set; }
+            public List<string>? Examenes { get; set; }                  // varios examenes (van al laboratorio)
+            public List<MedicamentoVisita>? Medicamentos { get; set; }   // varios medicamentos (van a farmacia)
         }
 
         // Registra examenes/medicamentos de la visita y el cobro de la consulta (RF-07, RF-10)
@@ -187,27 +178,41 @@ namespace AsiloWeb.Controllers
             cita.EstadoPago = "Sin cargos";
             cita.CostoTotal = _facturacion.AplicarDescuento(datos.PrecioLista);
 
-            if (!string.IsNullOrWhiteSpace(datos.ExamenSolicitado))
+            // RF-07: la visita admite varios examenes y varios medicamentos
+            // (tambien se aceptan los campos simples de la version anterior)
+            var examenes = (datos.Examenes ?? new List<string>()).ToList();
+            if (!string.IsNullOrWhiteSpace(datos.ExamenSolicitado)) examenes.Add(datos.ExamenSolicitado!);
+            examenes = examenes.Where(e => !string.IsNullOrWhiteSpace(e)).Select(e => e.Trim()).Distinct().ToList();
+
+            var medicamentos = (datos.Medicamentos ?? new List<MedicamentoVisita>()).ToList();
+            if (!string.IsNullOrWhiteSpace(datos.Medicamento))
+                medicamentos.Add(new MedicamentoVisita { Nombre = datos.Medicamento!, Cantidad = datos.Cantidad, TiempoAplicacion = datos.TiempoAplicacion });
+            medicamentos = medicamentos.Where(m => !string.IsNullOrWhiteSpace(m.Nombre)).ToList();
+
+            if (examenes.Count > 0)
             {
                 var ficha = await _expediente.ObtenerOCrearFichaAsync(cita.IdPaciente, cita.IdDoctor ?? IdUsuarioActual);
-                _context.ExamenesLaboratorio.Add(new ExamenLaboratorio
+                foreach (var examen in examenes)
                 {
-                    IdFicha = ficha.IdFicha,
-                    IdPaciente = cita.IdPaciente,
-                    IdCita = cita.IdCita,
-                    TipoExamen = datos.ExamenSolicitado!.Trim()
-                });
+                    _context.ExamenesLaboratorio.Add(new ExamenLaboratorio
+                    {
+                        IdFicha = ficha.IdFicha,
+                        IdPaciente = cita.IdPaciente,
+                        IdCita = cita.IdCita,
+                        TipoExamen = examen
+                    });
+                }
             }
 
-            if (!string.IsNullOrWhiteSpace(datos.Medicamento))
+            foreach (var m in medicamentos)
             {
                 _context.MedicamentosRecetados.Add(new MedicamentoRecetado
                 {
                     IdCita = cita.IdCita,
                     IdPaciente = cita.IdPaciente,
-                    NombreMedicamento = datos.Medicamento!.Trim(),
-                    Cantidad = datos.Cantidad,
-                    TiempoAplicacion = datos.TiempoAplicacion,
+                    NombreMedicamento = m.Nombre.Trim(),
+                    Cantidad = m.Cantidad,
+                    TiempoAplicacion = m.TiempoAplicacion,
                     Despachado = false
                 });
             }
@@ -228,6 +233,10 @@ namespace AsiloWeb.Controllers
             if (cita.Estado == "Atendida")
                 return BadRequest(new { message = "Esta cita ya fue atendida." });
 
+            // RF-07: la visita la registra el medico asignado (el administrador puede hacerlo siempre)
+            if (User.IsInRole("DOCTOR") && cita.IdDoctor.HasValue && cita.IdDoctor.Value != IdUsuarioActual)
+                return StatusCode(403, new { message = "Esta cita fue asignada a otro médico." });
+
             cita.DiagnosticoConsulta = datos.DiagnosticoConsulta;
             cita.Observaciones = datos.Observaciones;
             cita.Estado = "Atendida";
@@ -238,23 +247,6 @@ namespace AsiloWeb.Controllers
         }
 
         // Estado de pago manual de una cita (lo normal es que cambie solo desde Caja)
-        public class EstadoPagoRequest
-        {
-            public string EstadoPago { get; set; } = string.Empty; // Pendiente | Pagado
-        }
-
-        [HttpPut("{id}/estado-pago")]
-        [Authorize(Roles = "ADMINISTRADOR")]
-        public async Task<IActionResult> MarcarPago(int id, EstadoPagoRequest datos)
-        {
-            var cita = await _context.CitasMedicas.FindAsync(id);
-            if (cita == null) return NotFound();
-
-            cita.EstadoPago = datos.EstadoPago;
-            await _context.SaveChangesAsync();
-            return Ok(cita);
-        }
-
         // ------------------------------------------------------------------
         // Pantalla "Historial Medico": consulta ya atendida, sin solicitud previa
         // ------------------------------------------------------------------
@@ -270,6 +262,8 @@ namespace AsiloWeb.Controllers
             public string? ExamenSolicitado { get; set; }
             public string? Observaciones { get; set; }
             public decimal PrecioLista { get; set; }
+            public List<string>? Examenes { get; set; }
+            public List<MedicamentoVisita>? Medicamentos { get; set; }
         }
 
         [HttpPost("registro-directo")]
@@ -298,7 +292,9 @@ namespace AsiloWeb.Controllers
                 ExamenSolicitado = datos.ExamenSolicitado,
                 Medicamento = datos.Tratamiento,
                 Cantidad = datos.Cantidad,
-                TiempoAplicacion = datos.TiempoAplicacion
+                TiempoAplicacion = datos.TiempoAplicacion,
+                Examenes = datos.Examenes,
+                Medicamentos = datos.Medicamentos
             });
 
             return Ok(cita);

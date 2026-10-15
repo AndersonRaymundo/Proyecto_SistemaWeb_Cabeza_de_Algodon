@@ -112,11 +112,21 @@ namespace AsiloWeb.Controllers
 
             var paciente = await _pacientes.ObtenerAsync(idPaciente);
             var ficha = await _context.FichasMedicas
+                .Include(f => f.Patologias)
+                .Include(f => f.MedicamentosCajon)
                 .Where(f => f.IdPaciente == idPaciente).OrderBy(f => f.IdFicha).FirstOrDefaultAsync();
+            var medicamentosCajon = ficha == null ? "" : string.Join(", ", ficha.MedicamentosCajon.Select(m =>
+                string.Join(" ", new[] { m.NombreMedicamento, m.Dosis, m.Frecuencia }.Where(x => !string.IsNullOrWhiteSpace(x)))));
             var citas = await _context.CitasMedicas
                 .Where(c => c.IdPaciente == idPaciente).OrderByDescending(c => c.FechaSolicitud).ToListAsync();
             var medicamentos = await _context.MedicamentosRecetados
                 .Where(m => m.IdPaciente == idPaciente).OrderByDescending(m => m.FechaDespacho).ToListAsync();
+
+            // RF-06: el historial de consultas indica el medico tratante
+            var idsDoctores = citas.Where(c => c.IdDoctor != null).Select(c => c.IdDoctor!.Value).Distinct().ToList();
+            var medicos = await _context.Usuarios
+                .Where(u => idsDoctores.Contains(u.IdUsuario))
+                .ToDictionaryAsync(u => u.IdUsuario, u => u.NombreCompleto);
 
             var secciones = new List<ReporteSeccion>
             {
@@ -141,17 +151,18 @@ namespace AsiloWeb.Controllers
                     Filas = new List<List<string>>
                     {
                         new List<string> { "Diagnóstico base", Vacio(ficha?.DiagnosticoBase) },
-                        new List<string> { "Medicamentos de cajón (continuos)", Vacio(ficha?.MedicamentosContinuos) }
+                        new List<string> { "Medicamentos de cajón (continuos)", Vacio(medicamentosCajon) }
                     }
                 },
                 new ReporteSeccion
                 {
                     Encabezado = "Historial de consultas",
-                    Columnas = new List<string> { "Fecha", "Especialidad", "Motivo", "Diagnóstico", "Estado" },
+                    Columnas = new List<string> { "Fecha", "Especialidad y médico", "Motivo", "Diagnóstico", "Estado" },
                     Filas = citas.Select(c => new List<string>
                     {
-                        Fecha(c.FechaCita ?? c.FechaSolicitud), c.EspecialidadSolicitada, c.Motivo,
-                        Vacio(c.DiagnosticoConsulta), c.Estado
+                        Fecha(c.FechaCita ?? c.FechaSolicitud),
+                        c.EspecialidadSolicitada + " - " + (c.IdDoctor != null && medicos.ContainsKey(c.IdDoctor.Value) ? medicos[c.IdDoctor.Value] : "sin médico"),
+                        c.Motivo, Vacio(c.DiagnosticoConsulta), c.Estado
                     }).ToList()
                 },
                 new ReporteSeccion
@@ -238,6 +249,11 @@ namespace AsiloWeb.Controllers
                 .Where(m => m.Despachado && m.Costo > 0 && (d == null || m.FechaDespacho >= d) && (h == null || m.FechaDespacho < h))
                 .OrderBy(m => m.FechaDespacho).ToListAsync();
 
+            var abonos = await _context.AbonosFundacion
+                .Where(a => (d == null || a.FechaPago >= d) && (h == null || a.FechaPago < h))
+                .OrderBy(a => a.FechaPago).ToListAsync();
+            var tAbonos = abonos.Sum(a => a.Monto);
+
             var tCitas = citas.Sum(c => c.CostoTotal);
             var tEx = examenes.Sum(e => e.Costo);
             var tMed = medicamentos.Sum(m => m.Costo);
@@ -247,7 +263,7 @@ namespace AsiloWeb.Controllers
             return await Entregar(new ReporteDto
             {
                 Titulo = "Pagos a la Fundación",
-                Subtitulo = "Servicios prestados por la fundación con su descuento especial",
+                Subtitulo = "Servicios prestados por la fundación con su descuento, pagos realizados y saldo",
                 Filtros = FiltrosFecha(desde, hasta),
                 Secciones = new List<ReporteSeccion>
                 {
@@ -271,9 +287,21 @@ namespace AsiloWeb.Controllers
                     },
                     new ReporteSeccion
                     {
-                        Encabezado = "Total adeudado a la fundación",
+                        Encabezado = "Pagos realizados a la fundación",
+                        Columnas = new List<string> { "Fecha", "Nota", "Monto" },
+                        Filas = abonos.Select(a => new List<string> { Fecha(a.FechaPago), Vacio(a.Nota), Q(a.Monto) }).ToList(),
+                        Totales = new List<string> { "Subtotal", "", Q(tAbonos) }
+                    },
+                    new ReporteSeccion
+                    {
+                        Encabezado = "Cuenta con la fundación",
                         Columnas = new List<string> { "Concepto", "Monto" },
-                        Filas = new List<List<string>> { new List<string> { "Consultas + exámenes + medicamentos", Q(tCitas + tEx + tMed) } }
+                        Filas = new List<List<string>>
+                        {
+                            new List<string> { "Total adeudado (consultas + exámenes + medicamentos)", Q(tCitas + tEx + tMed) },
+                            new List<string> { "Total pagado a la fundación", Q(tAbonos) },
+                            new List<string> { "Saldo pendiente", Q(tCitas + tEx + tMed - tAbonos) }
+                        }
                     }
                 }
             }, "pagos_fundacion.pdf");
@@ -328,15 +356,44 @@ namespace AsiloWeb.Controllers
             }, "entradas.pdf");
         }
 
-        // ---------- 6. Examenes medicos y medicamentos aplicados por paciente ----------
+        // ---------- 6. Examenes medicos realizados por paciente ----------
         [HttpGet]
-        public async Task<IActionResult> ExamenesMedicamentos(int? idPaciente)
+        public async Task<IActionResult> Examenes(int? idPaciente)
         {
             var pacientes = await _pacientes.ObtenerTodosAsync();
 
             var examenes = await _context.ExamenesLaboratorio
                 .Where(e => idPaciente == null || e.IdPaciente == idPaciente)
                 .OrderBy(e => e.FechaRegistro).ToListAsync();
+
+            var filtros = new List<string>
+            {
+                idPaciente.HasValue ? $"Paciente: {NombrePaciente(pacientes, idPaciente.Value)}" : "Pacientes: todos"
+            };
+
+            return await Entregar(new ReporteDto
+            {
+                Titulo = "Exámenes Médicos Realizados por Paciente",
+                Subtitulo = "Exámenes de laboratorio solicitados y sus resultados",
+                Filtros = filtros,
+                Secciones = new List<ReporteSeccion>
+                {
+                    new ReporteSeccion
+                    {
+                        Encabezado = "Exámenes de laboratorio",
+                        Columnas = new List<string> { "Fecha", "Paciente", "Examen", "Resultado", "Costo" },
+                        Filas = examenes.Select(e => new List<string> { Fecha(e.FechaRegistro), NombrePaciente(pacientes, e.IdPaciente), e.TipoExamen, string.IsNullOrWhiteSpace(e.Resultados) ? "Pendiente" : e.Resultados!, Q(e.Costo) }).ToList()
+                    }
+                }
+            }, "examenes_por_paciente.pdf");
+        }
+
+        // ---------- 7. Medicamentos aplicados por paciente ----------
+        [HttpGet]
+        public async Task<IActionResult> Medicamentos(int? idPaciente)
+        {
+            var pacientes = await _pacientes.ObtenerTodosAsync();
+
             var medicamentos = await _context.MedicamentosRecetados
                 .Where(m => idPaciente == null || m.IdPaciente == idPaciente)
                 .OrderBy(m => m.FechaDespacho).ToListAsync();
@@ -348,17 +405,11 @@ namespace AsiloWeb.Controllers
 
             return await Entregar(new ReporteDto
             {
-                Titulo = "Exámenes y Medicamentos por Paciente",
-                Subtitulo = "Exámenes de laboratorio realizados y medicamentos aplicados",
+                Titulo = "Medicamentos Aplicados por Paciente",
+                Subtitulo = "Medicamentos recetados y su despacho",
                 Filtros = filtros,
                 Secciones = new List<ReporteSeccion>
                 {
-                    new ReporteSeccion
-                    {
-                        Encabezado = "Exámenes de laboratorio",
-                        Columnas = new List<string> { "Fecha", "Paciente", "Examen", "Resultado", "Costo" },
-                        Filas = examenes.Select(e => new List<string> { Fecha(e.FechaRegistro), NombrePaciente(pacientes, e.IdPaciente), e.TipoExamen, string.IsNullOrWhiteSpace(e.Resultados) ? "Pendiente" : e.Resultados!, Q(e.Costo) }).ToList()
-                    },
                     new ReporteSeccion
                     {
                         Encabezado = "Medicamentos aplicados",
@@ -366,7 +417,7 @@ namespace AsiloWeb.Controllers
                         Filas = medicamentos.Select(m => new List<string> { Fecha(m.FechaDespacho), NombrePaciente(pacientes, m.IdPaciente), m.NombreMedicamento, Vacio(m.Cantidad), Vacio(m.TiempoAplicacion), m.Despachado ? "Sí" : "Pendiente", Q(m.Costo) }).ToList()
                     }
                 }
-            }, "examenes_medicamentos.pdf");
+            }, "medicamentos_por_paciente.pdf");
         }
     }
 }

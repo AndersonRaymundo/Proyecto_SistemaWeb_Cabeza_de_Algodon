@@ -14,13 +14,13 @@ namespace AsiloWeb.Services
         public string? CorreoTutor { get; set; }
     }
 
-    // Conector del backend .NET con pacientes_service (puerto 8000). Se usa
+    // Conector del backend .NET con pacientes_service. Se usa
     // para armar correos (RF-04) y reportes (RF-14) con el nombre real del
     // residente, ya que sus datos viven en el microservicio.
     public class PacientesService
     {
         private readonly HttpClient _http;
-        private const string BaseUrl = "http://localhost:8000/api/Residentes";
+        private const string Ruta = "/api/Residentes"; // la direccion base sale de "Servicios:Pacientes"
 
         public PacientesService(HttpClient http)
         {
@@ -31,7 +31,7 @@ namespace AsiloWeb.Services
         {
             try
             {
-                return await _http.GetFromJsonAsync<PacienteDto>($"{BaseUrl}/{idPaciente}");
+                return await _http.GetFromJsonAsync<PacienteDto>($"{Ruta}/{idPaciente}");
             }
             catch
             {
@@ -43,7 +43,7 @@ namespace AsiloWeb.Services
         {
             try
             {
-                var lista = await _http.GetFromJsonAsync<List<PacienteDto>>(BaseUrl);
+                var lista = await _http.GetFromJsonAsync<List<PacienteDto>>(Ruta);
                 return (lista ?? new List<PacienteDto>()).ToDictionary(p => p.IdResidente);
             }
             catch

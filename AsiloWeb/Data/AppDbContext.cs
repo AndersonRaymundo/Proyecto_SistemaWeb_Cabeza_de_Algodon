@@ -15,6 +15,7 @@ namespace AsiloWeb.Data
         public DbSet<Donacion> Donaciones { get; set; }
         public DbSet<PagoFundacion> PagosFundacion { get; set; }
         public DbSet<Gasto> Gastos { get; set; }
+        public DbSet<AbonoFundacion> AbonosFundacion { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -25,6 +26,7 @@ namespace AsiloWeb.Data
             modelBuilder.Entity<Donacion>().Property(d => d.Monto).HasPrecision(10, 2);
             modelBuilder.Entity<PagoFundacion>().Property(p => p.Monto).HasPrecision(10, 2);
             modelBuilder.Entity<Gasto>().Property(g => g.Monto).HasPrecision(10, 2);
+            modelBuilder.Entity<AbonoFundacion>().Property(a => a.Monto).HasPrecision(10, 2);
         }
     }
 }

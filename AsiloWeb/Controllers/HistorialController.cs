@@ -24,28 +24,62 @@ namespace AsiloWeb.Controllers
         private int IdUsuarioActual =>
             int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
 
+        public class PatologiaItem
+        {
+            public string? Nombre { get; set; }
+            public string? Observaciones { get; set; }
+        }
+
+        public class MedicamentoCajonItem
+        {
+            public string? NombreMedicamento { get; set; }
+            public string? Dosis { get; set; }
+            public string? Frecuencia { get; set; }
+        }
+
         public class FichaMedicaRequest
         {
             public int IdPaciente { get; set; }
             public int IdDoctor { get; set; }
             public string DiagnosticoBase { get; set; } = string.Empty;
-            public string? MedicamentosContinuos { get; set; }
+            public List<PatologiaItem>? Patologias { get; set; }
+            public List<MedicamentoCajonItem>? MedicamentosCajon { get; set; }
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CrearFicha(FichaMedicaRequest datos)
+        // RF-01: un residente puede tener varias patologias y varios medicamentos de cajon.
+        // Si el cliente envia una lista, reemplaza la anterior. DiagnosticoBase guarda el
+        // resumen en texto de las patologias (para listados y reportes).
+        private void AplicarListas(FichaMedica ficha, FichaMedicaRequest datos)
         {
-            var ficha = new FichaMedica
+            if (datos.Patologias != null)
             {
-                IdPaciente = datos.IdPaciente,
-                IdDoctor = datos.IdDoctor,
-                DiagnosticoBase = datos.DiagnosticoBase,
-                MedicamentosContinuos = datos.MedicamentosContinuos
-            };
+                _context.RemoveRange(ficha.Patologias);
+                ficha.Patologias = datos.Patologias
+                    .Where(p => !string.IsNullOrWhiteSpace(p.Nombre))
+                    .Select(p => new Patologia
+                    {
+                        Nombre = p.Nombre!.Trim(),
+                        Observaciones = string.IsNullOrWhiteSpace(p.Observaciones) ? null : p.Observaciones.Trim()
+                    }).ToList();
+                ficha.DiagnosticoBase = string.Join(", ", ficha.Patologias.Select(p => p.Nombre));
+            }
+            else if (!string.IsNullOrWhiteSpace(datos.DiagnosticoBase))
+            {
+                ficha.DiagnosticoBase = datos.DiagnosticoBase;
+            }
 
-            _context.FichasMedicas.Add(ficha);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(ObtenerPorId), new { id = ficha.IdFicha }, ficha);
+            if (datos.MedicamentosCajon != null)
+            {
+                _context.RemoveRange(ficha.MedicamentosCajon);
+                ficha.MedicamentosCajon = datos.MedicamentosCajon
+                    .Where(m => !string.IsNullOrWhiteSpace(m.NombreMedicamento))
+                    .Select(m => new MedicamentoCajon
+                    {
+                        NombreMedicamento = m.NombreMedicamento!.Trim(),
+                        Dosis = string.IsNullOrWhiteSpace(m.Dosis) ? null : m.Dosis.Trim(),
+                        Frecuencia = string.IsNullOrWhiteSpace(m.Frecuencia) ? null : m.Frecuencia.Trim()
+                    }).ToList();
+            }
         }
 
         // Crea la ficha base del residente o actualiza la que ya tiene (RF-01).
@@ -54,6 +88,8 @@ namespace AsiloWeb.Controllers
         public async Task<IActionResult> GuardarFichaBase(FichaMedicaRequest datos)
         {
             var ficha = await _context.FichasMedicas
+                .Include(f => f.Patologias)
+                .Include(f => f.MedicamentosCajon)
                 .Where(f => f.IdPaciente == datos.IdPaciente)
                 .OrderBy(f => f.IdFicha)
                 .FirstOrDefaultAsync();
@@ -68,17 +104,8 @@ namespace AsiloWeb.Controllers
                 _context.FichasMedicas.Add(ficha);
             }
 
-            ficha.DiagnosticoBase = datos.DiagnosticoBase ?? "";
-            ficha.MedicamentosContinuos = datos.MedicamentosContinuos;
+            AplicarListas(ficha, datos);
             await _context.SaveChangesAsync();
-            return Ok(ficha);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> ObtenerPorId(int id)
-        {
-            var ficha = await _context.FichasMedicas.FindAsync(id);
-            if (ficha == null) return NotFound();
             return Ok(ficha);
         }
 
@@ -86,6 +113,8 @@ namespace AsiloWeb.Controllers
         public async Task<IActionResult> HistorialPorResidente(int idPaciente)
         {
             var fichas = await _context.FichasMedicas
+                .Include(f => f.Patologias)
+                .Include(f => f.MedicamentosCajon)
                 .Where(f => f.IdPaciente == idPaciente)
                 .OrderByDescending(f => f.FechaCreacion)
                 .ToListAsync();
@@ -98,6 +127,8 @@ namespace AsiloWeb.Controllers
         public async Task<IActionResult> Expediente(int idPaciente)
         {
             var ficha = await _context.FichasMedicas
+                .Include(f => f.Patologias)
+                .Include(f => f.MedicamentosCajon)
                 .Where(f => f.IdPaciente == idPaciente)
                 .OrderBy(f => f.IdFicha)
                 .FirstOrDefaultAsync();
@@ -117,7 +148,20 @@ namespace AsiloWeb.Controllers
                 .OrderByDescending(m => m.FechaDespacho)
                 .ToListAsync();
 
-            return Ok(new { ficha, citas, examenes, medicamentos });
+            // RF-06: cada consulta muestra el medico tratante
+            var idsDoctores = citas.Where(c => c.IdDoctor != null).Select(c => c.IdDoctor!.Value).Distinct().ToList();
+            var medicos = await _context.Usuarios
+                .Where(u => idsDoctores.Contains(u.IdUsuario))
+                .ToDictionaryAsync(u => u.IdUsuario, u => u.NombreCompleto);
+
+            var citasConMedico = citas.Select(c => new
+            {
+                c.IdCita, c.IdPaciente, c.IdDoctor, c.EspecialidadSolicitada, c.Motivo, c.EnfermeroAsignado,
+                c.FechaSolicitud, c.FechaCita, c.Estado, c.DiagnosticoConsulta, c.Observaciones, c.CostoTotal, c.EstadoPago,
+                MedicoNombre = c.IdDoctor != null && medicos.ContainsKey(c.IdDoctor.Value) ? medicos[c.IdDoctor.Value] : null
+            }).ToList();
+
+            return Ok(new { ficha, citas = citasConMedico, examenes, medicamentos });
         }
     }
 }

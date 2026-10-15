@@ -4,14 +4,12 @@ using System.Threading.Tasks;
 
 namespace AsiloWeb.Services
 {
-    // Conecta con el microservicio de correo (Python, puerto 8001) para
+    // Conecta con el microservicio de correo (Python; direccion en "Servicios:Correo") para
     // cumplir RF-04: notificar automáticamente al familiar cuando se crea
     // una solicitud médica.
     public class EmailService
     {
         private readonly HttpClient _httpClient;
-        private const string BaseUrl = "http://localhost:8001"; // Puerto del microservicio Python
-
         public EmailService(HttpClient httpClient)
         {
             _httpClient = httpClient;
@@ -25,7 +23,7 @@ namespace AsiloWeb.Services
             try
             {
                 var payload = new { recipient = destinatario, subject = asunto, body = cuerpo };
-                var response = await _httpClient.PostAsJsonAsync($"{BaseUrl}/send-email", payload);
+                var response = await _httpClient.PostAsJsonAsync("/send-email", payload);
                 return response.IsSuccessStatusCode;
             }
             catch

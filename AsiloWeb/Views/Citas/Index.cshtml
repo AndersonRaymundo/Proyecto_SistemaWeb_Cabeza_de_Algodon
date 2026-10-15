@@ -4,69 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solicitudes y Citas - Asilo Cabeza de Algodón</title>
-    <link rel="stylesheet" href="~/CSS/dashboard.css"> 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="~/CSS/dashboard.css" asp-append-version="true"> 
+    <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" asp-append-version="true">
 </head>
 <body class="pagina-citas">
-  <header class="barra-superior">
-    <div class="logo-top"></div>
-    <div class="usuario-info">
-        <button class="btn-notificacion" title="Notificaciones">
-            <i class="fa-solid fa-bell"></i>
-            <span class="badge-notificacion" id="contador-notificaciones">0</span>
-        </button>
-        
-        <div class="perfil-usuario">
-            <div class="contenedor-avatar">
-                <div class="avatar" id="avatar-usuario">G</div>
-                <span class="estado-activo" title="En línea"></span>
-            </div>
-            <div class="datos-usuario">
-                <span class="nombre-usuario" id="nombre-usuario">Dr. Raymundo</span>
-                <span class="rol-usuario" id="rol-usuario">Administrador</span>
-            </div>
-        </div>
-    </div>
-</header>
+  @await Html.PartialAsync("_Cabecera")
     
   <!-- CONTENEDOR PRINCIPAL -->
 <div class="menu-contenido">
     
     <!-- MENÚ LATERAL -->
-    <nav class="menu-lateral">
-        <a href="/Home/MENU" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
-            <i class="fa-solid fa-house"></i> INICIO
-        </a>
-        <a href="/Residentes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
-            <i class="fa-solid fa-hospital-user"></i> PACIENTES
-        </a>
-        <a href="/Citas" class="opcion-menu activa" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FUNDACION">
-            <i class="fa-solid fa-calendar-check"></i> SOLICITUDES Y CITAS
-        </a>
-        <a href="/Historial" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
-            <i class="fa-solid fa-notes-medical"></i> HISTORIAL MÉDICO
-        </a>
-        <a href="/LaboratorioFarmacia" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA,LABORATORIO">
-            <i class="fa-solid fa-vials"></i> LAB Y FARMACIA
-        </a>
-        <a href="/Reportes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
-            <i class="fa-solid fa-chart-line"></i> REPORTES
-        </a>
-        
-        <!-- OPCIÓN ACTIVA -->
-        <a href="/Caja" class="opcion-menu" data-rol="ADMINISTRADOR">
-            <i class="fa-solid fa-cash-register"></i> CAJA
-        </a>
-        
-        <a href="/Paginas/Configuracion" class="opcion-menu" data-rol="ADMINISTRADOR">
-            <i class="fa-solid fa-gear"></i> CONFIGURACIÓN
-        </a>
-
-        <!-- CERRAR SESIÓN -->
-        <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
-            <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
-        </a>
-    </nav>
+    @await Html.PartialAsync("_MenuLateral", "citas")
         
         <main class="area-trabajo">
             <h1><i class="fa-solid fa-calendar-check"></i> Remisiones y Agenda de Citas</h1>
@@ -134,8 +82,9 @@
     </div>
 
     <!-- SCRIPT CONTROLADOR DE ROLES -->
-    <script src="~/JS/roles.js"></script>
-    <script src="~/JS/ui.js"></script>
-    <script src="~/JS/solicitudes-citas.js"></script>
+    <script src="~/JS/roles.js" asp-append-version="true"></script>
+    <script src="~/JS/ui.js" asp-append-version="true"></script>
+    <script src="~/JS/comunes.js" asp-append-version="true"></script>
+    <script src="~/JS/solicitudes-citas.js" asp-append-version="true"></script>
 </body>
 </html>

@@ -3,29 +3,19 @@
 // (CajaController). RF-12 (citas no canceladas), RF-13 (donaciones, cuotas y
 // gastos) y RF-11 (deuda con la fundacion, calculada en el resumen).
 
-const PACIENTES_API_URL = "http://localhost:8000/api/Residentes";
+const PACIENTES_API_URL = "/api/Pacientes";
 const CAJA_API_URL = "/api/Caja";
 
 let mapaResidentes = {};
 
-const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const quetzales = n => "Q" + Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fecha = f => (f ? new Date(f).toLocaleDateString("es-GT") : "-");
 const nombreDe = id => (mapaResidentes[id] || {}).nombreCompleto || `Residente #${id}`;
-
-async function mensajeError(respuesta) {
-    try {
-        const d = await respuesta.clone().json();
-        return d.message || d.title || JSON.stringify(d);
-    } catch (e) {
-        return (await respuesta.text()) || `Error ${respuesta.status}`;
-    }
-}
 
 document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("form-cobro").addEventListener("submit", registrarCobro);
     document.getElementById("form-donacion").addEventListener("submit", registrarDonacion);
     document.getElementById("form-gasto").addEventListener("submit", registrarGasto);
+    document.getElementById("form-abono").addEventListener("submit", registrarAbono);
     document.getElementById("filtro-cobros").addEventListener("change", cargarCobros);
 
     await cargarResidentes();      // primero los nombres, para que las listas los muestren
@@ -38,6 +28,7 @@ function refrescarTodo() {
     cargarCobros();
     cargarDonaciones();
     cargarGastos();
+    cargarCuentaFundacion();
 }
 
 async function cargarResidentes() {
@@ -74,7 +65,7 @@ async function cargarResumen() {
             ${tarjeta("Cobros cancelados", r.totalPagosCancelados, "verde")}
             ${tarjeta("Cobros pendientes", r.totalPagosPendientes, "rojo")}
             ${tarjeta("Gastos", r.totalGastos, "rojo")}
-            ${tarjeta("Deuda con la Fundación", r.deudaConFundacion, "ambar")}
+            ${tarjeta("Saldo con la Fundación", r.saldoFundacion ?? r.deudaConFundacion, "ambar")}
             ${tarjeta("Balance", r.balance, "azul")}
         </div>`;
     } catch (err) {
@@ -222,6 +213,51 @@ async function cargarGastos() {
     }
 }
 
+// ------------------------------------------------------------ pagos a la fundacion (RF-11)
+async function registrarAbono(event) {
+    event.preventDefault();
+    await enviar(`${CAJA_API_URL}/abonos-fundacion`, {
+        monto: parseFloat(document.getElementById("monto-abono").value) || 0,
+        nota: document.getElementById("nota-abono").value.trim() || null,
+    }, "Pago a la fundación registrado correctamente.", "form-abono");
+}
+
+async function cargarCuentaFundacion() {
+    const cuenta = document.getElementById("contenedor-cuenta-fundacion");
+    const lista = document.getElementById("contenedor-abonos");
+    try {
+        const [rResumen, rAbonos] = await Promise.all([fetch(`${CAJA_API_URL}/resumen`), fetch(`${CAJA_API_URL}/abonos-fundacion`)]);
+        if (!rResumen.ok || !rAbonos.ok) throw new Error("Error al cargar la cuenta con la fundación");
+        const r = await rResumen.json();
+        const abonos = await rAbonos.json();
+        const pagado = r.pagadoAFundacion ?? 0;
+        const saldo = r.saldoFundacion ?? (r.deudaConFundacion - pagado);
+
+        const tarjeta = (titulo, valor, color) => `
+            <div class="kpi ${color}">
+                <span>${titulo}</span>
+                <strong>${quetzales(valor)}</strong>
+            </div>`;
+        cuenta.innerHTML = `<div class="kpi-grid">
+            ${tarjeta("Total adeudado", r.deudaConFundacion, "ambar")}
+            ${tarjeta("Total pagado", pagado, "verde")}
+            ${tarjeta("Saldo pendiente", saldo, "rojo")}
+        </div>`;
+
+        const aviso = document.getElementById("saldo-abono");
+        if (aviso) aviso.textContent = `Saldo pendiente con la fundación: ${quetzales(saldo)}. Cada pago lo reduce.`;
+
+        lista.innerHTML = abonos.length ? abonos.map(a => `
+            <div class="fila-movimiento">
+                <div><strong>${esc(a.nota || "Pago a la fundación")}</strong> <span style="color:#777; font-size:0.85rem;">(${fecha(a.fechaPago)})</span></div>
+                <div class="monto verde">${quetzales(a.monto)}</div>
+            </div>`).join("") : "<p style='color:#777;'>Aún no hay pagos registrados a la fundación.</p>";
+    } catch (err) {
+        console.error(err);
+        cuenta.innerHTML = "<p style='color:#c62828;'>No se pudo cargar la cuenta con la fundación.</p>";
+    }
+}
+
 // ------------------------------------------------------------ comunes
 async function enviar(url, payload, mensajeExito, idFormulario) {
     try {
@@ -241,29 +277,3 @@ async function enviar(url, payload, mensajeExito, idFormulario) {
     }
 }
 
-function mostrarModal(titulo, mensaje, tipo) {
-    let modalExistente = document.getElementById("customModal");
-    if (modalExistente) modalExistente.remove();
-
-    const colorIcono = tipo === "exito" ? "#2e7d32" : "#c62828";
-    const icono = tipo === "exito" ? "fa-circle-check" : "fa-circle-xmark";
-
-    const modalHTML = `
-        <div id="customModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
-            <div style="background: white; border-radius: 12px; padding: 25px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-                <i class="fa-solid ${icono}" style="font-size: 3rem; color: ${colorIcono}; margin-bottom: 15px;"></i>
-                <h3 style="margin: 0 0 10px 0; color: #333;">${titulo}</h3>
-                <p style="color: #666; margin-bottom: 20px; font-size: 0.95rem;">${esc(mensaje)}</p>
-                <button onclick="cerrarModal()" style="background: ${colorIcono}; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                    Aceptar
-                </button>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML("beforeend", modalHTML);
-}
-
-function cerrarModal() {
-    const modal = document.getElementById("customModal");
-    if (modal) modal.remove();
-}

@@ -74,3 +74,66 @@
     window.cerrarPaneles = cerrarPaneles;
     window.activarPestana = activarPestana;
 })();
+
+// ===========================================================================
+// Listas de examenes y medicamentos (visita medica y nueva evaluacion del Historial)
+//   agregarExamen(id) / agregarMedicamento(id)  agregan una fila al contenedor
+//   leerExamenes(id) / leerMedicamentos(id)     devuelven lo escrito, sin filas vacias
+// ===========================================================================
+(function () {
+    function fila(clase, campos) {
+        const div = document.createElement("div");
+        div.className = "fila-dinamica " + clase;
+        campos.forEach(([cls, nombre, ejemplo]) => {
+            const input = document.createElement("input");
+            input.type = "text";
+            input.className = cls;
+            input.placeholder = ejemplo;
+            input.title = nombre;
+            input.setAttribute("aria-label", nombre);
+            div.appendChild(input);
+        });
+        const quitar = document.createElement("button");
+        quitar.type = "button";
+        quitar.className = "btn-quitar";
+        quitar.title = "Quitar";
+        quitar.setAttribute("aria-label", "Quitar");
+        quitar.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+        quitar.addEventListener("click", () => div.remove());
+        div.appendChild(quitar);
+        return div;
+    }
+
+    window.agregarExamen = function (idContenedor) {
+        const c = document.getElementById(idContenedor);
+        if (c) c.appendChild(fila("fila-examen", [["dato-examen", "Examen", "Ej. Perfil lipídico"]]));
+    };
+
+    window.agregarMedicamento = function (idContenedor) {
+        const c = document.getElementById(idContenedor);
+        if (c) c.appendChild(fila("fila-medicamento", [
+            ["dato-med-nombre", "Medicamento", "Ej. Losartán 50mg"],
+            ["dato-med-cantidad", "Cantidad", "Ej. 30 tabletas"],
+            ["dato-med-tiempo", "Tiempo de aplicación", "Ej. 1 cada 12 h por 30 días"],
+        ]));
+    };
+
+    window.leerExamenes = function (idContenedor) {
+        return Array.from(document.querySelectorAll("#" + idContenedor + " .dato-examen"))
+            .map(i => i.value.trim()).filter(v => v);
+    };
+
+    window.leerMedicamentos = function (idContenedor) {
+        return Array.from(document.querySelectorAll("#" + idContenedor + " .fila-medicamento")).map(f => ({
+            nombre: f.querySelector(".dato-med-nombre").value.trim(),
+            cantidad: f.querySelector(".dato-med-cantidad").value.trim() || null,
+            tiempoAplicacion: f.querySelector(".dato-med-tiempo").value.trim() || null,
+        })).filter(m => m.nombre);
+    };
+
+    window.reiniciarListasClinicas = function (idExamenes, idMedicamentos) {
+        [idExamenes, idMedicamentos].forEach(id => { const c = document.getElementById(id); if (c) c.innerHTML = ""; });
+        window.agregarExamen(idExamenes);
+        window.agregarMedicamento(idMedicamentos);
+    };
+})();

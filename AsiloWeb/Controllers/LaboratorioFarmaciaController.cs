@@ -70,18 +70,28 @@ namespace AsiloWeb.Controllers
                 query = query.Where(e => e.Resultados == null || e.Resultados == "");
 
             var examenes = await query.OrderByDescending(e => e.FechaRegistro).ToListAsync();
-            return Ok(examenes);
-        }
 
-        [HttpGet("examenes/residente/{idPaciente}")]
-        [Authorize(Roles = "ADMINISTRADOR,DOCTOR,LABORATORIO")]
-        public async Task<IActionResult> ExamenesPorResidente(int idPaciente)
-        {
-            var examenes = await _context.ExamenesLaboratorio
-                .Where(e => e.IdPaciente == idPaciente)
-                .OrderByDescending(e => e.FechaRegistro)
-                .ToListAsync();
-            return Ok(examenes);
+            // RF-08: el laboratorio ve el contexto de la visita (motivo, diagnostico y medico)
+            var idsCitas = examenes.Where(e => e.IdCita != null).Select(e => e.IdCita!.Value).Distinct().ToList();
+            var citas = await _context.CitasMedicas.Where(c => idsCitas.Contains(c.IdCita)).ToListAsync();
+            var idsDoctores = citas.Where(c => c.IdDoctor != null).Select(c => c.IdDoctor!.Value).Distinct().ToList();
+            var medicos = await _context.Usuarios
+                .Where(u => idsDoctores.Contains(u.IdUsuario))
+                .ToDictionaryAsync(u => u.IdUsuario, u => u.NombreCompleto);
+
+            var resultado = examenes.Select(e =>
+            {
+                var cita = e.IdCita != null ? citas.FirstOrDefault(c => c.IdCita == e.IdCita) : null;
+                return new
+                {
+                    e.IdExamen, e.IdFicha, e.IdPaciente, e.IdCita, e.TipoExamen, e.Resultados, e.FechaRegistro, e.Costo,
+                    Motivo = cita?.Motivo,
+                    Diagnostico = cita?.DiagnosticoConsulta,
+                    Medico = cita != null && cita.IdDoctor != null && medicos.ContainsKey(cita.IdDoctor.Value) ? medicos[cita.IdDoctor.Value] : null
+                };
+            }).ToList();
+
+            return Ok(resultado);
         }
 
         public class ResultadoRequest
@@ -155,17 +165,6 @@ namespace AsiloWeb.Controllers
                 query = query.Where(m => !m.Despachado);
 
             var medicamentos = await query.OrderByDescending(m => m.FechaDespacho).ToListAsync();
-            return Ok(medicamentos);
-        }
-
-        [HttpGet("medicamentos/residente/{idPaciente}")]
-        [Authorize(Roles = "ADMINISTRADOR,DOCTOR,FARMACIA")]
-        public async Task<IActionResult> MedicamentosPorResidente(int idPaciente)
-        {
-            var medicamentos = await _context.MedicamentosRecetados
-                .Where(m => m.IdPaciente == idPaciente)
-                .OrderByDescending(m => m.FechaDespacho)
-                .ToListAsync();
             return Ok(medicamentos);
         }
 

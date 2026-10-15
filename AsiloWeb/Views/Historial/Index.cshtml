@@ -4,70 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial Médico - Asilo Cabeza de Algodón</title>
-    <link rel="stylesheet" href="~/CSS/dashboard.css"> 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="~/CSS/dashboard.css" asp-append-version="true"> 
+    <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" asp-append-version="true">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
 </head>
 <body class="pagina-historial">
-   <header class="barra-superior">
-    <div class="logo-top"></div>
-    <div class="usuario-info">
-        <button class="btn-notificacion" title="Notificaciones">
-            <i class="fa-solid fa-bell"></i>
-            <span class="badge-notificacion" id="contador-notificaciones">0</span>
-        </button>
-        
-        <div class="perfil-usuario">
-            <div class="contenedor-avatar">
-                <div class="avatar" id="avatar-usuario">G</div>
-                <span class="estado-activo" title="En línea"></span>
-            </div>
-            <div class="datos-usuario">
-                <span class="nombre-usuario" id="nombre-usuario">Dr. Raymundo</span>
-                <span class="rol-usuario" id="rol-usuario">Administrador</span>
-            </div>
-        </div>
-    </div>
-</header>
+   @await Html.PartialAsync("_Cabecera")
     
    <!-- CONTENEDOR PRINCIPAL -->
 <div class="menu-contenido">
     
     <!-- MENÚ LATERAL -->
-    <nav class="menu-lateral">
-        <a href="/Home/MENU" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
-            <i class="fa-solid fa-house"></i> INICIO
-        </a>
-        <a href="/Residentes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO">
-            <i class="fa-solid fa-hospital-user"></i> PACIENTES
-        </a>
-        <a href="/Citas" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FUNDACION">
-            <i class="fa-solid fa-calendar-check"></i> SOLICITUDES Y CITAS
-        </a>
-        <a href="/Historial" class="opcion-menu activa" data-rol="ADMINISTRADOR,DOCTOR">
-            <i class="fa-solid fa-notes-medical"></i> HISTORIAL MÉDICO
-        </a>
-        <a href="/LaboratorioFarmacia" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR,FARMACIA,LABORATORIO">
-            <i class="fa-solid fa-vials"></i> LAB Y FARMACIA
-        </a>
-        <a href="/Reportes" class="opcion-menu" data-rol="ADMINISTRADOR,DOCTOR">
-            <i class="fa-solid fa-chart-line"></i> REPORTES
-        </a>
-        
-        <!-- OPCIÓN ACTIVA -->
-        <a href="/Caja" class="opcion-menu" data-rol="ADMINISTRADOR">
-            <i class="fa-solid fa-cash-register"></i> CAJA
-        </a>
-        
-        <a href="/Paginas/Configuracion" class="opcion-menu" data-rol="ADMINISTRADOR">
-            <i class="fa-solid fa-gear"></i> CONFIGURACIÓN
-        </a>
-
-        <!-- CERRAR SESIÓN -->
-        <a href="/Auth/Login" class="opcion-menu opcion-salir" id="btn-cerrar-sesion" data-rol="ADMINISTRADOR,DOCTOR,ENFERMERO,FARMACIA,FUNDACION,LABORATORIO">
-            <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
-        </a>
-    </nav>
+    @await Html.PartialAsync("_MenuLateral", "historial")
         
      <main class="area-trabajo">
             <h1><i class="fa-solid fa-notes-medical"></i> Ficha Médica e Historial Clínico</h1>
@@ -103,33 +51,23 @@
             <div class="panel-cuerpo">
                 <p>Se registra para el residente seleccionado. Los exámenes pasan a Laboratorio y el medicamento a Farmacia.</p>
                 <form id="form-ficha-medica">
-                    <div class="fila-2">
-                        <div class="grupo-campo">
-                            <label>Motivo de consulta / síntomas:</label>
-                            <input type="text" id="motivo" name="motivo" required placeholder="Ingrese motivo...">
-                        </div>
-                        <div class="grupo-campo">
-                            <label>Examen de laboratorio a solicitar (opcional):</label>
-                            <input type="text" id="examen-solicitado" placeholder="Ej. Perfil lipídico">
-                        </div>
+                    <div class="grupo-campo">
+                        <label>Motivo de consulta / síntomas:</label>
+                        <input type="text" id="motivo" name="motivo" required placeholder="Ingrese motivo...">
                     </div>
                     <div class="grupo-campo">
                         <label>Diagnóstico médico:</label>
                         <textarea id="diagnostico" name="diagnostico" rows="3" required placeholder="Ingrese diagnóstico..."></textarea>
                     </div>
                     <div class="grupo-campo">
-                        <label>Medicamento / tratamiento recetado (opcional):</label>
-                        <textarea id="tratamiento" name="tratamiento" rows="2" placeholder="Ej. Losartán 50mg"></textarea>
+                        <label>Exámenes de laboratorio a solicitar (opcional):</label>
+                        <div id="eval-examenes"></div>
+                        <button type="button" class="btn-agregar" onclick="agregarExamen('eval-examenes')"><i class="fa-solid fa-plus"></i> Agregar examen</button>
                     </div>
-                    <div class="fila-2">
-                        <div class="grupo-campo">
-                            <label>Cantidad:</label>
-                            <input type="text" id="cantidad-medicamento" placeholder="Ej. 30 tabletas">
-                        </div>
-                        <div class="grupo-campo">
-                            <label>Tiempo de aplicación:</label>
-                            <input type="text" id="tiempo-aplicacion" placeholder="Ej. 1 cada 12 h por 30 días">
-                        </div>
+                    <div class="grupo-campo">
+                        <label>Medicamentos / tratamiento recetado (opcional):</label>
+                        <div id="eval-medicamentos"></div>
+                        <button type="button" class="btn-agregar" onclick="agregarMedicamento('eval-medicamentos')"><i class="fa-solid fa-plus"></i> Agregar medicamento</button>
                     </div>
                     <div class="fila-2">
                         <div class="grupo-campo">
@@ -152,9 +90,10 @@
     </div>
 
     <!-- SCRIPT CONTROLADOR DE ROLES -->
-    <script src="~/JS/roles.js"></script>
-    <script src="~/JS/ui.js"></script>
-    <script src="~/JS/historial-medico.js"></script>
+    <script src="~/JS/roles.js" asp-append-version="true"></script>
+    <script src="~/JS/ui.js" asp-append-version="true"></script>
+    <script src="~/JS/comunes.js" asp-append-version="true"></script>
+    <script src="~/JS/historial-medico.js" asp-append-version="true"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 
 </body>

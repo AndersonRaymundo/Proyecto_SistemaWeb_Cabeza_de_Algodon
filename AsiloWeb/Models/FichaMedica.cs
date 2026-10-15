@@ -22,10 +22,14 @@ namespace AsiloWeb.Models
         [Column("diagnostico_base")]
         public string DiagnosticoBase { get; set; } = string.Empty;
 
-        [Column("medicamentos_continuos")]
-        public string? MedicamentosContinuos { get; set; }
-
         [Column("fecha_creacion")]
         public DateTime FechaCreacion { get; set; } = DateTime.Now;
+
+        // Patologías / condiciones: un residente puede tener varias.
+        // DiagnosticoBase guarda el resumen en texto de esta lista.
+        public List<Patologia> Patologias { get; set; } = new();
+
+        // Medicamentos de cajón (continuos): un residente puede tener varios.
+        public List<MedicamentoCajon> MedicamentosCajon { get; set; } = new();
     }
 }

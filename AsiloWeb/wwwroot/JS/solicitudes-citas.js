@@ -3,7 +3,7 @@
 // .NET (CitasController). Cubre RF-02/03/04 (solicitud + correo), RF-05 (agenda
 // de la Fundacion), RF-07 (visita medica) y RF-12 (estado de pago por cita).
 
-const PACIENTES_API_URL = "http://localhost:8000/api/Residentes";
+const PACIENTES_API_URL = "/api/Pacientes";
 const CITAS_API_URL = "/api/Citas";
 const USUARIOS_API_URL = "/api/Auth/usuarios";
 const DESCUENTO_API_URL = "/api/Config/descuento";
@@ -11,19 +11,6 @@ const DESCUENTO_API_URL = "/api/Config/descuento";
 let mapaResidentes = {};      // idResidente -> { nombreCompleto, correoTutor }
 let medicos = [];             // usuarios con rol DOCTOR
 let porcentajeDescuento = 0;  // descuento de la fundacion (RF-10)
-
-const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const rol = () => window.ROL_ACTUAL || localStorage.getItem("rol_usuario") || "";
-const quetzales = n => "Q" + Number(n || 0).toFixed(2);
-
-async function mensajeError(respuesta) {
-    try {
-        const datos = await respuesta.clone().json();
-        return datos.message || datos.title || JSON.stringify(datos);
-    } catch (e) {
-        return (await respuesta.text()) || `Error ${respuesta.status}`;
-    }
-}
 
 // La pagina arranca cuando roles.js confirma la sesion (para conocer el rol)
 function iniciar() {
@@ -155,7 +142,9 @@ async function cargarSolicitudes() {
         }
 
         const puedeAgendar = ["ADMINISTRADOR", "FUNDACION"].includes(rol());
-        const puedeAtender = ["ADMINISTRADOR", "DOCTOR"].includes(rol());
+        // RF-07: el medico asignado registra la visita; el administrador puede hacerlo siempre
+        const idUsuario = parseInt(localStorage.getItem("id_usuario"), 10) || 0;
+        const puedeAtender = c => rol() === "ADMINISTRADOR" || (rol() === "DOCTOR" && (!c.idDoctor || Number(c.idDoctor) === idUsuario));
 
         contenedor.innerHTML = citas.map(c => {
             const nombre = (mapaResidentes[c.idPaciente] || {}).nombreCompleto || `Residente #${c.idPaciente}`;
@@ -173,7 +162,7 @@ async function cargarSolicitudes() {
                             <input type="datetime-local" id="agenda-fecha-${c.idCita}"></div>
                         <button type="button" class="btn-guardar" onclick="agendarCita(${c.idCita})"><i class="fa-solid fa-calendar-plus"></i> Agendar cita</button>
                     </div>`;
-            } else if (c.estado === "Agendada" && puedeAtender) {
+            } else if (c.estado === "Agendada" && puedeAtender(c)) {
                 acciones = `<div style="margin-top:10px;"><button type="button" class="btn-guardar" onclick="abrirVisita(${c.idCita})"><i class="fa-solid fa-user-doctor"></i> Registrar visita médica</button></div>`;
             }
 
@@ -256,18 +245,12 @@ function abrirVisita(idCita) {
                                 <input type="number" step="0.01" min="0" id="visita-precio" placeholder="0.00">
                                 <small id="visita-final" style="color:#1e7e34;"></small></div>
                         </div>
-                        <div class="fila-2">
-                            <div class="grupo-campo"><label>Examen de laboratorio a solicitar (opcional):</label>
-                                <input type="text" id="visita-examen" placeholder="Ej. Perfil lipídico"></div>
-                            <div class="grupo-campo"><label>Medicamento a recetar (opcional):</label>
-                                <input type="text" id="visita-medicamento" placeholder="Ej. Losartán 50mg"></div>
-                        </div>
-                        <div class="fila-2">
-                            <div class="grupo-campo"><label>Cantidad:</label>
-                                <input type="text" id="visita-cantidad" placeholder="Ej. 30 tabletas"></div>
-                            <div class="grupo-campo"><label>Tiempo de aplicación:</label>
-                                <input type="text" id="visita-tiempo" placeholder="Ej. 1 cada 12 h por 30 días"></div>
-                        </div>
+                        <div class="grupo-campo"><label>Exámenes de laboratorio a solicitar (opcional):</label>
+                            <div id="visita-examenes"></div>
+                            <button type="button" class="btn-agregar" onclick="agregarExamen('visita-examenes')"><i class="fa-solid fa-plus"></i> Agregar examen</button></div>
+                        <div class="grupo-campo"><label>Medicamentos a recetar (opcional):</label>
+                            <div id="visita-medicamentos"></div>
+                            <button type="button" class="btn-agregar" onclick="agregarMedicamento('visita-medicamentos')"><i class="fa-solid fa-plus"></i> Agregar medicamento</button></div>
                         <div class="panel-pie">
                             <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
                             <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Guardar visita</button>
@@ -277,6 +260,7 @@ function abrirVisita(idCita) {
             </div>
         </div>`);
     document.body.classList.add("panel-abierto");
+    reiniciarListasClinicas("visita-examenes", "visita-medicamentos");
 
     document.getElementById("visita-precio").addEventListener("input", e => {
         const lista = parseFloat(e.target.value) || 0;
@@ -297,10 +281,8 @@ async function guardarVisita(event, idCita) {
         diagnosticoConsulta: valor("visita-diagnostico"),
         observaciones: valor("visita-observaciones") || null,
         precioLista: parseFloat(valor("visita-precio")) || 0,
-        examenSolicitado: valor("visita-examen") || null,
-        medicamento: valor("visita-medicamento") || null,
-        cantidad: valor("visita-cantidad") || null,
-        tiempoAplicacion: valor("visita-tiempo") || null,
+        examenes: leerExamenes("visita-examenes"),
+        medicamentos: leerMedicamentos("visita-medicamentos"),
     };
     try {
         const respuesta = await fetch(`${CITAS_API_URL}/${idCita}/completar`, {
@@ -313,37 +295,10 @@ async function guardarVisita(event, idCita) {
             return;
         }
         cerrarVisita();
-        mostrarModal("¡Visita registrada!", "Los exámenes pasan a Laboratorio, el medicamento a Farmacia y la consulta se cargó a la cuenta del familiar.", "exito");
+        mostrarModal("¡Visita registrada!", "Los exámenes pasan a Laboratorio, los medicamentos a Farmacia y la consulta se cargó a la cuenta del familiar.", "exito");
         cargarSolicitudes();
     } catch (err) {
         mostrarModal("Error de conexión", "No se pudo conectar con el servidor.", "error");
     }
 }
 
-// ---------------------------------------------------------------- modal general
-function mostrarModal(titulo, mensaje, tipo) {
-    let modalExistente = document.getElementById("customModal");
-    if (modalExistente) modalExistente.remove();
-
-    const colorIcono = tipo === "exito" ? "#2e7d32" : "#c62828";
-    const icono = tipo === "exito" ? "fa-circle-check" : "fa-circle-xmark";
-
-    const modalHTML = `
-        <div id="customModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;">
-            <div style="background: white; border-radius: 12px; padding: 25px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-                <i class="fa-solid ${icono}" style="font-size: 3rem; color: ${colorIcono}; margin-bottom: 15px;"></i>
-                <h3 style="margin: 0 0 10px 0; color: #333;">${titulo}</h3>
-                <p style="color: #666; margin-bottom: 20px; font-size: 0.95rem;">${esc(mensaje)}</p>
-                <button onclick="cerrarModal()" style="background: ${colorIcono}; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                    Aceptar
-                </button>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML("beforeend", modalHTML);
-}
-
-function cerrarModal() {
-    const modal = document.getElementById("customModal");
-    if (modal) modal.remove();
-}

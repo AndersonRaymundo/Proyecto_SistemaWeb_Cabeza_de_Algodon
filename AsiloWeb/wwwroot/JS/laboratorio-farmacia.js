@@ -3,29 +3,17 @@
 // en el backend .NET (LaboratorioFarmaciaController).
 // RF-08 laboratorio registra resultados | RF-09 farmacia despacha | RF-10 cobro automatico
 
-const PACIENTES_API_URL = "http://localhost:8000/api/Residentes";
+const PACIENTES_API_URL = "/api/Pacientes";
 const LF_API_URL = "/api/LaboratorioFarmacia";
 const DESCUENTO_API_URL = "/api/Config/descuento";
 
 let mapaResidentes = {};
 let porcentajeDescuento = 0;
 
-const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const quetzales = n => "Q" + Number(n || 0).toFixed(2);
 const fecha = f => (f ? new Date(f).toLocaleString("es-GT") : "-");
 const nombreDe = id => (mapaResidentes[id] || {}).nombreCompleto || `Residente #${id}`;
-const rol = () => window.ROL_ACTUAL || localStorage.getItem("rol_usuario") || "";
 const verLab = () => ["ADMINISTRADOR", "DOCTOR", "LABORATORIO"].includes(rol());
 const verFarmacia = () => ["ADMINISTRADOR", "DOCTOR", "FARMACIA"].includes(rol());
-
-async function mensajeError(respuesta) {
-    try {
-        const d = await respuesta.clone().json();
-        return d.message || d.title || JSON.stringify(d);
-    } catch (e) {
-        return (await respuesta.text()) || `Error ${respuesta.status}`;
-    }
-}
 
 async function iniciar() {
     // Cada rol ve solo su modulo (RNF-02)
@@ -100,6 +88,7 @@ async function cargarExamenes() {
             <div class="item-pendiente">
                 <p><strong>${esc(nombreDe(e.idPaciente))}</strong> - ${esc(e.tipoExamen)}
                     <span style="color:#64748b; font-size:.82rem;">(solicitado ${fecha(e.fechaRegistro)})</span></p>
+                ${(e.motivo || e.diagnostico || e.medico) ? `<p class="contexto-visita" style="color:#475569; font-size:.84rem; margin:2px 0 8px;">Visita${e.medico ? " de " + esc(e.medico) : ""}${e.motivo ? " · Motivo: " + esc(e.motivo) : ""}${e.diagnostico ? " · Diagnóstico: " + esc(e.diagnostico) : ""}</p>` : ""}
                 <div class="fila-controles">
                     <div style="flex:2; min-width:220px;"><label>Resultado</label>
                         <input type="text" id="res-${e.idExamen}" placeholder="Reporte del laboratorio"></div>
@@ -248,30 +237,3 @@ async function registrarMedicamentoDirecto(event) {
     }
 }
 
-// ============================ modal ============================
-function mostrarModal(titulo, mensaje, tipo) {
-    let modalExistente = document.getElementById("customModal");
-    if (modalExistente) modalExistente.remove();
-
-    const colorIcono = tipo === "exito" ? "#2e7d32" : "#c62828";
-    const icono = tipo === "exito" ? "fa-circle-check" : "fa-circle-xmark";
-
-    const modalHTML = `
-        <div id="customModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
-            <div style="background: white; border-radius: 12px; padding: 25px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-                <i class="fa-solid ${icono}" style="font-size: 3rem; color: ${colorIcono}; margin-bottom: 15px;"></i>
-                <h3 style="margin: 0 0 10px 0; color: #333;">${titulo}</h3>
-                <p style="color: #666; margin-bottom: 20px; font-size: 0.95rem;">${esc(mensaje)}</p>
-                <button onclick="cerrarModal()" style="background: ${colorIcono}; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                    Aceptar
-                </button>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML("beforeend", modalHTML);
-}
-
-function cerrarModal() {
-    const modal = document.getElementById("customModal");
-    if (modal) modal.remove();
-}

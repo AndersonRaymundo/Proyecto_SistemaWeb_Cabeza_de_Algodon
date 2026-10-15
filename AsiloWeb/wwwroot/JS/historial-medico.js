@@ -2,7 +2,7 @@
 // Pacientes sigue siendo microservicio (8000). El expediente vive en el
 // backend .NET: RF-06 (consulta del historial) y RF-07 (registro de la visita).
 
-const PACIENTES_BUSQUEDA_URL = "http://localhost:8000/api/Residentes/busqueda/autocomplete";
+const PACIENTES_BUSQUEDA_URL = "/api/Pacientes/busqueda/autocomplete";
 const HISTORIAL_API_URL = "/api/Historial";
 const CITAS_API_URL = "/api/Citas";
 const DESCUENTO_API_URL = "/api/Config/descuento";
@@ -10,11 +10,10 @@ const DESCUENTO_API_URL = "/api/Config/descuento";
 let tomSelectInstance = null;
 let porcentajeDescuento = 0;
 
-const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const quetzales = n => "Q" + Number(n || 0).toFixed(2);
 const fechaLarga = f => (f ? new Date(f).toLocaleString("es-GT") : "-");
 
 document.addEventListener("DOMContentLoaded", () => {
+    reiniciarListasClinicas("eval-examenes", "eval-medicamentos");
     inicializarTomSelect();
     cargarDescuento();
 
@@ -80,15 +79,19 @@ async function cargarHistorial(idResidente) {
         const vacio = txt => `<p class="vacio">${txt}</p>`;
         const dato = (etiqueta, valor) => `<div class="dato-clinico"><span>${etiqueta}</span><span>${valor || "<em>Sin registrar</em>"}</span></div>`;
 
+        const textoPatologias = f => (f.patologias || []).map(p => p.observaciones ? `${p.nombre} (${p.observaciones})` : p.nombre).join(", ");
+        const textoCajon = f => (f.medicamentosCajon || []).map(m => [m.nombreMedicamento, m.dosis, m.frecuencia].filter(Boolean).join(" ")).join(", ");
+
         const fichaHtml = ficha
-            ? dato("Diagnóstico / psicopatología", esc(ficha.diagnosticoBase)) + dato("Medicamentos de cajón", esc(ficha.medicamentosContinuos))
+            ? dato("Patologías / condiciones", esc(textoPatologias(ficha) || ficha.diagnosticoBase)) + dato("Medicamentos de cajón", esc(textoCajon(ficha)))
             : vacio("Este residente aún no tiene ficha base. Se crea al registrarlo en Pacientes.");
 
         const consultasHtml = citas.length ? citas.map(c => `
             <div class="registro-clinico">
                 <p class="titulo">${fechaLarga(c.fechaCita || c.fechaSolicitud)} - ${esc(c.especialidadSolicitada)}
                     <span style="color:#64748b; font-weight:600; font-size:.82rem;">(${esc(c.estado)})</span></p>
-                <p><strong>Motivo:</strong> ${esc(c.motivo)}</p>
+                ${c.medicoNombre ? `<p><strong>Médico tratante:</strong> ${esc(c.medicoNombre)}</p>` : ""}
+<p><strong>Motivo:</strong> ${esc(c.motivo)}</p>
                 ${c.diagnosticoConsulta ? `<p><strong>Diagnóstico:</strong> ${esc(c.diagnosticoConsulta)}</p>` : ""}
                 ${c.observaciones ? `<p><strong>Observaciones:</strong> ${esc(c.observaciones)}</p>` : ""}
             </div>`).join("") : vacio("Sin consultas registradas.");
@@ -149,10 +152,8 @@ async function registrarFicha(event) {
         idDoctor: Number.isNaN(idDoctorGuardado) ? null : idDoctorGuardado,
         motivo: val("motivo"),
         diagnosticoConsulta: val("diagnostico"),
-        examenSolicitado: val("examen-solicitado") || null,
-        tratamiento: val("tratamiento") || null,
-        cantidad: val("cantidad-medicamento") || null,
-        tiempoAplicacion: val("tiempo-aplicacion") || null,
+        examenes: leerExamenes("eval-examenes"),
+        medicamentos: leerMedicamentos("eval-medicamentos"),
         precioLista: parseFloat(val("precio-consulta")) || 0,
         observaciones: val("observaciones") || null,
     };
@@ -167,6 +168,7 @@ async function registrarFicha(event) {
         if (respuesta.ok) {
             mostrarModal("¡Éxito!", "Ficha clínica registrada correctamente.", "exito");
             document.getElementById("form-ficha-medica").reset();
+            reiniciarListasClinicas("eval-examenes", "eval-medicamentos");
             document.getElementById("precio-final").textContent = "";
             cerrarPaneles();
             cargarHistorial(idResidente);
@@ -179,29 +181,3 @@ async function registrarFicha(event) {
     }
 }
 
-function mostrarModal(titulo, mensaje, tipo) {
-    let modalExistente = document.getElementById("customModal");
-    if (modalExistente) modalExistente.remove();
-
-    const colorIcono = tipo === "exito" ? "#2e7d32" : "#c62828";
-    const icono = tipo === "exito" ? "fa-circle-check" : "fa-circle-xmark";
-
-    const modalHTML = `
-        <div id="customModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
-            <div style="background: white; border-radius: 12px; padding: 25px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-                <i class="fa-solid ${icono}" style="font-size: 3rem; color: ${colorIcono}; margin-bottom: 15px;"></i>
-                <h3 style="margin: 0 0 10px 0; color: #333;">${titulo}</h3>
-                <p style="color: #666; margin-bottom: 20px; font-size: 0.95rem;">${esc(mensaje)}</p>
-                <button onclick="cerrarModal()" style="background: ${colorIcono}; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                    Aceptar
-                </button>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML("beforeend", modalHTML);
-}
-
-function cerrarModal() {
-    const modal = document.getElementById("customModal");
-    if (modal) modal.remove();
-}

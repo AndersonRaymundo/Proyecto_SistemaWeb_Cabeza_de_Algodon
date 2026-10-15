@@ -138,7 +138,7 @@ text-align: left;
    ========================================================================== */
 /* 4. Estilo para tu botón */
 .boton {
-  background-color: #0b559b;
+  background-color: #3b5998;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -151,10 +151,7 @@ text-align: left;
   gap: 8px;
 }
 
-/* Color base del botón y efecto al pasar el mouse */
-.boton {
-    background-color: #3b5998;
-}
+/* Efecto al pasar el mouse */
 .boton:hover {
     background-color: #0b559b;
 }

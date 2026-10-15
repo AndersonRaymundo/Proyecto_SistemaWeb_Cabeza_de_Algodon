@@ -31,7 +31,6 @@
    5. PANTALLAS ADAPTABLES (responsive)
    ========================================================================== */
 
-
 /* ==========================================================================
    1. VARIABLES Y REINICIO
    Paleta tomada del logo institucional (azul) + colores de estado.
@@ -98,7 +97,6 @@ body {
     overflow: hidden;
     -webkit-font-smoothing: antialiased;
 }
-
 
 /* ==========================================================================
    2. ESTRUCTURA GENERAL (igual en todas las pantallas)
@@ -237,21 +235,6 @@ body {
     border-radius: 999px;
 }
 
-.btn-salir {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background-color: transparent;
-    color: var(--peligro);
-    text-decoration: none;
-    font-size: .85rem;
-    font-weight: 600;
-    padding: 6px 12px;
-    border-radius: 8px;
-    transition: all .2s ease;
-}
-.btn-salir:hover { background-color: var(--peligro); color: #fff; }
-
 /* ---- 2.2 Menú lateral -------------------------------------------------- */
 .menu-contenido {
     display: flex;
@@ -279,7 +262,7 @@ body {
     height: 128px;
     margin: 18px 16px 14px;
     border-radius: 14px;
-    background: #1329ba url("../imagen%20sesion/logo.jpg") center / 128% auto no-repeat;
+    background: #ffffff url("../imagen%20sesion/logo.jpg") center / 128% auto no-repeat;
     box-shadow: 0 6px 16px rgba(0, 0, 0, .28);
 }
 
@@ -364,15 +347,12 @@ body {
 }
 body.panel-abierto .area-trabajo { overflow: hidden; }
 
-
 /* ==========================================================================
    3. COMPONENTES COMPARTIDOS
    ========================================================================== */
 
 /* ---- 3.1 Tarjetas ------------------------------------------------------- */
-.formulario-datos,
-.tarjeta-formulario,
-.tarjeta-tabla {
+.formulario-datos {
     background-color: var(--superficie);
     border: 1px solid var(--borde);
     border-radius: var(--radio);
@@ -381,9 +361,7 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
     margin-bottom: 22px;
 }
 
-.formulario-datos h2,
-.tarjeta-formulario h2,
-.tarjeta-tabla h2 {
+.formulario-datos h2 {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -394,12 +372,9 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
     margin-bottom: 20px;
     border-bottom: 1px solid var(--borde);
 }
-.formulario-datos h2 i,
-.tarjeta-formulario h2 i,
-.tarjeta-tabla h2 i { color: var(--primario); font-size: 1rem; }
+.formulario-datos h2 i { color: var(--primario); font-size: 1rem; }
 
-.formulario-datos p,
-.tarjeta-formulario p { color: var(--texto-2); font-size: .92rem; line-height: 1.5; }
+.formulario-datos p { color: var(--texto-2); font-size: .92rem; line-height: 1.5; }
 
 /* textos de ayuda que van antes de un formulario o de una lista */
 .formulario-datos > p,
@@ -442,8 +417,7 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .fila-controles { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-top: 10px; }
 .fila-controles label { margin-bottom: 5px; }
 
-:is(.area-trabajo, .panel) :is(input, select, textarea):not([type="checkbox"], [type="radio"], [type="hidden"]),
-.form-control {
+:is(.area-trabajo, .panel) :is(input, select, textarea):not([type="checkbox"], [type="radio"], [type="hidden"]) {
     width: 100%;
     padding: 11px 14px;
     border: 1px solid var(--borde-fuerte);
@@ -467,8 +441,7 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
     cursor: pointer;
 }
 
-:is(.area-trabajo, .panel) :is(input, select, textarea):focus,
-.form-control:focus {
+:is(.area-trabajo, .panel) :is(input, select, textarea):focus {
     outline: none;
     border-color: var(--primario);
     box-shadow: 0 0 0 3px rgba(31, 95, 166, .16);
@@ -653,7 +626,6 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .panel-pie .btn-guardar { margin-top: 0; }
 @keyframes panel-entrada { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
-
 /* ==========================================================================
    4. PANTALLAS
    Cada vista tiene la clase de su pantalla en el <body>, por ejemplo
@@ -716,9 +688,9 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .pagina-historial .registro-clinico { padding: 14px 18px; margin-bottom: 12px; border: 1px solid var(--borde); border-left: 4px solid var(--primario); border-radius: 10px; background: #fbfcfe; }
 .pagina-historial .registro-clinico p { margin: 3px 0; color: var(--texto-2); font-size: .92rem; }
 .pagina-historial .registro-clinico .titulo { font-weight: 700; color: var(--texto); }
-.pagina-historial .dato-clinico { display: grid; grid-template-columns: 220px 1fr; gap: 6px 18px; padding: 12px 0; border-bottom: 1px solid var(--borde); font-size: .92rem; }
-.pagina-historial .dato-clinico:last-child { border-bottom: none; }
-.pagina-historial .dato-clinico span:first-child { color: var(--muted); font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; padding-top: 2px; }
+.pagina-historial .dato-clinico, .pagina-configuracion .dato-clinico { display: grid; grid-template-columns: 220px 1fr; gap: 6px 18px; padding: 12px 0; border-bottom: 1px solid var(--borde); font-size: .92rem; }
+.pagina-historial .dato-clinico:last-child, .pagina-configuracion .dato-clinico:last-child { border-bottom: none; }
+.pagina-historial .dato-clinico span:first-child, .pagina-configuracion .dato-clinico span:first-child { color: var(--muted); font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; padding-top: 2px; }
 .pagina-historial .vacio { color: var(--muted); padding: 18px 0; text-align: center; }
 
 /* ---- 4.5 LABORATORIO Y FARMACIA  (Views/LaboratorioFarmacia/Index.cshtml) ----------------- */
@@ -774,7 +746,6 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 /* Parámetros generales de la institución (por ahora solo diseño, sin lógica) */
 .pagina-configuracion .formulario-datos { max-width: 860px; }
 
-
 /* ==========================================================================
    5. PANTALLAS ADAPTABLES (responsive)
    ========================================================================== */
@@ -791,7 +762,27 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
     .pagina-reportes .lista-reportes { grid-template-columns: 1fr; }
     .pagina-inicio .bienvenida { flex-direction: column; align-items: flex-start; }
     .pagina-inicio .bienvenida img { display: none; }
-    .pagina-historial .dato-clinico { grid-template-columns: 1fr; }
+    .pagina-historial .dato-clinico, .pagina-configuracion .dato-clinico { grid-template-columns: 1fr; }
     .datos-usuario { display: none; }
     .logo-top::after { display: none; }
+}
+
+/* ---- LISTAS DE EXAMENES Y MEDICAMENTOS  (visita medica y nueva evaluacion) ---------------- */
+/* El medico puede agregar varias filas; cada fila se puede quitar con la X. */
+.fila-dinamica { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.fila-dinamica input { flex: 1 1 150px; min-width: 0; }
+.fila-medicamento .dato-med-nombre { flex: 2 1 210px; }
+.btn-quitar { flex: 0 0 auto; width: 36px; height: 36px; border: 1px solid var(--borde); background: #fff; color: var(--muted); border-radius: 8px; cursor: pointer; }
+.btn-quitar:hover { color: var(--peligro); border-color: var(--peligro); }
+.btn-agregar { border: 1px dashed var(--primario); background: transparent; color: var(--primario); border-radius: 8px; padding: 7px 12px; font-weight: 700; font-size: .85rem; cursor: pointer; }
+.btn-agregar:hover { background: #eaf1fa; }
+
+/* ---- LISTAS EDITABLES DE LA FICHA BASE (Pacientes: patologias y medicamentos de cajon) --- */
+.fila-lista { display: grid; gap: 8px; align-items: center; margin-bottom: 8px; }
+.fila-lista.campos-2 { grid-template-columns: 1.4fr 1fr auto; }
+.fila-lista.campos-3 { grid-template-columns: 1.6fr 1fr 1fr auto; }
+.fila-lista input { min-width: 0; }
+.lista-editable .vacio { color: var(--muted); font-size: .88rem; margin: 2px 0 10px; }
+@media (max-width: 700px) {
+    .fila-lista.campos-2, .fila-lista.campos-3 { grid-template-columns: 1fr auto; }
 }

@@ -24,8 +24,6 @@ namespace AsiloWeb.Services
     public class PdfService
     {
         private readonly HttpClient _httpClient;
-        private const string BaseUrl = "http://localhost:8002"; // Puerto del microservicio Python
-
         public PdfService(HttpClient httpClient)
         {
             _httpClient = httpClient;
@@ -35,7 +33,7 @@ namespace AsiloWeb.Services
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync($"{BaseUrl}/generate-report", reporte);
+                var response = await _httpClient.PostAsJsonAsync("/generate-report", reporte);
                 if (!response.IsSuccessStatusCode) return null;
                 return await response.Content.ReadAsByteArrayAsync();
             }

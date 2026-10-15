@@ -1,0 +1,7 @@
+# Servidor HTTPS de la nube. Caddy consigue y renueva solo el certificado
+# cuando DOMINIO es un nombre publico (por ejemplo asilo.eastus.cloudapp.azure.com).
+# Con DOMINIO=localhost usa un certificado local de prueba.
+{$DOMINIO:localhost} {
+	encode gzip
+	reverse_proxy web:8080
+}

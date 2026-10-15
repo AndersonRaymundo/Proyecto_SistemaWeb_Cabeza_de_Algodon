@@ -1,7 +1,7 @@
 // Reportes (RF-14 / CU-05): el backend .NET arma el reporte con los datos reales
 // de la base de datos y el microservicio de PDF (puerto 8002) dibuja el documento.
 
-const PACIENTES_API_URL = "http://localhost:8000/api/Residentes";
+const PACIENTES_API_URL = "/api/Pacientes";
 
 const NOMBRES_ARCHIVO = {
     CostosCitas: "costos_citas",
@@ -9,7 +9,8 @@ const NOMBRES_ARCHIVO = {
     CobrosPaciente: "cobros_paciente",
     PagosFundacion: "pagos_fundacion",
     Entradas: "entradas_de_dinero",
-    ExamenesMedicamentos: "examenes_medicamentos",
+    Examenes: "examenes_por_paciente",
+    Medicamentos: "medicamentos_por_paciente",
 };
 
 document.addEventListener("DOMContentLoaded", cargarResidentes);
@@ -84,26 +85,3 @@ async function descargarReporte(boton) {
     }
 }
 
-function mostrarModal(titulo, mensaje, tipo) {
-    const existente = document.getElementById("customModal");
-    if (existente) existente.remove();
-
-    const color = tipo === "exito" ? "#2e7d32" : "#c62828";
-    const icono = tipo === "exito" ? "fa-circle-check" : "fa-circle-xmark";
-    const seguro = String(mensaje).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-
-    document.body.insertAdjacentHTML("beforeend", `
-        <div id="customModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
-            <div style="background: white; border-radius: 12px; padding: 25px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-                <i class="fa-solid ${icono}" style="font-size: 3rem; color: ${color}; margin-bottom: 15px;"></i>
-                <h3 style="margin: 0 0 10px 0; color: #333;">${titulo}</h3>
-                <p style="color: #666; margin-bottom: 20px; font-size: 0.95rem;">${seguro}</p>
-                <button onclick="cerrarModal()" style="background: ${color}; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-weight: bold;">Aceptar</button>
-            </div>
-        </div>`);
-}
-
-function cerrarModal() {
-    const modal = document.getElementById("customModal");
-    if (modal) modal.remove();
-}

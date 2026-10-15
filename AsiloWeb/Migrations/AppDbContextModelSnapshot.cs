@@ -192,10 +192,6 @@ namespace BackendAsilo.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id_paciente");
 
-                    b.Property<string>("MedicamentosContinuos")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("medicamentos_continuos");
-
                     b.HasKey("IdFicha");
 
                     b.ToTable("TBL_FICHAS_MEDICAS");
@@ -227,6 +223,42 @@ namespace BackendAsilo.Migrations
                     b.HasKey("IdGasto");
 
                     b.ToTable("TBL_GASTOS");
+                });
+
+            modelBuilder.Entity("AsiloWeb.Models.MedicamentoCajon", b =>
+                {
+                    b.Property<int>("IdMedicamentoCajon")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id_medicamento_cajon");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdMedicamentoCajon"));
+
+                    b.Property<string>("Dosis")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("dosis");
+
+                    b.Property<string>("Frecuencia")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("frecuencia");
+
+                    b.Property<int>("IdFicha")
+                        .HasColumnType("int")
+                        .HasColumnName("id_ficha");
+
+                    b.Property<string>("NombreMedicamento")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("nombre_medicamento");
+
+                    b.HasKey("IdMedicamentoCajon");
+
+                    b.HasIndex("IdFicha");
+
+                    b.ToTable("TBL_MEDICAMENTOS_CAJON");
                 });
 
             modelBuilder.Entity("AsiloWeb.Models.MedicamentoRecetado", b =>
@@ -318,6 +350,37 @@ namespace BackendAsilo.Migrations
                     b.ToTable("TBL_PAGOS_FUNDACION");
                 });
 
+            modelBuilder.Entity("AsiloWeb.Models.Patologia", b =>
+                {
+                    b.Property<int>("IdPatologia")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id_patologia");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdPatologia"));
+
+                    b.Property<int>("IdFicha")
+                        .HasColumnType("int")
+                        .HasColumnName("id_ficha");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("nombre");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("observaciones");
+
+                    b.HasKey("IdPatologia");
+
+                    b.HasIndex("IdFicha");
+
+                    b.ToTable("TBL_PATOLOGIAS");
+                });
+
             modelBuilder.Entity("AsiloWeb.Models.Usuario", b =>
                 {
                     b.Property<int>("IdUsuario")
@@ -366,6 +429,31 @@ namespace BackendAsilo.Migrations
                     b.HasKey("IdUsuario");
 
                     b.ToTable("TBL_USUARIOS");
+                });
+
+            modelBuilder.Entity("AsiloWeb.Models.MedicamentoCajon", b =>
+                {
+                    b.HasOne("AsiloWeb.Models.FichaMedica", null)
+                        .WithMany("MedicamentosCajon")
+                        .HasForeignKey("IdFicha")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AsiloWeb.Models.Patologia", b =>
+                {
+                    b.HasOne("AsiloWeb.Models.FichaMedica", null)
+                        .WithMany("Patologias")
+                        .HasForeignKey("IdFicha")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AsiloWeb.Models.FichaMedica", b =>
+                {
+                    b.Navigation("MedicamentosCajon");
+
+                    b.Navigation("Patologias");
                 });
 #pragma warning restore 612, 618
         }

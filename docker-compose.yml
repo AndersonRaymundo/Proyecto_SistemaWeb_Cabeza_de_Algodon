@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   pacientes_service:
     build: ./pacientes_service
@@ -8,8 +6,6 @@ services:
     container_name: pacientes_crud_microservice
     env_file:
       - .env
-    environment:    
-      - DATABASE_URL=${DATABASE_URL}
 
   email_service:
     build: ./email_service
@@ -24,5 +20,3 @@ services:
     ports:
       - "8002:8002"
     container_name: pdf_microservice
-    env_file:
-      - .env
