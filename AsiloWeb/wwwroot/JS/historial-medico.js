@@ -3,6 +3,8 @@
 // backend .NET: RF-06 (consulta del historial) y RF-07 (registro de la visita).
 
 const PACIENTES_BUSQUEDA_URL = "/api/Pacientes/busqueda/autocomplete";
+const PACIENTES_API_URL = "/api/Pacientes";
+let residenteSeleccionado = null;
 const HISTORIAL_API_URL = "/api/Historial";
 const CITAS_API_URL = "/api/Citas";
 const DESCUENTO_API_URL = "/api/Config/descuento";
@@ -53,12 +55,29 @@ function inicializarTomSelect() {
                 .then(json => callback(json))
                 .catch(() => callback());
         },
-        onChange: function (idResidente) {
-            document.getElementById("btnNuevaEvaluacion").disabled = !idResidente;
-            if (idResidente) cargarHistorial(idResidente);
-            else mostrarVacio();
-        }
+        onChange: function (idResidente) { alSeleccionarResidente(idResidente); }
     });
+}
+
+// Un residente dado de baja se puede consultar, pero no se le registran evaluaciones nuevas
+async function alSeleccionarResidente(idResidente) {
+    residenteSeleccionado = idResidente || null;
+    const boton = document.getElementById("btnNuevaEvaluacion");
+    const aviso = document.getElementById("aviso-baja");
+    boton.disabled = !idResidente;
+    aviso.style.display = "none";
+
+    if (!idResidente) { mostrarVacio(); return; }
+    cargarHistorial(idResidente);
+
+    try {
+        const respuesta = await fetch(`${PACIENTES_API_URL}/${idResidente}`);
+        if (!respuesta.ok || residenteSeleccionado !== idResidente) return;   // si ya eligio a otro, se ignora
+        const residente = await respuesta.json();
+        if (residente.estado === false) { boton.disabled = true; aviso.style.display = "block"; }
+    } catch (error) {
+        console.error(error);   // si no responde, el servidor igual rechaza la evaluacion
+    }
 }
 
 function mostrarVacio() {
@@ -79,11 +98,18 @@ async function cargarHistorial(idResidente) {
         const vacio = txt => `<p class="vacio">${txt}</p>`;
         const dato = (etiqueta, valor) => `<div class="dato-clinico"><span>${etiqueta}</span><span>${valor || "<em>Sin registrar</em>"}</span></div>`;
 
-        const textoPatologias = f => (f.patologias || []).map(p => p.observaciones ? `${p.nombre} (${p.observaciones})` : p.nombre).join(", ");
-        const textoCajon = f => (f.medicamentosCajon || []).map(m => [m.nombreMedicamento, m.dosis, m.frecuencia].filter(Boolean).join(" ")).join(", ");
+        const listaPatologias = f => (f.patologias || []).length
+            ? `<ul class="lista-ficha">${f.patologias.map(p => `<li><strong>${esc(p.nombre)}</strong>${p.observaciones ? `<span>${esc(p.observaciones)}</span>` : ""}</li>`).join("")}</ul>`
+            : esc(f.diagnosticoBase);
+        const listaCajon = f => (f.medicamentosCajon || []).length
+            ? `<ul class="lista-ficha">${f.medicamentosCajon.map(m => {
+                const detalle = [m.dosis, m.frecuencia].filter(Boolean).join(" · ");
+                return `<li><strong>${esc(m.nombreMedicamento)}</strong>${detalle ? `<span>${esc(detalle)}</span>` : ""}</li>`;
+            }).join("")}</ul>`
+            : "";
 
         const fichaHtml = ficha
-            ? dato("Patologías / condiciones", esc(textoPatologias(ficha) || ficha.diagnosticoBase)) + dato("Medicamentos de cajón", esc(textoCajon(ficha)))
+            ? dato("Patologías / condiciones", listaPatologias(ficha)) + dato("Medicamentos de cajón", listaCajon(ficha))
             : vacio("Este residente aún no tiene ficha base. Se crea al registrarlo en Pacientes.");
 
         const consultasHtml = citas.length ? citas.map(c => `

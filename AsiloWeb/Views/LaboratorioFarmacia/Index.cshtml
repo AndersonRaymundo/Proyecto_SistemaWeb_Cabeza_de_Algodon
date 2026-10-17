@@ -28,6 +28,9 @@
                 <button type="button" class="pestana" id="tab-btn-farmacia" data-pestana="seccion-farmacia">
                     <i class="fa-solid fa-pills"></i> Farmacia <span class="contador" id="contador-medicamentos">0</span>
                 </button>
+                <button type="button" class="pestana" id="tab-btn-inventario" data-pestana="seccion-inventario">
+                    <i class="fa-solid fa-boxes-stacked"></i> Inventario <span class="contador" id="contador-inventario">0</span>
+                </button>
             </div>
 
             <!-- ======================== PESTAÑA LABORATORIO ======================== -->
@@ -63,6 +66,21 @@
                 <div class="formulario-datos">
                     <h2><i class="fa-solid fa-list-check"></i> Despachos realizados</h2>
                     <div id="contenedor-medicamentos"></div>
+                </div>
+            </section>
+        
+            <!-- ================= INVENTARIO ================= -->
+            <section id="seccion-inventario" class="pestana-contenido">
+                <div class="barra-herramientas">
+                    <span class="espacio"></span>
+                    <button type="button" class="btn-guardar" onclick="nuevoInventario()">
+                        <i class="fa-solid fa-plus"></i> Nuevo medicamento
+                    </button>
+                </div>
+                <div class="formulario-datos">
+                    <h2><i class="fa-solid fa-boxes-stacked"></i> Inventario de medicamentos</h2>
+                    <p style="color:#64748b; font-size:.88rem;">El contador de la pestaña indica cuántos productos necesitan atención: existencias bajas, agotados, por vencer o vencidos. Al despachar un medicamento elegido de aquí, las unidades se descuentan solas.</p>
+                    <div id="contenedor-inventario"></div>
                 </div>
             </section>
         </main>
@@ -136,6 +154,16 @@
                             <input type="text" id="tiempo-medicamento" placeholder="Ej. 1 cada 12 h por 30 días">
                         </div>
                     </div>
+                    <div class="fila-2">
+                        <div class="grupo-campo">
+                            <label>Del inventario (opcional):</label>
+                            <select id="inv-medicamento-directo"><option value="">Sin control de inventario</option></select>
+                        </div>
+                        <div class="grupo-campo">
+                            <label>Unidades a descontar:</label>
+                            <input type="number" min="1" step="1" id="unidades-medicamento" placeholder="Ej. 30">
+                        </div>
+                    </div>
                     <div class="grupo-campo">
                         <label>Precio de lista del medicamento (Q):</label>
                         <input type="number" step="0.01" min="0" id="precio-medicamento" placeholder="0.00">
@@ -151,6 +179,65 @@
     </div>
 
     <!-- SCRIPT CONTROLADOR DE ROLES -->
+    <!-- VENTANA: MEDICAMENTO DEL INVENTARIO (nuevo o editar) -->
+    <div class="panel-fondo" id="panel-inventario">
+        <div class="panel" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2 id="titulo-inventario"><i class="fa-solid fa-boxes-stacked"></i> Nuevo medicamento</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <form id="form-inventario">
+                    <input type="hidden" id="inv-id">
+                    <div class="fila-2">
+                        <div class="grupo-campo"><label>Medicamento:</label>
+                            <input type="text" id="inv-nombre" required placeholder="Ej. Losartán 50 mg"></div>
+                        <div class="grupo-campo"><label>Presentación:</label>
+                            <input type="text" id="inv-presentacion" placeholder="Ej. Caja de 30 tabletas"></div>
+                    </div>
+                    <div class="fila-2">
+                        <div class="grupo-campo"><label>Precio por unidad (Q):</label>
+                            <input type="number" step="0.01" min="0" id="inv-precio" required placeholder="0.00"></div>
+                        <div class="grupo-campo"><label>Existencias (unidades):</label>
+                            <input type="number" step="1" min="0" id="inv-existencias" required placeholder="0"></div>
+                    </div>
+                    <div class="fila-2">
+                        <div class="grupo-campo"><label>Avisar cuando queden (unidades):</label>
+                            <input type="number" step="1" min="0" id="inv-minimo" required placeholder="0"></div>
+                        <div class="grupo-campo"><label>Fecha de vencimiento (opcional):</label>
+                            <input type="date" id="inv-vence"></div>
+                    </div>
+                    <div class="panel-pie">
+                        <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- VENTANA: ENTRADA DE EXISTENCIAS (compra o donación) -->
+    <div class="panel-fondo" id="panel-entrada">
+        <div class="panel" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-truck-ramp-box"></i> Registrar entrada</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <form id="form-entrada">
+                    <input type="hidden" id="entrada-id">
+                    <p id="entrada-nombre"></p>
+                    <div class="grupo-campo"><label>Unidades que ingresan:</label>
+                        <input type="number" step="1" min="1" id="entrada-cantidad" required placeholder="Ej. 100"></div>
+                    <div class="panel-pie">
+                        <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Registrar entrada</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="~/JS/roles.js" asp-append-version="true"></script>
     <script src="~/JS/ui.js" asp-append-version="true"></script>
     <script src="~/JS/comunes.js" asp-append-version="true"></script>

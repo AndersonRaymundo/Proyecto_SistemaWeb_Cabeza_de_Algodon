@@ -12,6 +12,7 @@ namespace AsiloWeb.Services
         public string? NombreTutor { get; set; }
         public string? TelefonoTutor { get; set; }
         public string? CorreoTutor { get; set; }
+        public bool Estado { get; set; } = true;
     }
 
     // Conector del backend .NET con pacientes_service. Se usa
@@ -37,6 +38,16 @@ namespace AsiloWeb.Services
             {
                 return null;
             }
+        }
+
+        public const string MensajeDadoDeBaja =
+            "El residente está dado de baja. Reactívelo para registrar nuevas solicitudes, atenciones o cobros.";
+
+        // true solo cuando el residente existe y esta dado de baja
+        public async Task<bool> EstaDadoDeBajaAsync(int idPaciente)
+        {
+            var residente = await ObtenerAsync(idPaciente);
+            return residente != null && !residente.Estado;
         }
 
         public async Task<Dictionary<int, PacienteDto>> ObtenerTodosAsync()

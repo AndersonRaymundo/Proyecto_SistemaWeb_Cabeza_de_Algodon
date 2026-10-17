@@ -12,6 +12,7 @@
     <img src="~/imagen sesion/logo.jpg" alt="logo_principal" class="logo-login">
     <h1> ACCESO AL SISTEMA </h1>
     <p>por favor, Ingrese su usuario y contraseña.</p> 
+    <p id="aviso-login" class="rec-ok" style="display:none;"></p>
 
 
    <form action="MENU.html" method="GET">
@@ -38,7 +39,7 @@
         <br>
 
         <div class="olvidoContra">
-        <p><strong>¿Olvidaste la contraseña?</strong> </p>
+        <p><a href="#" onclick="abrirRecuperacion(); return false;"><strong>¿Olvidaste la contraseña?</strong></a></p>
         </div>
 
       <!-- Cambia el botón de inicio de sesión -->
@@ -57,6 +58,33 @@
         </div>
 
     </form>
+
+    <!-- VENTANA: RECUPERAR LA CONTRASEÑA (código de 6 dígitos por correo) -->
+    <div id="modalRecuperar" class="modal-fondo">
+        <div class="modal-contenido modal-recuperar">
+            <h2>Recuperar contraseña</h2>
+
+            <div id="rec-paso1">
+                <p>Escriba su usuario o el correo con el que está registrado. Le enviaremos un código de 6 dígitos a ese correo.</p>
+                <input type="text" id="rec-usuario" class="rec-campo" placeholder="Usuario o correo" autocomplete="username">
+                <button type="button" class="btn-cerrar" onclick="solicitarCodigo()">Enviar código</button>
+            </div>
+
+            <div id="rec-paso2" style="display:none;">
+                <p class="rec-temporizador">El código vence en <strong id="rec-tiempo">05:00</strong></p>
+                <input type="text" id="rec-codigo" class="rec-campo" inputmode="numeric" maxlength="6" placeholder="Código de 6 dígitos" autocomplete="one-time-code">
+                <input type="password" id="rec-clave" class="rec-campo" placeholder="Nueva contraseña" autocomplete="new-password">
+                <input type="password" id="rec-clave2" class="rec-campo" placeholder="Repita la nueva contraseña" autocomplete="new-password">
+                <p class="rec-ayuda">Mínimo 8 caracteres, con letras y números.</p>
+                <button type="button" class="btn-cerrar" onclick="restablecerClave()">Cambiar contraseña</button>
+                <button type="button" class="rec-enlace" id="rec-reenviar" onclick="solicitarCodigo()" disabled>Reenviar código</button>
+            </div>
+
+            <p id="rec-mensaje" class="rec-error"></p>
+            <button type="button" class="rec-enlace" onclick="cerrarRecuperacion()">Cancelar</button>
+        </div>
+    </div>
+
       <!-- Enlace vital para cargar el script JS -->
     <script src="~/JS/MostrarContra.js" asp-append-version="true"></script>
  </div>

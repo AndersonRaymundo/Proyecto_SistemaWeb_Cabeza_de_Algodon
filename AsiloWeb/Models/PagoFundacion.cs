@@ -40,5 +40,13 @@ namespace AsiloWeb.Models
         // aun no estan completamente canceladas por el familiar.
         [Column("id_cita")]
         public int? IdCita { get; set; }
+
+        // fecha_pago es la fecha en que se genero el cobro. Estos dos se llenan cuando el cobro
+        // pasa a "Pagado": cuando se recibio el pago y quien lo registro en caja.
+        [Column("fecha_cancelado")]
+        public DateTime? FechaCancelado { get; set; }
+
+        [Column("cancelado_por")]
+        public string? CanceladoPor { get; set; }
     }
 }

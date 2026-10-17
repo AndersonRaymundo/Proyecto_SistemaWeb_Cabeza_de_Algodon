@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AsiloWeb.Data;
 using AsiloWeb.Models;
+using AsiloWeb.Services;
 
 namespace AsiloWeb.Controllers
 {
@@ -15,10 +16,14 @@ namespace AsiloWeb.Controllers
     public class CajaController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly PacientesService _pacientes;
+        private readonly EmailService _email;
 
-        public CajaController(AppDbContext context)
+        public CajaController(AppDbContext context, PacientesService pacientes, EmailService email)
         {
             _context = context;
+            _pacientes = pacientes;
+            _email = email;
         }
 
         // ---- Donaciones ----
@@ -65,6 +70,9 @@ namespace AsiloWeb.Controllers
         [HttpPost("pagos")]
         public async Task<IActionResult> CrearPago(PagoRequest datos)
         {
+            if (await _pacientes.EstaDadoDeBajaAsync(datos.IdPaciente))
+                return BadRequest(new { message = PacientesService.MensajeDadoDeBaja });
+
             var pago = new PagoFundacion
             {
                 IdPaciente = datos.IdPaciente,
@@ -97,7 +105,20 @@ namespace AsiloWeb.Controllers
         {
             var pago = await _context.PagosFundacion.FindAsync(id);
             if (pago == null) return NotFound();
+
+            var eraPendiente = pago.Estado != "Pagado";
             pago.Estado = datos.Estado;
+            if (datos.Estado == "Pagado" && eraPendiente)
+            {
+                // se guarda cuando se recibio el pago y quien lo registro
+                pago.FechaCancelado = DateTime.Now;
+                pago.CanceladoPor = User.FindFirstValue("NombreCompleto") ?? User.Identity?.Name;
+            }
+            else if (datos.Estado != "Pagado")
+            {
+                pago.FechaCancelado = null;
+                pago.CanceladoPor = null;
+            }
             await _context.SaveChangesAsync();
 
             // RF-12: si el cobro pertenece a una cita, su estado de pago se
@@ -113,7 +134,47 @@ namespace AsiloWeb.Controllers
                     await _context.SaveChangesAsync();
                 }
             }
-            return Ok(pago);
+
+            // CU-06: al recibir el pago se envia el comprobante al correo del tutor.
+            // Si el correo falla, el pago igual queda registrado y se avisa en la respuesta.
+            var comprobante = (datos.Estado == "Pagado" && eraPendiente) ? await EnviarComprobanteAsync(pago) : "no-aplica";
+
+            return Ok(new
+            {
+                pago.IdPago, pago.IdPaciente, pago.ConceptoPago, pago.Monto, pago.Estado,
+                pago.FechaCancelado, pago.CanceladoPor, comprobante
+            });
+        }
+
+        // Devuelve: "enviado" | "sin-correo" (el tutor no tiene correo) | "fallo" (no se pudo enviar)
+        private async Task<string> EnviarComprobanteAsync(PagoFundacion pago)
+        {
+            try
+            {
+                var residente = await _pacientes.ObtenerAsync(pago.IdPaciente);
+                var correo = residente?.CorreoTutor?.Trim();
+                if (residente == null || string.IsNullOrWhiteSpace(correo)) return "sin-correo";
+
+                string H(string? texto) => System.Net.WebUtility.HtmlEncode(texto ?? "");
+                var ci = System.Globalization.CultureInfo.InvariantCulture;
+                var cuerpo =
+                    "<div style=\"font-family: Arial, sans-serif; max-width:520px;\">" +
+                    "<h2>Asilo Cabeza de Algod&oacute;n</h2><h3>Comprobante de pago</h3>" +
+                    $"<p>Estimado(a) <b>{H(residente.NombreTutor)}</b>,</p>" +
+                    $"<p>Recibimos su pago correspondiente a <b>{H(residente.NombreCompleto)}</b>:</p>" +
+                    "<table cellpadding=\"6\" style=\"border-collapse:collapse;\">" +
+                    $"<tr><td><b>Concepto</b></td><td>{H(pago.ConceptoPago)}</td></tr>" +
+                    $"<tr><td><b>Monto</b></td><td>Q{pago.Monto.ToString("N2", ci)}</td></tr>" +
+                    $"<tr><td><b>Fecha de pago</b></td><td>{pago.FechaCancelado?.ToString("dd/MM/yyyy HH:mm", ci)}</td></tr>" +
+                    "</table><p>Gracias por su aporte. Conserve este correo como constancia.</p></div>";
+
+                var enviado = await _email.EnviarNotificacionAsync(correo, "Comprobante de pago - Asilo Cabeza de Algodón", cuerpo);
+                return enviado ? "enviado" : "fallo";
+            }
+            catch
+            {
+                return "fallo";
+            }
         }
 
         // RF-12: citas atendidas que todavia no estan completamente canceladas

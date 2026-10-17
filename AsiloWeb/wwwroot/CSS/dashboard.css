@@ -46,6 +46,11 @@
     --sidebar: #0f2740;
     --sidebar-oscuro: #0a1c30;
 
+    /* botones sólidos y encabezado: el mismo azul del menú lateral */
+    --boton: var(--sidebar);
+    --boton-hover: #1b3b5f;
+    --boton-sombra: rgba(15, 39, 64, .5);
+
     /* superficies y bordes */
     --fondo: #f1f5f9;
     --superficie: #ffffff;
@@ -104,7 +109,7 @@ body {
 
 /* ---- 2.1 Barra superior ------------------------------------------------ */
 .barra-superior {
-    background-color: var(--superficie);
+    background-color: var(--sidebar);
     height: 64px;
     padding: 0 32px 0 28px;
     display: flex;
@@ -112,8 +117,8 @@ body {
     align-items: center;
     position: relative;
     z-index: 100;
-    border-bottom: 1px solid var(--borde);
-    box-shadow: 0 1px 3px rgba(15, 23, 42, .05);
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    box-shadow: 0 2px 8px rgba(10, 28, 48, .25);
     flex-shrink: 0;
 }
 
@@ -122,7 +127,7 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
-    color: var(--texto-2);
+    color: #e6eef8;
     font-size: .92rem;
     font-weight: 600;
 }
@@ -136,8 +141,8 @@ body {
     width: 34px;
     height: 34px;
     border-radius: 10px;
-    background: var(--primario-claro);
-    color: var(--primario);
+    background: rgba(255, 255, 255, .12);
+    color: #7cc0ff;
     font-size: .95rem;
 }
 .logo-top::after { content: "Sistema de Administración del Asilo"; }
@@ -146,22 +151,22 @@ body {
     display: flex;
     align-items: center;
     gap: 20px;
-    color: var(--texto);
+    color: #fff;
 }
 
 .btn-notificacion {
-    background: var(--fondo);
-    border: 1px solid var(--borde);
+    background: rgba(255, 255, 255, .10);
+    border: 1px solid rgba(255, 255, 255, .18);
     width: 38px;
     height: 38px;
     border-radius: 50%;
     font-size: .95rem;
-    color: var(--muted);
+    color: #cfe3f8;
     cursor: pointer;
     position: relative;
     transition: background .15s, color .15s;
 }
-.btn-notificacion:hover { background: var(--primario-claro); color: var(--primario); }
+.btn-notificacion:hover { background: rgba(255, 255, 255, .20); color: #fff; }
 
 .badge-notificacion {
     position: absolute;
@@ -175,7 +180,7 @@ body {
     height: 17px;
     padding: 0 4px;
     border-radius: 999px;
-    border: 2px solid #fff;
+    border: 2px solid var(--sidebar);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -188,7 +193,7 @@ body {
     align-items: center;
     gap: 12px;
     padding-left: 20px;
-    border-left: 1px solid var(--borde);
+    border-left: 1px solid rgba(255, 255, 255, .16);
 }
 
 .avatar {
@@ -202,14 +207,14 @@ body {
     align-items: center;
     font-weight: 700;
     font-size: 1rem;
-    box-shadow: 0 2px 6px rgba(31, 95, 166, .35);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .18);
 }
 
 .estado-activo {
     width: 11px;
     height: 11px;
     background-color: #22c55e;
-    border: 2px solid #fff;
+    border: 2px solid var(--sidebar);
     border-radius: 50%;
     position: absolute;
     bottom: 0;
@@ -223,14 +228,14 @@ body {
     gap: 3px;
     text-align: left;
 }
-.nombre-usuario { font-weight: 700; font-size: .88rem; color: var(--texto); line-height: 1.1; }
+.nombre-usuario { font-weight: 700; font-size: .88rem; color: #fff; line-height: 1.1; }
 .rol-usuario {
     font-size: .64rem;
     font-weight: 700;
     letter-spacing: .06em;
     text-transform: uppercase;
-    color: var(--primario);
-    background: var(--primario-claro);
+    color: #bfe0ff;
+    background: rgba(124, 192, 255, .16);
     padding: 2px 8px;
     border-radius: 999px;
 }
@@ -462,7 +467,7 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 
 /* ---- 3.3 Botones -------------------------------------------------------- */
 .btn-guardar {
-    background-color: var(--primario);
+    background-color: var(--boton);
     color: #fff;
     border: none;
     padding: 11px 24px;
@@ -475,12 +480,12 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
     justify-content: center;
     gap: 9px;
     margin-top: 6px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, .12), 0 4px 10px -4px rgba(31, 95, 166, .5);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .12), 0 4px 10px -4px var(--boton-sombra);
     transition: background-color .15s, transform .1s, box-shadow .15s;
 }
-.btn-guardar:hover { background-color: var(--primario-hover); transform: translateY(-1px); }
+.btn-guardar:hover { background-color: var(--boton-hover); transform: translateY(-1px); }
 .btn-guardar:active { transform: translateY(0); }
-.btn-guardar:focus-visible { outline: 3px solid rgba(31, 95, 166, .3); outline-offset: 2px; }
+.btn-guardar:focus-visible { outline: 3px solid rgba(15, 39, 64, .3); outline-offset: 2px; }
 .btn-guardar:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
 
 .btn-secundario { background: #fff; color: var(--texto-2); border: 1px solid var(--borde-fuerte); box-shadow: none; }
@@ -506,6 +511,7 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .btn-icono.ambar   { background: var(--alerta-bg);      color: var(--alerta); }
 .btn-icono.verde   { background: var(--exito-bg);       color: var(--exito); }
 .btn-icono.rojo    { background: var(--peligro-bg);     color: var(--peligro); }
+.btn-icono.gris    { background: #eef1f5;               color: var(--texto-2); }
 
 /* ---- 3.4 Etiquetas (badges) ---------------------------------------------- */
 .badge {
@@ -688,9 +694,9 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .pagina-historial .registro-clinico { padding: 14px 18px; margin-bottom: 12px; border: 1px solid var(--borde); border-left: 4px solid var(--primario); border-radius: 10px; background: #fbfcfe; }
 .pagina-historial .registro-clinico p { margin: 3px 0; color: var(--texto-2); font-size: .92rem; }
 .pagina-historial .registro-clinico .titulo { font-weight: 700; color: var(--texto); }
-.pagina-historial .dato-clinico, .pagina-configuracion .dato-clinico { display: grid; grid-template-columns: 220px 1fr; gap: 6px 18px; padding: 12px 0; border-bottom: 1px solid var(--borde); font-size: .92rem; }
-.pagina-historial .dato-clinico:last-child, .pagina-configuracion .dato-clinico:last-child { border-bottom: none; }
-.pagina-historial .dato-clinico span:first-child, .pagina-configuracion .dato-clinico span:first-child { color: var(--muted); font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; padding-top: 2px; }
+.pagina-historial .dato-clinico, .pagina-configuracion .dato-clinico, .pagina-pacientes .dato-clinico { display: grid; grid-template-columns: 220px 1fr; gap: 6px 18px; padding: 12px 0; border-bottom: 1px solid var(--borde); font-size: .92rem; }
+.pagina-historial .dato-clinico:last-child, .pagina-configuracion .dato-clinico:last-child, .pagina-pacientes .dato-clinico:last-child { border-bottom: none; }
+.pagina-historial .dato-clinico span:first-child, .pagina-configuracion .dato-clinico span:first-child, .pagina-pacientes .dato-clinico span:first-child { color: var(--muted); font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; padding-top: 2px; }
 .pagina-historial .vacio { color: var(--muted); padding: 18px 0; text-align: center; }
 
 /* ---- 4.5 LABORATORIO Y FARMACIA  (Views/LaboratorioFarmacia/Index.cshtml) ----------------- */
@@ -715,11 +721,11 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .pagina-reportes .tarjeta-reporte .filtros { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 16px 0 18px; }
 .pagina-reportes .btn-descarga {
     margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 9px;
-    padding: 10px 20px; background: var(--primario); color: #fff; border: none; border-radius: var(--radio-sm);
-    font-weight: 700; font-size: .88rem; cursor: pointer; box-shadow: 0 4px 10px -4px rgba(31, 95, 166, .5);
+    padding: 10px 20px; background: var(--boton); color: #fff; border: none; border-radius: var(--radio-sm);
+    font-weight: 700; font-size: .88rem; cursor: pointer; box-shadow: 0 4px 10px -4px var(--boton-sombra);
     transition: background-color .15s, transform .1s;
 }
-.pagina-reportes .btn-descarga:hover { background: var(--primario-hover); transform: translateY(-1px); }
+.pagina-reportes .btn-descarga:hover { background: var(--boton-hover); transform: translateY(-1px); }
 .pagina-reportes .btn-descarga:disabled { opacity: .6; cursor: wait; transform: none; }
 
 /* ---- 4.7 CAJA Y FINANZAS  (Views/Caja/Index.cshtml) --------------------------------------------- */
@@ -762,7 +768,7 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
     .pagina-reportes .lista-reportes { grid-template-columns: 1fr; }
     .pagina-inicio .bienvenida { flex-direction: column; align-items: flex-start; }
     .pagina-inicio .bienvenida img { display: none; }
-    .pagina-historial .dato-clinico, .pagina-configuracion .dato-clinico { grid-template-columns: 1fr; }
+    .pagina-historial .dato-clinico, .pagina-configuracion .dato-clinico, .pagina-pacientes .dato-clinico { grid-template-columns: 1fr; }
     .datos-usuario { display: none; }
     .logo-top::after { display: none; }
 }
@@ -786,3 +792,49 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 @media (max-width: 700px) {
     .fila-lista.campos-2, .fila-lista.campos-3 { grid-template-columns: 1fr auto; }
 }
+
+/* ---- SELECTOR CON BUSQUEDA (residentes en Citas, Laboratorio, Farmacia, Caja y Reportes) ---- */
+.buscador-select { position: relative; width: 100%; }
+.buscador-select > .buscador-select-input { width: 100%; }
+.buscador-select > select { position: absolute; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.buscador-select-lista { position: absolute; z-index: 60; left: 0; right: 0; top: 100%; margin-top: 4px; max-height: 240px; overflow-y: auto;
+    background: #fff; border: 1px solid var(--borde-fuerte); border-radius: var(--radio-sm); box-shadow: var(--sombra); }
+.buscador-select-opcion { padding: 9px 12px; cursor: pointer; font-size: .92rem; color: var(--texto); }
+.buscador-select-opcion:hover, .buscador-select-opcion.resaltada { background: var(--primario-claro); }
+.buscador-select-vacio { padding: 9px 12px; color: var(--muted); font-size: .9rem; }
+
+/* ---- LISTAS DENTRO DE LA FICHA (patologias y medicamentos de cajon) ------------------------- */
+.lista-ficha { margin: 0; padding-left: 18px; }
+.lista-ficha li { margin-bottom: 6px; }
+.lista-ficha li span { display: block; color: var(--texto-2); font-size: .88rem; }
+
+/* ---- COBROS A FAMILIARES AGRUPADOS POR RESIDENTE ---------------------------------------------- */
+.grupo-residente { border: 1px solid var(--borde); border-radius: var(--radio-sm); margin-bottom: 10px; background: #fff; }
+.grupo-residente > summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 12px 14px; cursor: pointer; list-style: none; font-weight: 700; color: var(--texto); }
+.grupo-residente > summary::-webkit-details-marker { display: none; }
+.grupo-residente[open] > summary { border-bottom: 1px solid var(--borde); }
+.grupo-totales { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { padding: 4px 10px; border-radius: 12px; font-size: .82rem; font-weight: 700; }
+.chip-debe { background: var(--peligro-bg); color: var(--peligro); }
+.chip-aldia { background: var(--exito-bg); color: var(--exito); }
+.chip-cancelado { background: var(--info-bg); color: var(--info); }
+.grupo-seccion { padding: 10px 14px 4px; }
+.grupo-seccion h4 { margin: 0 0 6px; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.fila-cobro { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--borde); }
+.fila-cobro:first-of-type { border-top: none; }
+.fila-cobro small { display: block; color: var(--muted); }
+.fila-cobro-derecha { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.subtitulo-ficha { margin: 16px 0 4px; font-size: .95rem; color: var(--primario); }
+.subtitulo-ficha:first-child { margin-top: 0; }
+#buscador-cobros { flex: 1 1 260px; width: auto; max-width: 380px; }
+
+/* ---- AGENDA: horarios disponibles de un medico en un dia ------------------------------------- */
+.horarios-cita { margin-top: 10px; }
+.horarios-nota { display: block; color: var(--muted); font-size: .85rem; margin-bottom: 6px; }
+.horarios-lista { display: flex; flex-wrap: wrap; gap: 8px; }
+.horario { padding: 7px 12px; border: 1px solid var(--primario-borde); background: #fff; color: var(--primario); border-radius: 8px;
+    font-weight: 700; font-size: .88rem; cursor: pointer; }
+.horario:hover:not(:disabled) { background: var(--primario-claro); }
+.horario.elegido, .horario.elegido:hover { background: var(--boton); color: #fff; border-color: var(--boton); }
+.horario.ocupado { background: #eef1f5; color: var(--muted); border-color: var(--borde); text-decoration: line-through; cursor: not-allowed; }

@@ -20,7 +20,7 @@ from typing import Optional, List
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import create_engine, Column, Integer, String, Date, DateTime, Boolean, or_
+from sqlalchemy import create_engine, Column, Integer, String, Date, DateTime, Boolean, or_, func
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 
 DATABASE_URL = os.getenv(
@@ -113,6 +113,28 @@ class ResidenteOut(BaseModel):
             estado=bool(r.estado),
         )
 
+def validar_expediente_libre(db: Session, expediente: str, excluir_id: Optional[int] = None):
+    """Cada residente debe tener un numero de expediente distinto."""
+    consulta = db.query(Residente).filter(func.lower(Residente.no_expediente) == expediente.strip().lower())
+    if excluir_id is not None:
+        consulta = consulta.filter(Residente.id_residente != excluir_id)
+    if consulta.first():
+        raise HTTPException(
+            status_code=409,
+            detail=f"Ya existe un residente con el expediente {expediente.strip()}. Cada residente debe tener un número de expediente distinto.",
+        )
+
+def siguiente_expediente(db: Session) -> str:
+    """Siguiente numero libre del anio en curso, con el formato EXP-AAAA-NNN."""
+    prefijo = f"EXP-{datetime.now().year}-"
+    usados = [fila[0] for fila in db.query(Residente.no_expediente).filter(Residente.no_expediente.like(prefijo + "%")).all()]
+    numeros = []
+    for expediente in usados:
+        resto = (expediente or "").strip()[len(prefijo):]
+        if resto.isdigit():
+            numeros.append(int(resto))
+    return f"{prefijo}{(max(numeros) if numeros else 0) + 1:03d}"
+
 # App------------------------
 
 app = FastAPI(title="Pacientes Service - Cabeza de Algodón")
@@ -165,6 +187,12 @@ def buscar_residentes(q: str = "", db: Session = Depends(get_db)):
     ]
 
 
+@app.get("/api/Residentes/siguiente-expediente")
+def obtener_siguiente_expediente(db: Session = Depends(get_db)):
+    # Debe declararse antes de /api/Residentes/{id_residente}, o "siguiente-expediente" se leeria como un id
+    return {"noExpediente": siguiente_expediente(db)}
+
+
 @app.get("/api/Residentes/{id_residente}", response_model=ResidenteOut)
 def obtener_residente(id_residente: int, db: Session = Depends(get_db)):
     residente = db.query(Residente).filter(Residente.id_residente == id_residente).first()
@@ -175,12 +203,15 @@ def obtener_residente(id_residente: int, db: Session = Depends(get_db)):
 
 @app.post("/api/Residentes", response_model=ResidenteOut, status_code=201)
 def crear_residente(datos: ResidenteCreate, db: Session = Depends(get_db)):
+    # Si no se envia expediente, se asigna el siguiente automaticamente
+    expediente = datos.noExpediente.strip() or siguiente_expediente(db)
+    validar_expediente_libre(db, expediente)
     if datos.fechaIngreso:
         fecha_ing_dt = datetime.combine(datos.fechaIngreso, datetime.min.time())
     else:
         fecha_ing_dt = datetime.now()
     nuevo = Residente(
-        no_expediente=datos.noExpediente,
+        no_expediente=expediente,
         nombre_completo=datos.nombreCompleto,
         fecha_nacimiento=datos.fechaNacimiento,
         fecha_ingreso=fecha_ing_dt,
@@ -212,7 +243,11 @@ def actualizar_residente(id_residente: int, datos: ResidenteUpdate, db: Session 
         "correoTutor": "correo_tutor",
         "estado": "estado",
     }
-    for campo_entrada, valor in datos.model_dump(exclude_unset=True).items():
+    cambios = datos.model_dump(exclude_unset=True)
+    if cambios.get("noExpediente") is not None:
+        validar_expediente_libre(db, cambios["noExpediente"], id_residente)
+        cambios["noExpediente"] = cambios["noExpediente"].strip()
+    for campo_entrada, valor in cambios.items():
         setattr(residente, mapa_campos[campo_entrada], valor)
 
     db.commit()

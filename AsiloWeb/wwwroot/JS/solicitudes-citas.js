@@ -14,6 +14,7 @@ let porcentajeDescuento = 0;  // descuento de la fundacion (RF-10)
 
 // La pagina arranca cuando roles.js confirma la sesion (para conocer el rol)
 function iniciar() {
+    hacerBuscable("select-residente-solicitud");
     cargarSelectResidentes();
     cargarMedicos();
     cargarDescuento();
@@ -37,7 +38,8 @@ async function cargarSelectResidentes() {
 
         select.innerHTML = '<option value="">-- Seleccionar Residente --</option>';
         residentes.forEach(r => {
-            mapaResidentes[r.idResidente] = { nombreCompleto: r.nombreCompleto, correoTutor: r.correoTutor };
+            mapaResidentes[r.idResidente] = { nombreCompleto: r.nombreCompleto, correoTutor: r.correoTutor, estado: r.estado };
+            if (r.estado === false) return;   // un residente dado de baja no recibe nuevas solicitudes
             const opcion = document.createElement("option");
             opcion.value = r.idResidente;
             opcion.textContent = `${r.noExpediente} - ${r.nombreCompleto}`;
@@ -149,19 +151,25 @@ async function cargarSolicitudes() {
         contenedor.innerHTML = citas.map(c => {
             const nombre = (mapaResidentes[c.idPaciente] || {}).nombreCompleto || `Residente #${c.idPaciente}`;
             const medico = medicos.find(m => m.idUsuario === c.idDoctor);
-            const fechaCita = c.fechaCita ? new Date(c.fechaCita).toLocaleString("es-GT") : "Sin agendar";
+            const fechaCita = c.fechaCita ? new Date(c.fechaCita).toLocaleString("es-GT", { weekday: "short", day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }) : "Sin agendar";
+
+            const dadoDeBaja = (mapaResidentes[c.idPaciente] || {}).estado === false;
 
             let acciones = "";
-            if (c.estado === "Pendiente" && puedeAgendar) {
+            if (dadoDeBaja && c.estado !== "Atendida") {
+                acciones = `<p style="margin:10px 0 0; color:#b45309; font-weight:600;"><i class="fa-solid fa-user-slash"></i> Residente dado de baja: no se puede agendar ni atender esta solicitud.</p>`;
+            } else if (c.estado === "Pendiente" && puedeAgendar) {
                 const opciones = medicos.map(m => `<option value="${m.idUsuario}">${esc(m.nombreCompleto)}</option>`).join("");
                 acciones = `
                     <div class="fila-controles">
                         <div><label>Médico especialista</label>
-                            <select id="agenda-medico-${c.idCita}"><option value="">-- Seleccionar --</option>${opciones}</select></div>
-                        <div><label>Fecha y hora</label>
-                            <input type="datetime-local" id="agenda-fecha-${c.idCita}"></div>
+                            <select id="agenda-medico-${c.idCita}" onchange="cargarHorarios(${c.idCita})"><option value="">-- Seleccionar --</option>${opciones}</select></div>
+                        <div><label>Día de la cita</label>
+                            <input type="date" id="agenda-dia-${c.idCita}" onchange="cargarHorarios(${c.idCita})"></div>
                         <button type="button" class="btn-guardar" onclick="agendarCita(${c.idCita})"><i class="fa-solid fa-calendar-plus"></i> Agendar cita</button>
-                    </div>`;
+                    </div>
+                    <input type="hidden" id="agenda-fecha-${c.idCita}">
+                    <div id="agenda-horarios-${c.idCita}" class="horarios-cita"></div>`;
             } else if (c.estado === "Agendada" && puedeAtender(c)) {
                 acciones = `<div style="margin-top:10px;"><button type="button" class="btn-guardar" onclick="abrirVisita(${c.idCita})"><i class="fa-solid fa-user-doctor"></i> Registrar visita médica</button></div>`;
             }
@@ -195,11 +203,51 @@ async function cargarSolicitudes() {
 }
 
 // ---------------------------------------------------------------- RF-05 agenda
+// "14:30" -> "2:30 p. m."  (con a. m. / p. m. no hay duda entre las 12 de la noche y del mediodia)
+function etiquetaHora(hhmm) {
+    const [h, m] = hhmm.split(":").map(Number);
+    return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h < 12 ? "a. m." : "p. m."}`;
+}
+
+// Muestra los espacios del medico en el dia elegido: solo se puede elegir uno de los libres
+async function cargarHorarios(idCita) {
+    const idDoctor = document.getElementById(`agenda-medico-${idCita}`).value;
+    const dia = document.getElementById(`agenda-dia-${idCita}`).value;
+    const contenedor = document.getElementById(`agenda-horarios-${idCita}`);
+    document.getElementById(`agenda-fecha-${idCita}`).value = "";
+    if (!idDoctor || !dia) { contenedor.innerHTML = ""; return; }
+
+    contenedor.innerHTML = '<span class="horarios-nota">Buscando horarios...</span>';
+    try {
+        const respuesta = await fetch(`${CITAS_API_URL}/disponibilidad?idDoctor=${idDoctor}&fecha=${dia}&idCita=${idCita}`);
+        if (!respuesta.ok) throw new Error("Error al consultar la agenda");
+        const datos = await respuesta.json();
+        if (!datos.laborable) { contenedor.innerHTML = `<span class="horarios-nota">${esc(datos.mensaje)}</span>`; return; }
+
+        contenedor.innerHTML = '<span class="horarios-nota">Horarios disponibles (los grises ya están ocupados):</span><div class="horarios-lista">' +
+            datos.horarios.map(h => {
+                const libre = h.estado === "libre";
+                const motivo = h.estado === "medico" ? "El médico ya tiene una cita a esa hora" : "El residente ya tiene otra cita a esa hora";
+                return `<button type="button" class="horario${libre ? "" : " ocupado"}" ${libre ? "" : `disabled title="${motivo}"`}
+                            onclick="elegirHorario(${idCita}, '${h.hora}', this)">${etiquetaHora(h.hora)}</button>`;
+            }).join("") + "</div>";
+    } catch (err) {
+        console.error(err);
+        contenedor.innerHTML = '<span class="horarios-nota">No se pudieron cargar los horarios.</span>';
+    }
+}
+
+function elegirHorario(idCita, hora, boton) {
+    document.querySelectorAll(`#agenda-horarios-${idCita} .horario`).forEach(b => b.classList.remove("elegido"));
+    boton.classList.add("elegido");
+    document.getElementById(`agenda-fecha-${idCita}`).value = `${document.getElementById(`agenda-dia-${idCita}`).value}T${hora}`;
+}
+
 async function agendarCita(idCita) {
     const idDoctor = document.getElementById(`agenda-medico-${idCita}`).value;
     const fecha = document.getElementById(`agenda-fecha-${idCita}`).value;
     if (!idDoctor || !fecha) {
-        mostrarModal("Falta información", "Seleccione el médico especialista y la fecha y hora de la cita.", "error");
+        mostrarModal("Falta información", "Seleccione el médico especialista, el día y uno de los horarios disponibles.", "error");
         return;
     }
     try {

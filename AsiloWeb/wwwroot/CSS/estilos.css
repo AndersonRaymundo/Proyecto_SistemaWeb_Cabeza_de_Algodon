@@ -224,3 +224,18 @@ text-align: left;
     from { transform: scale(0.8); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
 }
+
+/* ---- Recuperar contrasena ---- */
+.olvidoContra a { color: inherit; text-decoration: underline; cursor: pointer; }
+.modal-recuperar { max-width: 420px; text-align: left; }
+.modal-recuperar h2 { text-align: center; }
+.rec-campo { width: 100%; box-sizing: border-box; padding: 10px 12px; margin: 6px 0; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; }
+.rec-temporizador { text-align: center; margin: 0 0 6px; }
+.rec-ayuda { font-size: .85rem; color: #64748b; margin: 2px 0 10px; }
+.rec-error { color: #c62828; font-size: .9rem; min-height: 1.2em; margin: 10px 0 4px; }
+.rec-ok { color: #1e7e34; font-size: .9rem; margin: 10px 0 4px; }
+.rec-enlace { display: block; margin: 8px auto 0; background: none; border: none; color: #0b559b; cursor: pointer; font-size: .9rem; text-decoration: underline; }
+.rec-enlace:disabled { color: #94a3b8; cursor: not-allowed; text-decoration: none; }
+.modal-contenido .rec-ok { color: #1e7e34; }
+.modal-contenido .rec-error { color: #c62828; }
+.modal-contenido .rec-ayuda { color: #64748b; }

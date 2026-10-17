@@ -37,5 +37,16 @@ namespace AsiloWeb.Models
         // desbloquea automáticamente (CU-01 pide 15 minutos de bloqueo).
         [Column("bloqueado_hasta")]
         public DateTime? BloqueadoHasta { get; set; }
+
+        // "Olvide mi contrasena": codigo de 6 digitos enviado por correo. Se guarda cifrado (BCrypt),
+        // con su hora de vencimiento y los intentos fallidos, y se borra al usarse o vencer.
+        [Column("codigo_recuperacion_hash")]
+        public string? CodigoRecuperacionHash { get; set; }
+
+        [Column("codigo_recuperacion_expira")]
+        public DateTime? CodigoRecuperacionExpira { get; set; }
+
+        [Column("intentos_codigo")]
+        public int IntentosCodigo { get; set; } = 0;
     }
 }

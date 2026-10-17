@@ -46,6 +46,7 @@
                             <tr>
                                 <th>Expediente</th>
                                 <th>Nombre completo</th>
+                                <th>Edad</th>
                                 <th>Tutor</th>
                                 <th>Teléfono tutor</th>
                                 <th>Estado</th>
@@ -73,7 +74,8 @@
                     <div class="fila-2">
                     <div class="grupo-campo">
                         <label for="txtExpediente">No. de expediente</label>
-                        <input type="text" id="txtExpediente" placeholder="Ej. EXP-2026-01" required>
+                        <input type="text" id="txtExpediente" placeholder="Ej. EXP-2026-001" required>
+                        <small style="color:#64748b;">Se sugiere el siguiente número libre; puede cambiarlo.</small>
                     </div>
                     <div class="grupo-campo">
                         <label for="txtNombre">Nombre completo</label>
@@ -154,6 +156,17 @@
                     </div>
                 </form>
             </div>
+        </div>
+    </div>
+
+    <!-- VENTANA: FICHA COMPLETA DEL RESIDENTE (la abre verFicha en pacientes.js) -->
+    <div class="panel-fondo" id="panel-ficha-residente">
+        <div class="panel" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-id-card"></i> Ficha del residente</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo" id="contenido-ficha-residente"></div>
         </div>
     </div>
 

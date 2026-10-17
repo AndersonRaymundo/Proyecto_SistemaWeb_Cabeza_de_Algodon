@@ -18,7 +18,7 @@
 
       <main class="area-trabajo">
         <h1><i class="fa-solid fa-gear"></i> Configuración del Sistema</h1>
-        <p>Parámetros vigentes del sistema. Esta pantalla es de solo lectura.</p>
+        <p>Parámetros vigentes del sistema y administración de los usuarios.</p>
 
         <div class="formulario-datos">
             <h2><i class="fa-solid fa-building"></i> Institución</h2>
@@ -33,10 +33,115 @@
             <div class="dato-clinico"><span>Rol</span><span id="valor-rol">—</span></div>
             <p style="color:#64748b; font-size:.88rem; margin-top:10px;">El porcentaje de descuento se define en la configuración del servidor (Fundacion:DescuentoPorcentaje).</p>
         </div>
+
+        <!-- USUARIOS DEL SISTEMA (solo el administrador) -->
+        <div class="formulario-datos" id="seccion-usuarios">
+            <div class="barra-herramientas">
+                <h2 style="margin:0;"><i class="fa-solid fa-users-gear"></i> Usuarios del sistema</h2>
+                <span class="espacio"></span>
+                <button type="button" class="btn-guardar" data-abrir="panel-usuario"><i class="fa-solid fa-user-plus"></i> Nuevo usuario</button>
+            </div>
+            <p style="color:#64748b; font-size:.88rem;">Si alguien olvida su contraseña puede recuperarla desde el inicio de sesión con el correo registrado. Si no le llega el correo, aquí se le asigna una nueva.</p>
+            <div id="contenedor-usuarios"></div>
+        </div>
     </main>
     </div>
+    <!-- VENTANA: NUEVO USUARIO -->
+    <div class="panel-fondo" id="panel-usuario">
+        <div class="panel" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-user-plus"></i> Nuevo usuario</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <form id="form-usuario">
+                    <div class="grupo-campo"><label>Nombre completo:</label>
+                        <input type="text" id="usuario-nombre" required placeholder="Ej. Licda. Sofía López"></div>
+                    <div class="fila-2">
+                        <div class="grupo-campo"><label>Nombre de usuario:</label>
+                            <input type="text" id="usuario-login" required placeholder="Ej. slopez" autocomplete="off"></div>
+                        <div class="grupo-campo"><label>Rol:</label>
+                            <select id="usuario-rol" required>
+                                <option value="">-- Seleccionar --</option>
+                                <option value="ADMINISTRADOR">Administrador</option>
+                                <option value="DOCTOR">Doctor</option>
+                                <option value="ENFERMERO">Enfermero</option>
+                                <option value="FARMACIA">Farmacia</option>
+                                <option value="FUNDACION">Fundación</option>
+                                <option value="LABORATORIO">Laboratorio</option>
+                            </select></div>
+                    </div>
+                    <div class="grupo-campo"><label>Correo (para recuperar la contraseña):</label>
+                        <input type="email" id="usuario-correo" placeholder="correo@ejemplo.com"></div>
+                    <div class="fila-2">
+                        <div class="grupo-campo"><label>Contraseña:</label>
+                            <input type="password" id="usuario-clave" required autocomplete="new-password"></div>
+                        <div class="grupo-campo"><label>Repetir contraseña:</label>
+                            <input type="password" id="usuario-clave2" required autocomplete="new-password"></div>
+                    </div>
+                    <p style="color:#64748b; font-size:.85rem; margin:0 0 10px;">La contraseña lleva al menos 8 caracteres, con letras y números.</p>
+                    <div class="panel-pie">
+                        <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Crear usuario</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- VENTANA: NUEVA CONTRASEÑA DE UN USUARIO -->
+    <div class="panel-fondo" id="panel-clave-usuario">
+        <div class="panel" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-key"></i> Nueva contraseña</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <form id="form-clave-usuario">
+                    <p id="clave-usuario-nombre"></p>
+                    <input type="hidden" id="clave-usuario-id">
+                    <div class="fila-2">
+                        <div class="grupo-campo"><label>Contraseña nueva:</label>
+                            <input type="password" id="clave-nueva" required autocomplete="new-password"></div>
+                        <div class="grupo-campo"><label>Repetir contraseña:</label>
+                            <input type="password" id="clave-nueva2" required autocomplete="new-password"></div>
+                    </div>
+                    <p style="color:#64748b; font-size:.85rem; margin:0 0 10px;">Al guardarla, la cuenta también se desbloquea.</p>
+                    <div class="panel-pie">
+                        <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Guardar contraseña</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- VENTANA: CORREO DE UN USUARIO -->
+    <div class="panel-fondo" id="panel-correo-usuario">
+        <div class="panel" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-envelope"></i> Correo del usuario</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <form id="form-correo-usuario">
+                    <p id="correo-usuario-nombre"></p>
+                    <input type="hidden" id="correo-usuario-id">
+                    <div class="grupo-campo"><label>Correo:</label>
+                        <input type="email" id="correo-nuevo" required placeholder="correo@ejemplo.com"></div>
+                    <div class="panel-pie">
+                        <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Guardar correo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- SCRIPT CONTROLADOR DE ROLES -->
     <script src="~/JS/roles.js" asp-append-version="true"></script><!-- SCRIPT CONTROLADOR DE ROLES -->
+    <script src="~/JS/ui.js" asp-append-version="true"></script>
+    <script src="~/JS/comunes.js" asp-append-version="true"></script>
     <script src="~/JS/configuracion.js" asp-append-version="true"></script>
     
 </body>

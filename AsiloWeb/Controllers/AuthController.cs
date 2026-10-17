@@ -1,4 +1,6 @@
+using System.Net.Mail;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -6,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AsiloWeb.Data;
 using AsiloWeb.Models;
+using AsiloWeb.Services;
 
 namespace AsiloWeb.Controllers
 {
@@ -17,12 +20,14 @@ namespace AsiloWeb.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly EmailService _email;
         private const int MaxIntentos = 3;
         private const int MinutosBloqueo = 15;
 
-        public AuthController(AppDbContext context)
+        public AuthController(AppDbContext context, EmailService email)
         {
             _context = context;
+            _email = email;
         }
 
         public class LoginRequest
@@ -124,6 +129,28 @@ namespace AsiloWeb.Controllers
         private static readonly string[] RolesValidos =
             { "ADMINISTRADOR", "DOCTOR", "ENFERMERO", "FARMACIA", "FUNDACION", "LABORATORIO" };
 
+        // ------------------------------------------------------------------
+        // Reglas compartidas: crear usuario, cambiar clave y recuperarla
+        // ------------------------------------------------------------------
+
+        // Minimo 8 caracteres, con letras y numeros.
+        private static string? ValidarContrasena(string? clave)
+        {
+            if (string.IsNullOrEmpty(clave) || clave.Length < 8 || !clave.Any(char.IsLetter) || !clave.Any(char.IsDigit))
+                return "La contraseña debe tener al menos 8 caracteres e incluir letras y números.";
+            return null;
+        }
+
+        private static bool CorreoValido(string? correo)
+        {
+            if (string.IsNullOrWhiteSpace(correo)) return false;
+            try { return new MailAddress(correo.Trim()).Address == correo.Trim(); }
+            catch { return false; }
+        }
+
+        // ------------------------------------------------------------------
+        // Gestion de usuarios (solo el administrador)
+        // ------------------------------------------------------------------
         public class UsuarioCreateRequest
         {
             public string NombreUsuario { get; set; } = string.Empty;
@@ -133,45 +160,255 @@ namespace AsiloWeb.Controllers
             public string? Email { get; set; }
         }
 
+        public class ClaveRequest
+        {
+            public string NuevaContrasena { get; set; } = string.Empty;
+        }
+
+        public class CorreoRequest
+        {
+            public string? Email { get; set; }
+        }
+
         [HttpGet("usuarios")]
         public async Task<IActionResult> ListarUsuarios()
         {
-            var usuarios = await _context.Usuarios
-                .Select(u => new
-                {
-                    u.IdUsuario,
-                    u.NombreUsuario,
-                    u.NombreCompleto,
-                    u.Rol,
-                    u.Email,
-                    u.CuentaBloqueada
-                })
+            // El correo y el estado de la cuenta solo los ve el administrador;
+            // los demas roles reciben lo basico (la agenda necesita la lista de medicos).
+            if (User.IsInRole("ADMINISTRADOR"))
+            {
+                var completos = await _context.Usuarios
+                    .OrderBy(u => u.NombreCompleto)
+                    .Select(u => new { u.IdUsuario, u.NombreUsuario, u.NombreCompleto, u.Rol, u.Email, u.CuentaBloqueada })
+                    .ToListAsync();
+                return Ok(completos);
+            }
+
+            var basicos = await _context.Usuarios
+                .OrderBy(u => u.NombreCompleto)
+                .Select(u => new { u.IdUsuario, u.NombreUsuario, u.NombreCompleto, u.Rol })
                 .ToListAsync();
-            return Ok(usuarios);
+            return Ok(basicos);
         }
 
         [HttpPost("usuarios")]
         [Authorize(Roles = "ADMINISTRADOR")]
         public async Task<IActionResult> CrearUsuario(UsuarioCreateRequest datos)
         {
+            var login = (datos.NombreUsuario ?? "").Trim();
+            if (!System.Text.RegularExpressions.Regex.IsMatch(login, @"^[A-Za-z0-9._-]{3,30}$"))
+                return BadRequest(new { message = "El usuario debe tener de 3 a 30 caracteres: letras, números, punto, guion o guion bajo." });
+            if (string.IsNullOrWhiteSpace(datos.NombreCompleto))
+                return BadRequest(new { message = "El nombre completo es obligatorio." });
             if (!RolesValidos.Contains(datos.Rol))
                 return BadRequest(new { message = "Rol inválido." });
-
-            if (await _context.Usuarios.AnyAsync(u => u.NombreUsuario == datos.NombreUsuario))
+            var errorClave = ValidarContrasena(datos.Contrasena);
+            if (errorClave != null)
+                return BadRequest(new { message = errorClave });
+            if (!string.IsNullOrWhiteSpace(datos.Email) && !CorreoValido(datos.Email))
+                return BadRequest(new { message = "El correo no tiene un formato válido." });
+            if (await _context.Usuarios.AnyAsync(u => u.NombreUsuario == login))
                 return Conflict(new { message = "Ese nombre de usuario ya existe." });
+            if (!string.IsNullOrWhiteSpace(datos.Email) && await _context.Usuarios.AnyAsync(u => u.Email == datos.Email.Trim()))
+                return Conflict(new { message = "Ese correo ya está registrado en otro usuario." });
 
             var nuevo = new Usuario
             {
-                NombreUsuario = datos.NombreUsuario,
+                NombreUsuario = login,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(datos.Contrasena),
-                NombreCompleto = datos.NombreCompleto,
+                NombreCompleto = datos.NombreCompleto.Trim(),
                 Rol = datos.Rol,
-                Email = datos.Email
+                Email = string.IsNullOrWhiteSpace(datos.Email) ? null : datos.Email.Trim()
             };
 
             _context.Usuarios.Add(nuevo);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(ListarUsuarios), new { id = nuevo.IdUsuario }, nuevo);
+
+            // No se devuelve el registro completo (incluye la clave cifrada)
+            return StatusCode(201, new { nuevo.IdUsuario, nuevo.NombreUsuario, nuevo.NombreCompleto, nuevo.Rol, nuevo.Email, nuevo.CuentaBloqueada });
+        }
+
+        // Quita el bloqueo de una cuenta sin esperar los 15 minutos
+        [HttpPut("usuarios/{id}/desbloquear")]
+        [Authorize(Roles = "ADMINISTRADOR")]
+        public async Task<IActionResult> Desbloquear(int id)
+        {
+            var usuario = await _context.Usuarios.FindAsync(id);
+            if (usuario == null) return NotFound(new { message = "Usuario no encontrado." });
+
+            usuario.CuentaBloqueada = false;
+            usuario.IntentosFallidos = 0;
+            usuario.BloqueadoHasta = null;
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Cuenta desbloqueada." });
+        }
+
+        // El administrador asigna una contrasena nueva (por ejemplo, si no llega el correo de recuperacion)
+        [HttpPut("usuarios/{id}/contrasena")]
+        [Authorize(Roles = "ADMINISTRADOR")]
+        public async Task<IActionResult> CambiarContrasena(int id, ClaveRequest datos)
+        {
+            var usuario = await _context.Usuarios.FindAsync(id);
+            if (usuario == null) return NotFound(new { message = "Usuario no encontrado." });
+
+            var error = ValidarContrasena(datos.NuevaContrasena);
+            if (error != null) return BadRequest(new { message = error });
+
+            usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(datos.NuevaContrasena);
+            usuario.CuentaBloqueada = false;
+            usuario.IntentosFallidos = 0;
+            usuario.BloqueadoHasta = null;
+            usuario.CodigoRecuperacionHash = null;
+            usuario.CodigoRecuperacionExpira = null;
+            usuario.IntentosCodigo = 0;
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Contraseña actualizada." });
+        }
+
+        // El correo es el que recibe el codigo de recuperacion
+        [HttpPut("usuarios/{id}/correo")]
+        [Authorize(Roles = "ADMINISTRADOR")]
+        public async Task<IActionResult> CambiarCorreo(int id, CorreoRequest datos)
+        {
+            var usuario = await _context.Usuarios.FindAsync(id);
+            if (usuario == null) return NotFound(new { message = "Usuario no encontrado." });
+            if (!CorreoValido(datos.Email))
+                return BadRequest(new { message = "El correo no tiene un formato válido." });
+
+            var correo = datos.Email!.Trim();
+            if (await _context.Usuarios.AnyAsync(u => u.IdUsuario != id && u.Email == correo))
+                return Conflict(new { message = "Ese correo ya está registrado en otro usuario." });
+
+            usuario.Email = correo;
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Correo actualizado." });
+        }
+
+        // ------------------------------------------------------------------
+        // Olvide mi contrasena: codigo de 6 digitos por correo (diseno del Login)
+        // ------------------------------------------------------------------
+        private const int MinutosCodigo = 5;
+        private const int SegundosEntreEnvios = 60;
+        private const int MaxIntentosCodigo = 5;
+
+        public class RecuperarSolicitudRequest
+        {
+            public string NombreUsuario { get; set; } = string.Empty;
+        }
+
+        public class RecuperarRestablecerRequest
+        {
+            public string NombreUsuario { get; set; } = string.Empty;
+            public string Codigo { get; set; } = string.Empty;
+            public string NuevaContrasena { get; set; } = string.Empty;
+        }
+
+        // Acepta el nombre de usuario o el correo registrado. Por correo solo se resuelve si pertenece
+        // a una sola cuenta (si dos comparten correo, no se sabe a cual restablecer).
+        // En la peticion el campo se llama NombreUsuario, pero trae cualquiera de los dos.
+        private async Task<Usuario?> BuscarPorUsuarioOCorreo(string? identificador)
+        {
+            var texto = (identificador ?? "").Trim();
+            if (texto.Length == 0) return null;
+
+            if (texto.Contains('@'))
+            {
+                var coinciden = await _context.Usuarios.Where(u => u.Email == texto).Take(2).ToListAsync();
+                return coinciden.Count == 1 ? coinciden[0] : null;
+            }
+            return await _context.Usuarios.FirstOrDefaultAsync(u => u.NombreUsuario == texto);
+        }
+
+        private static void AnularCodigo(Usuario usuario)
+        {
+            usuario.CodigoRecuperacionHash = null;
+            usuario.CodigoRecuperacionExpira = null;
+            usuario.IntentosCodigo = 0;
+        }
+
+        [HttpPost("recuperar/solicitar")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SolicitarCodigo(RecuperarSolicitudRequest datos)
+        {
+            var usuario = await BuscarPorUsuarioOCorreo(datos.NombreUsuario);
+
+            // La respuesta es la misma exista o no el usuario, para no revelar quien tiene cuenta.
+            var respuesta = new
+            {
+                message = "Si el usuario existe y tiene un correo registrado, se envió un código de 6 dígitos.",
+                minutos = MinutosCodigo,
+                segundosParaReenviar = SegundosEntreEnvios
+            };
+
+            if (usuario == null || !CorreoValido(usuario.Email)) return Ok(respuesta);
+
+            // No se reenvia antes de 60 segundos (evita llenar la bandeja del usuario de correos)
+            if (usuario.CodigoRecuperacionExpira.HasValue &&
+                usuario.CodigoRecuperacionExpira.Value.AddMinutes(-MinutosCodigo).AddSeconds(SegundosEntreEnvios) > DateTime.Now)
+                return Ok(respuesta);
+
+            var codigo = RandomNumberGenerator.GetInt32(0, 1000000).ToString("D6");
+            usuario.CodigoRecuperacionHash = BCrypt.Net.BCrypt.HashPassword(codigo);
+            usuario.CodigoRecuperacionExpira = DateTime.Now.AddMinutes(MinutosCodigo);
+            usuario.IntentosCodigo = 0;
+            await _context.SaveChangesAsync();
+
+            var cuerpo =
+                "<div style=\"font-family: Arial, sans-serif;\">" +
+                "<h2>Asilo Cabeza de Algod&oacute;n</h2>" +
+                $"<p>Hola <b>{System.Net.WebUtility.HtmlEncode(usuario.NombreCompleto)}</b>,</p>" +
+                "<p>Su c&oacute;digo para restablecer la contrase&ntilde;a es:</p>" +
+                $"<p style=\"font-size:28px; letter-spacing:6px;\"><b>{codigo}</b></p>" +
+                $"<p>Vence en {MinutosCodigo} minutos. Si usted no lo solicit&oacute;, ignore este mensaje.</p></div>";
+
+            var enviado = await _email.EnviarNotificacionAsync(
+                usuario.Email!.Trim(), "Código de recuperación de contraseña - Asilo Cabeza de Algodón", cuerpo);
+
+            // Si el correo no salio, el codigo no sirve de nada: se anula
+            if (!enviado)
+            {
+                AnularCodigo(usuario);
+                await _context.SaveChangesAsync();
+            }
+            return Ok(respuesta);
+        }
+
+        [HttpPost("recuperar/restablecer")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RestablecerConCodigo(RecuperarRestablecerRequest datos)
+        {
+            const string invalido = "El código no es válido o ya venció. Solicite uno nuevo.";
+
+            var errorClave = ValidarContrasena(datos.NuevaContrasena);
+            if (errorClave != null) return BadRequest(new { message = errorClave });
+
+            var usuario = await BuscarPorUsuarioOCorreo(datos.NombreUsuario);
+
+            if (usuario == null || usuario.CodigoRecuperacionHash == null ||
+                usuario.CodigoRecuperacionExpira == null || usuario.CodigoRecuperacionExpira < DateTime.Now)
+                return BadRequest(new { message = invalido });
+
+            if (!BCrypt.Net.BCrypt.Verify((datos.Codigo ?? "").Trim(), usuario.CodigoRecuperacionHash))
+            {
+                usuario.IntentosCodigo++;
+                var quedan = MaxIntentosCodigo - usuario.IntentosCodigo;
+                if (quedan <= 0) AnularCodigo(usuario);
+                await _context.SaveChangesAsync();
+                return BadRequest(new
+                {
+                    message = quedan > 0
+                        ? $"Código incorrecto. Le quedan {quedan} intento(s)."
+                        : "Demasiados intentos. Solicite un código nuevo."
+                });
+            }
+
+            usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(datos.NuevaContrasena);
+            usuario.CuentaBloqueada = false;
+            usuario.IntentosFallidos = 0;
+            usuario.BloqueadoHasta = null;
+            AnularCodigo(usuario);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Contraseña actualizada. Ya puede iniciar sesión." });
         }
     }
 }

@@ -22,6 +22,37 @@ namespace BackendAsilo.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("AsiloWeb.Models.AbonoFundacion", b =>
+                {
+                    b.Property<int>("IdAbono")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id_abono");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdAbono"));
+
+                    b.Property<DateTime>("FechaPago")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("fecha_pago");
+
+                    b.Property<int?>("IdUsuario")
+                        .HasColumnType("int")
+                        .HasColumnName("id_usuario");
+
+                    b.Property<decimal>("Monto")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnName("monto");
+
+                    b.Property<string>("Nota")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("nota");
+
+                    b.HasKey("IdAbono");
+
+                    b.ToTable("TBL_ABONOS_FUNDACION");
+                });
+
             modelBuilder.Entity("AsiloWeb.Models.CitaMedica", b =>
                 {
                     b.Property<int>("IdCita")
@@ -225,6 +256,51 @@ namespace BackendAsilo.Migrations
                     b.ToTable("TBL_GASTOS");
                 });
 
+            modelBuilder.Entity("AsiloWeb.Models.InventarioMedicamento", b =>
+                {
+                    b.Property<int>("IdInventario")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id_inventario");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdInventario"));
+
+                    b.Property<int>("Existencias")
+                        .HasColumnType("int")
+                        .HasColumnName("existencias");
+
+                    b.Property<DateTime?>("FechaVencimiento")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("fecha_vencimiento");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .HasColumnName("nombre");
+
+                    b.Property<decimal>("PrecioUnitario")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnName("precio_unitario");
+
+                    b.Property<string>("Presentacion")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("presentacion");
+
+                    b.Property<int>("StockMinimo")
+                        .HasColumnType("int")
+                        .HasColumnName("stock_minimo");
+
+                    b.HasKey("IdInventario");
+
+                    b.HasIndex("Nombre")
+                        .IsUnique();
+
+                    b.ToTable("TBL_INVENTARIO_MEDICAMENTOS");
+                });
+
             modelBuilder.Entity("AsiloWeb.Models.MedicamentoCajon", b =>
                 {
                     b.Property<int>("IdMedicamentoCajon")
@@ -238,6 +314,9 @@ namespace BackendAsilo.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("dosis");
+
+                    b.Property<int?>("FichaMedicaIdFicha")
+                        .HasColumnType("int");
 
                     b.Property<string>("Frecuencia")
                         .HasMaxLength(100)
@@ -256,7 +335,7 @@ namespace BackendAsilo.Migrations
 
                     b.HasKey("IdMedicamentoCajon");
 
-                    b.HasIndex("IdFicha");
+                    b.HasIndex("FichaMedicaIdFicha");
 
                     b.ToTable("TBL_MEDICAMENTOS_CAJON");
                 });
@@ -291,6 +370,10 @@ namespace BackendAsilo.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id_cita");
 
+                    b.Property<int?>("IdInventario")
+                        .HasColumnType("int")
+                        .HasColumnName("id_inventario");
+
                     b.Property<int>("IdPaciente")
                         .HasColumnType("int")
                         .HasColumnName("id_paciente");
@@ -303,6 +386,10 @@ namespace BackendAsilo.Migrations
                     b.Property<string>("TiempoAplicacion")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("tiempo_aplicacion");
+
+                    b.Property<int?>("UnidadesDespachadas")
+                        .HasColumnType("int")
+                        .HasColumnName("unidades_despachadas");
 
                     b.HasKey("IdMedicamento");
 
@@ -318,6 +405,10 @@ namespace BackendAsilo.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdPago"));
 
+                    b.Property<string>("CanceladoPor")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("cancelado_por");
+
                     b.Property<string>("ConceptoPago")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
@@ -327,6 +418,10 @@ namespace BackendAsilo.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("estado");
+
+                    b.Property<DateTime?>("FechaCancelado")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("fecha_cancelado");
 
                     b.Property<DateTime>("FechaPago")
                         .HasColumnType("datetime2")
@@ -359,6 +454,9 @@ namespace BackendAsilo.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdPatologia"));
 
+                    b.Property<int?>("FichaMedicaIdFicha")
+                        .HasColumnType("int");
+
                     b.Property<int>("IdFicha")
                         .HasColumnType("int")
                         .HasColumnName("id_ficha");
@@ -376,7 +474,7 @@ namespace BackendAsilo.Migrations
 
                     b.HasKey("IdPatologia");
 
-                    b.HasIndex("IdFicha");
+                    b.HasIndex("FichaMedicaIdFicha");
 
                     b.ToTable("TBL_PATOLOGIAS");
                 });
@@ -394,6 +492,14 @@ namespace BackendAsilo.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("bloqueado_hasta");
 
+                    b.Property<DateTime?>("CodigoRecuperacionExpira")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("codigo_recuperacion_expira");
+
+                    b.Property<string>("CodigoRecuperacionHash")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("codigo_recuperacion_hash");
+
                     b.Property<bool>("CuentaBloqueada")
                         .HasColumnType("bit")
                         .HasColumnName("cuenta_bloqueada");
@@ -401,6 +507,10 @@ namespace BackendAsilo.Migrations
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("email");
+
+                    b.Property<int>("IntentosCodigo")
+                        .HasColumnType("int")
+                        .HasColumnName("intentos_codigo");
 
                     b.Property<int>("IntentosFallidos")
                         .HasColumnType("int")
@@ -435,18 +545,14 @@ namespace BackendAsilo.Migrations
                 {
                     b.HasOne("AsiloWeb.Models.FichaMedica", null)
                         .WithMany("MedicamentosCajon")
-                        .HasForeignKey("IdFicha")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("FichaMedicaIdFicha");
                 });
 
             modelBuilder.Entity("AsiloWeb.Models.Patologia", b =>
                 {
                     b.HasOne("AsiloWeb.Models.FichaMedica", null)
                         .WithMany("Patologias")
-                        .HasForeignKey("IdFicha")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("FichaMedicaIdFicha");
                 });
 
             modelBuilder.Entity("AsiloWeb.Models.FichaMedica", b =>

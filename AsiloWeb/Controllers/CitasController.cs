@@ -22,10 +22,12 @@ namespace AsiloWeb.Controllers
         private readonly PacientesService _pacientes;
         private readonly FacturacionService _facturacion;
         private readonly ExpedienteService _expediente;
+        private readonly AgendaService _agenda;
 
         public CitasController(AppDbContext context, EmailService emailService,
-            PacientesService pacientes, FacturacionService facturacion, ExpedienteService expediente)
+            PacientesService pacientes, FacturacionService facturacion, ExpedienteService expediente, AgendaService agenda)
         {
+            _agenda = agenda;
             _context = context;
             _emailService = emailService;
             _pacientes = pacientes;
@@ -53,6 +55,9 @@ namespace AsiloWeb.Controllers
         [HttpPost]
         public async Task<IActionResult> CrearSolicitud(SolicitudRequest datos)
         {
+            if (await _pacientes.EstaDadoDeBajaAsync(datos.IdPaciente))
+                return BadRequest(new { message = PacientesService.MensajeDadoDeBaja });
+
             var cita = new CitaMedica
             {
                 IdPaciente = datos.IdPaciente,
@@ -112,6 +117,38 @@ namespace AsiloWeb.Controllers
             public int IdDoctor { get; set; }
         }
 
+        // Horarios de un medico en un dia: el cliente muestra solo estos espacios para elegir.
+        // idCita (opcional) es la solicitud que se esta agendando: no choca consigo misma y, si el
+        // residente ya tiene otra cita a esa hora, ese espacio se marca como ocupado.
+        [HttpGet("disponibilidad")]
+        [Authorize(Roles = "ADMINISTRADOR,FUNDACION")]
+        public async Task<IActionResult> Disponibilidad(int idDoctor, DateTime fecha, int? idCita)
+        {
+            var dia = fecha.Date;
+            if (!_agenda.EsDiaLaborable(dia))
+                return Ok(new { laborable = false, mensaje = "Ese día no hay atención de citas.", horarios = new object[0] });
+
+            var siguiente = dia.AddDays(1);
+            var ocupadas = await _context.CitasMedicas
+                .Where(c => c.FechaCita != null && c.FechaCita >= dia && c.FechaCita < siguiente && (idCita == null || c.IdCita != idCita))
+                .Select(c => new { c.IdDoctor, c.IdPaciente, c.FechaCita })
+                .ToListAsync();
+
+            int? idPaciente = null;
+            if (idCita != null)
+                idPaciente = await _context.CitasMedicas.Where(c => c.IdCita == idCita).Select(c => (int?)c.IdPaciente).FirstOrDefaultAsync();
+
+            var horarios = _agenda.HorariosDelDia().Select(h =>
+            {
+                var inicio = dia + h;
+                var medico = ocupadas.Any(c => c.IdDoctor == idDoctor && c.FechaCita == inicio);
+                var residente = idPaciente != null && ocupadas.Any(c => c.IdPaciente == idPaciente && c.FechaCita == inicio);
+                return new { hora = $"{h.Hours:00}:{h.Minutes:00}", estado = medico ? "medico" : (residente ? "residente" : "libre") };
+            }).ToList();
+
+            return Ok(new { laborable = true, horarios });
+        }
+
         [HttpPut("{id}/agendar")]
         [Authorize(Roles = "ADMINISTRADOR,FUNDACION")]
         public async Task<IActionResult> Agendar(int id, AgendarRequest datos)
@@ -120,6 +157,25 @@ namespace AsiloWeb.Controllers
             if (cita == null) return NotFound();
             if (cita.Estado == "Atendida")
                 return BadRequest(new { message = "Esta cita ya fue atendida." });
+            if (await _pacientes.EstaDadoDeBajaAsync(cita.IdPaciente))
+                return BadRequest(new { message = PacientesService.MensajeDadoDeBaja });
+
+            // Solo se agenda dentro del horario de atencion (jornada, dias laborables y sin el almuerzo)
+            var errorHorario = _agenda.Validar(datos.FechaCita);
+            if (errorHorario != null)
+                return BadRequest(new { message = errorHorario });
+
+            // La agenda no admite choques: un medico no puede tener dos citas a la misma fecha y hora,
+            // ni un residente estar en dos citas a la vez (la cita que se esta moviendo no cuenta).
+            var medicoOcupado = await _context.CitasMedicas.AnyAsync(c =>
+                c.IdCita != id && c.IdDoctor == datos.IdDoctor && c.FechaCita == datos.FechaCita);
+            if (medicoOcupado)
+                return BadRequest(new { message = "Ese médico ya tiene una cita en esa fecha y hora. Elija otro horario u otro médico." });
+
+            var residenteOcupado = await _context.CitasMedicas.AnyAsync(c =>
+                c.IdCita != id && c.IdPaciente == cita.IdPaciente && c.FechaCita == datos.FechaCita);
+            if (residenteOcupado)
+                return BadRequest(new { message = "Este residente ya tiene otra cita en esa fecha y hora." });
 
             cita.FechaCita = datos.FechaCita;
             cita.IdDoctor = datos.IdDoctor;
@@ -232,6 +288,8 @@ namespace AsiloWeb.Controllers
             if (cita == null) return NotFound();
             if (cita.Estado == "Atendida")
                 return BadRequest(new { message = "Esta cita ya fue atendida." });
+            if (await _pacientes.EstaDadoDeBajaAsync(cita.IdPaciente))
+                return BadRequest(new { message = PacientesService.MensajeDadoDeBaja });
 
             // RF-07: la visita la registra el medico asignado (el administrador puede hacerlo siempre)
             if (User.IsInRole("DOCTOR") && cita.IdDoctor.HasValue && cita.IdDoctor.Value != IdUsuarioActual)
@@ -270,6 +328,9 @@ namespace AsiloWeb.Controllers
         [Authorize(Roles = "ADMINISTRADOR,DOCTOR")]
         public async Task<IActionResult> RegistroDirecto(RegistroDirectoRequest datos)
         {
+            if (await _pacientes.EstaDadoDeBajaAsync(datos.IdPaciente))
+                return BadRequest(new { message = PacientesService.MensajeDadoDeBaja });
+
             var cita = new CitaMedica
             {
                 IdPaciente = datos.IdPaciente,

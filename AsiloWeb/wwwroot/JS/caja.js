@@ -17,6 +17,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("form-gasto").addEventListener("submit", registrarGasto);
     document.getElementById("form-abono").addEventListener("submit", registrarAbono);
     document.getElementById("filtro-cobros").addEventListener("change", cargarCobros);
+    document.getElementById("buscador-cobros").addEventListener("input", pintarCobros);
+    hacerBuscable("select-residente-caja");
 
     await cargarResidentes();      // primero los nombres, para que las listas los muestren
     refrescarTodo();
@@ -39,7 +41,8 @@ async function cargarResidentes() {
         const residentes = await respuesta.json();
         residentes.forEach(r => { mapaResidentes[r.idResidente] = r; });
         select.innerHTML = '<option value="">-- Seleccionar Residente --</option>' +
-            residentes.map(r => `<option value="${r.idResidente}">${esc(r.noExpediente)} - ${esc(r.nombreCompleto)}</option>`).join("");
+            residentes.filter(r => r.estado !== false).map(r => `<option value="${r.idResidente}">${esc(r.noExpediente)} - ${esc(r.nombreCompleto)}</option>`).join("");
+        if (pagosCache.length) pintarCobros();   // ya se conocen los nombres
     } catch (err) {
         console.error("Error al cargar residentes:", err);
         select.innerHTML = '<option value="">-- No se pudo conectar con pacientes_service --</option>';
@@ -111,9 +114,22 @@ async function registrarCobro(event) {
 
     await enviar(`${CAJA_API_URL}/pagos`, {
         idPaciente: parseInt(idResidente, 10),
-        conceptoPago: detalle ? `${tipo} - ${detalle}` : tipo,
+        conceptoPago: !detalle ? tipo : (normalizarTexto(detalle).startsWith(normalizarTexto(tipo)) ? detalle : `${tipo} - ${detalle}`),
         monto: parseFloat(document.getElementById("monto-cobro").value) || 0,
     }, "Cobro registrado correctamente.", "form-cobro");
+}
+
+let pagosCache = [];
+const CATEGORIAS_COBRO = ["Mensualidades", "Consultas", "Exámenes", "Medicamentos", "Otros cargos"];
+
+// Seccion a la que pertenece un cobro, segun su concepto
+function categoriaDeCobro(concepto) {
+    const c = normalizarTexto(concepto);
+    if (c.startsWith("mensualidad")) return "Mensualidades";
+    if (c.startsWith("consulta")) return "Consultas";
+    if (c.startsWith("examen")) return "Exámenes";
+    if (c.startsWith("medicamento")) return "Medicamentos";
+    return "Otros cargos";
 }
 
 async function cargarCobros() {
@@ -122,28 +138,65 @@ async function cargarCobros() {
     try {
         const respuesta = await fetch(`${CAJA_API_URL}/pagos` + (filtro ? `?estado=${filtro}` : ""));
         if (!respuesta.ok) throw new Error("Error al cargar cobros");
-        const pagos = await respuesta.json();
-
-        if (!pagos.length) { contenedor.innerHTML = "<p style='color:#777;'>No hay cobros para mostrar.</p>"; return; }
-
-        contenedor.innerHTML = pagos.map(p => {
-            const pagado = p.estado === "Pagado";
-            return `
-            <div class="formulario-datos" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <div>
-                    <p style="margin:0;"><strong>${esc(p.conceptoPago)}</strong> - ${quetzales(p.monto)}</p>
-                    <p style="margin:0; font-size:0.85rem; color:#777;">${esc(nombreDe(p.idPaciente))} - ${fecha(p.fechaPago)}</p>
-                </div>
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <span style="background:${pagado ? "#e6f4ea" : "#fce8e6"}; color:${pagado ? "#1e7e34" : "#c5221f"}; padding:4px 10px; border-radius:12px; font-size:0.85rem; font-weight:bold;">${pagado ? "Cancelado" : "Pendiente"}</span>
-                    ${pagado ? "" : `<button onclick="marcarPagado(${p.idPago})" class="btn-guardar" style="padding:6px 10px;" title="Marcar como cancelado"><i class="fa-solid fa-check"></i></button>`}
-                </div>
-            </div>`;
-        }).join("");
+        pagosCache = await respuesta.json();
+        pintarCobros();
     } catch (err) {
         console.error(err);
         contenedor.innerHTML = "<p style='color:#c62828;'>No se pudieron cargar los cobros.</p>";
     }
+}
+
+// Cobros agrupados por residente (con lo que debe y lo cancelado) y, dentro de cada uno, por seccion
+function pintarCobros() {
+    const contenedor = document.getElementById("contenedor-cobros");
+    const buscado = normalizarTexto(document.getElementById("buscador-cobros").value.trim());
+    const pagos = pagosCache.filter(p => !buscado
+        || normalizarTexto(nombreDe(p.idPaciente)).includes(buscado)
+        || normalizarTexto((mapaResidentes[p.idPaciente] || {}).noExpediente).includes(buscado));
+
+    if (!pagos.length) { contenedor.innerHTML = "<p style='color:#777;'>No hay cobros para mostrar.</p>"; return; }
+
+    const porResidente = new Map();
+    pagos.forEach(p => {
+        if (!porResidente.has(p.idPaciente)) porResidente.set(p.idPaciente, []);
+        porResidente.get(p.idPaciente).push(p);
+    });
+    const suma = lista => lista.reduce((t, p) => t + Number(p.monto || 0), 0);
+    const grupos = Array.from(porResidente.entries()).map(([id, cobros]) => ({
+        id, cobros,
+        pendiente: suma(cobros.filter(p => p.estado !== "Pagado")),
+        cancelado: suma(cobros.filter(p => p.estado === "Pagado")),
+    })).sort((a, b) => b.pendiente - a.pendiente || nombreDe(a.id).localeCompare(nombreDe(b.id)));
+
+    const abierto = buscado !== "" || grupos.length <= 3;
+    contenedor.innerHTML = grupos.map(g => `
+        <details class="grupo-residente" ${abierto ? "open" : ""}>
+            <summary>
+                <span>${esc(nombreDe(g.id))}</span>
+                <span class="grupo-totales">
+                    ${g.pendiente > 0 ? `<span class="chip chip-debe">Debe ${quetzales(g.pendiente)}</span>` : `<span class="chip chip-aldia">Al día</span>`}
+                    ${g.cancelado > 0 ? `<span class="chip chip-cancelado">Cancelado ${quetzales(g.cancelado)}</span>` : ""}
+                </span>
+            </summary>
+            ${CATEGORIAS_COBRO.map(cat => {
+                const items = g.cobros.filter(p => categoriaDeCobro(p.conceptoPago) === cat);
+                if (!items.length) return "";
+                return `<div class="grupo-seccion"><h4>${cat} (${items.length})</h4>${items.map(p => {
+                    const pagado = p.estado === "Pagado";
+                    const cuandoPago = pagado && p.fechaCancelado
+                        ? ` · Pagado el ${fecha(p.fechaCancelado)}${p.canceladoPor ? ` (${esc(p.canceladoPor)})` : ""}` : "";
+                    return `
+                    <div class="fila-cobro">
+                        <div><strong>${esc(p.conceptoPago)}</strong><small>${fecha(p.fechaPago)}${cuandoPago}</small></div>
+                        <div class="fila-cobro-derecha">
+                            <strong>${quetzales(p.monto)}</strong>
+                            ${pagado ? `<span class="chip chip-aldia">Cancelado</span>`
+                                     : `<span class="chip chip-debe">Pendiente</span><button onclick="marcarPagado(${p.idPago})" class="btn-guardar" style="padding:6px 10px;" title="Marcar como cancelado"><i class="fa-solid fa-check"></i></button>`}
+                        </div>
+                    </div>`;
+                }).join("")}</div>`;
+            }).join("")}
+        </details>`).join("");
 }
 
 async function marcarPagado(idPago) {
@@ -153,8 +206,16 @@ async function marcarPagado(idPago) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ estado: "Pagado" }),
         });
-        if (respuesta.ok) refrescarTodo();
-        else mostrarModal("Error", await mensajeError(respuesta), "error");
+        if (!respuesta.ok) { mostrarModal("Error", await mensajeError(respuesta), "error"); return; }
+
+        const datos = await respuesta.json().catch(() => ({}));
+        const avisos = {
+            "enviado": ["Cobro cancelado", "Se envió el comprobante de pago al correo del tutor.", "exito"],
+            "sin-correo": ["Cobro cancelado", "El tutor no tiene un correo registrado, por eso no se envió comprobante.", "exito"],
+            "fallo": ["Cobro cancelado, pero sin comprobante", "El pago quedó registrado, pero no se pudo enviar el correo al tutor.", "error"],
+        };
+        if (avisos[datos.comprobante]) mostrarModal(...avisos[datos.comprobante]);
+        refrescarTodo();
     } catch (err) {
         mostrarModal("Error de conexión", "No se pudo conectar con el servidor.", "error");
     }

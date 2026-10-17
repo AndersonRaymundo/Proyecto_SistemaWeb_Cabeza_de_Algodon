@@ -43,5 +43,12 @@ namespace AsiloWeb.Models
         // despacha despues (Despachado = true) asignando el costo.
         [Column("despachado")]
         public bool Despachado { get; set; } = false;
+
+        // Inventario: de que producto del catalogo se descontaron unidades al despachar (opcional)
+        [Column("id_inventario")]
+        public int? IdInventario { get; set; }
+
+        [Column("unidades_despachadas")]
+        public int? UnidadesDespachadas { get; set; }
     }
 }

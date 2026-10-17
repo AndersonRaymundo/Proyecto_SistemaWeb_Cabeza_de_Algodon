@@ -41,6 +41,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 // Servicios de negocio (descuento de la fundacion, cobro automatico, ficha base)
 builder.Services.AddScoped<FacturacionService>();
 builder.Services.AddScoped<ExpedienteService>();
+builder.Services.AddSingleton<AgendaService>();
 
 // Sesion en el servidor con cookie (RNF-02). Las paginas redirigen al Login
 // y la API responde 401/403 cuando no hay sesion o no alcanza el rol.

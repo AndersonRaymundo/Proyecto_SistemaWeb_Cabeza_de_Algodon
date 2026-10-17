@@ -13,7 +13,10 @@ const NOMBRES_ARCHIVO = {
     Medicamentos: "medicamentos_por_paciente",
 };
 
-document.addEventListener("DOMContentLoaded", cargarResidentes);
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".sel-residente").forEach(hacerBuscable);
+    cargarResidentes();
+});
 
 // Llena todos los <select> de residentes de las tarjetas
 async function cargarResidentes() {

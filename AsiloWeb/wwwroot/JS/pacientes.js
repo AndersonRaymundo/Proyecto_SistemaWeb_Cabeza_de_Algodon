@@ -1,6 +1,7 @@
 const API_URL = '/api/Pacientes';
 const EMAIL_SERVICE_URL = '/api/Notificaciones/correo';
 let idResidenteEdicion = null; // Almacena el ID cuando estamos editando un registro
+let residentesCache = [];      // Ultima lista cargada (la usa la ficha completa)
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarResidentes();
@@ -13,11 +14,12 @@ async function cargarResidentes() {
         if (!respuesta.ok) throw new Error("Error en la petición GET");
         
         const residentes = await respuesta.json();
+        residentesCache = Array.isArray(residentes) ? residentes : [];
         const tablaBody = document.getElementById('tablaResidentesBody');
         
         if (tablaBody) {
             if (!Array.isArray(residentes) || residentes.length === 0) {
-                tablaBody.innerHTML = `<tr><td colspan="6" class="centrado" style="padding: 28px; color: #64748b;">Aún no hay residentes registrados.</td></tr>`;
+                tablaBody.innerHTML = `<tr><td colspan="7" class="centrado" style="padding: 28px; color: #64748b;">Aún no hay residentes registrados.</td></tr>`;
                 return;
             }
 
@@ -30,15 +32,20 @@ async function cargarResidentes() {
                 const tel = r.telefonoTutor || r.TelefonoTutor || '-';
                 const correo = r.correoTutor || r.CorreoTutor || '';
                 const est = (r.estado !== undefined ? r.estado : r.Estado) ?? true;
+                const edad = calcularEdad(r.fechaNacimiento || r.FechaNacimiento);
 
                 filas += `
                     <tr data-estado="${est ? 'activo' : 'inactivo'}">
-                        <td>${exp}</td>
-                        <td>${nom}</td>
-                        <td>${tut}</td>
-                        <td>${tel}</td>
+                        <td>${esc(exp)}</td>
+                        <td>${esc(nom)}</td>
+                        <td>${edad === '-' ? '-' : edad + ' años'}</td>
+                        <td>${esc(tut)}</td>
+                        <td>${esc(tel)}</td>
                         <td><span class="badge ${est ? 'badge-exito' : 'badge-peligro'}">${est ? 'Activo' : 'Inactivo'}</span></td>
                         <td class="centrado">
+                            <button class="btn-icono gris" onclick="verFicha(${id})" title="Ver ficha completa">
+                                <i class="fa-solid fa-id-card"></i>
+                            </button>
                             <button class="btn-icono azul" onclick='abrirModalEmail("${correo}", "${nom}", "${tut}")' title="Enviar Correo al Tutor">
                                 <i class="fa-solid fa-envelope"></i>
                             </button>
@@ -82,9 +89,10 @@ async function guardarResidente(event) {
         patologia: resumenPatologias(patologias),
         nombreTutor: nombreTutor,
         telefonoTutor: document.getElementById('txtTelefono').value,
-        correoTutor: correoTutor,
-        estado: true
+        correoTutor: correoTutor
     };
+    // Al registrar queda activo; al editar no se toca el estado (un residente dado de baja no se reactiva solo)
+    if (idResidenteEdicion === null) residentePayload.estado = true;
 
     const esEdicion = idResidenteEdicion !== null;
     const url = esEdicion ? `${API_URL}/${idResidenteEdicion}` : API_URL;
@@ -118,8 +126,7 @@ async function guardarResidente(event) {
             cancelarEdicion();
             cargarResidentes();
         } else {
-            const errorTexto = await respuesta.text();
-            mostrarModal("Error del Servidor", errorTexto, "error");
+            mostrarModal("No se pudo guardar", await mensajeError(respuesta), "error");
         }
     } catch (err) {
         console.error("Error de red:", err);
@@ -294,9 +301,17 @@ function resetearFormulario() {
 }
 
 // Botón "Nuevo residente"
-function nuevoResidente() {
+async function nuevoResidente() {
     resetearFormulario();
     abrirPanel('panel-residente');
+    // El sistema propone el siguiente numero de expediente libre (EXP-AAAA-NNN)
+    try {
+        const respuesta = await fetch(`${API_URL}/siguiente-expediente`);
+        if (respuesta.ok) {
+            const datos = await respuesta.json();
+            if (!idResidenteEdicion) document.getElementById('txtExpediente').value = datos.noExpediente || '';
+        }
+    } catch (e) { /* si no responde, el numero se escribe a mano */ }
 }
 
 // Cargar datos en el formulario para editar
@@ -474,3 +489,67 @@ async function enviarCorreoTutor(event) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Edad en anos cumplidos a partir de la fecha de nacimiento (AAAA-MM-DD)
+// ---------------------------------------------------------------------------
+function calcularEdad(fechaIso) {
+    if (!fechaIso) return '-';
+    const [a, m, d] = String(fechaIso).substring(0, 10).split('-').map(Number);
+    if (!a || !m || !d) return '-';
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - a;
+    if (hoy.getMonth() + 1 < m || (hoy.getMonth() + 1 === m && hoy.getDate() < d)) edad--;
+    return edad;
+}
+
+// ---------------------------------------------------------------------------
+// Ficha completa del residente: datos personales, tutor, patologias y medicamentos de cajon
+// ---------------------------------------------------------------------------
+async function verFicha(id) {
+    const r = residentesCache.find(x => (x.idResidente || x.IdResidente) === id);
+    if (!r) return;
+
+    const fmt = f => { if (!f) return ''; const [a, m, d] = String(f).substring(0, 10).split('-'); return `${d}/${m}/${a}`; };
+    const dato = (etiqueta, valor) => `<div class="dato-clinico"><span>${etiqueta}</span><span>${valor ? esc(valor) : '<em>Sin registrar</em>'}</span></div>`;
+    const datoHtml = (etiqueta, html) => `<div class="dato-clinico"><span>${etiqueta}</span><span>${html || '<em>Sin registrar</em>'}</span></div>`;
+    const titulo = txt => `<h3 class="subtitulo-ficha">${txt}</h3>`;
+
+    const nac = r.fechaNacimiento || r.FechaNacimiento;
+    const edad = calcularEdad(nac);
+    const est = (r.estado !== undefined ? r.estado : r.Estado) ?? true;
+
+    let patologias = '', cajon = '';
+    try {
+        const res = await fetch(`/api/Historial/residente/${id}`);
+        if (res.ok) {
+            const fichas = await res.json();
+            const f = Array.isArray(fichas) ? fichas[0] : null;
+            if (f) {
+                patologias = (f.patologias || []).map(p =>
+                    `<li><strong>${esc(p.nombre)}</strong>${p.observaciones ? `<span>${esc(p.observaciones)}</span>` : ''}</li>`).join('');
+                cajon = (f.medicamentosCajon || []).map(m => {
+                    const detalle = [m.dosis, m.frecuencia].filter(Boolean).join(' · ');
+                    return `<li><strong>${esc(m.nombreMedicamento)}</strong>${detalle ? `<span>${esc(detalle)}</span>` : ''}</li>`;
+                }).join('');
+            }
+        }
+    } catch (e) { /* si no responde, se muestra la ficha sin las listas */ }
+
+    document.getElementById('contenido-ficha-residente').innerHTML =
+        titulo('Datos personales') +
+        dato('Expediente', r.noExpediente || r.NoExpediente) +
+        dato('Nombre completo', r.nombreCompleto || r.NombreCompleto) +
+        dato('Fecha de nacimiento', fmt(nac)) +
+        dato('Edad', edad === '-' ? '' : edad + ' años') +
+        dato('Fecha de ingreso', fmt(r.fechaIngreso || r.FechaIngreso)) +
+        dato('Estado', est ? 'Activo' : 'Inactivo (dado de baja)') +
+        titulo('Tutor') +
+        dato('Nombre', r.nombreTutor || r.NombreTutor) +
+        dato('Teléfono', r.telefonoTutor || r.TelefonoTutor) +
+        dato('Correo', r.correoTutor || r.CorreoTutor) +
+        titulo('Patologías / condiciones') +
+        datoHtml('Listado', patologias ? `<ul class="lista-ficha">${patologias}</ul>` : '') +
+        titulo('Medicamentos de cajón') +
+        datoHtml('Listado', cajon ? `<ul class="lista-ficha">${cajon}</ul>` : '');
+    abrirPanel('panel-ficha-residente');
+}
