@@ -10,6 +10,7 @@ const DESCUENTO_API_URL = "/api/Config/descuento";
 
 let mapaResidentes = {};      // idResidente -> { nombreCompleto, correoTutor }
 let medicos = [];             // usuarios con rol DOCTOR
+let enfermeros = [];          // usuarios con rol ENFERMERO (los que pueden acompañar al residente)
 let porcentajeDescuento = 0;  // descuento de la fundacion (RF-10)
 
 // La pagina arranca cuando roles.js confirma la sesion (para conocer el rol)
@@ -58,6 +59,10 @@ async function cargarMedicos() {
         if (!respuesta.ok) return;
         const usuarios = await respuesta.json();
         medicos = usuarios.filter(u => u.rol === "DOCTOR");
+        enfermeros = usuarios.filter(u => u.rol === "ENFERMERO");
+        // el acompañante se elige de la lista de enfermeros del sistema (se guarda su nombre)
+        document.getElementById("enfermero-asignado").innerHTML = '<option value="">-- Sin acompañante --</option>' +
+            enfermeros.map(e => `<option value="${esc(e.nombreCompleto)}">${esc(e.nombreCompleto)}</option>`).join("");
         cargarSolicitudes();
     } catch (err) {
         console.error("Error al cargar médicos:", err);
