@@ -17,10 +17,19 @@
 # ===========================================================================
 name: asilo-cabeza-algodon
 
+# Limite de tamano del registro de cada servicio (3 archivos de 10 MB como maximo), para que
+# no llene el disco de la maquina virtual con el paso de los meses.
+x-registro: &registro
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
 
   # ---------------------------------------------------------------- base de datos
   sqlserver:
+    logging: *registro
     image: mcr.microsoft.com/mssql/server:2022-latest
     restart: unless-stopped
     environment:
@@ -43,6 +52,7 @@ services:
   # cambia APP_DB_PASSWORD, aqui se actualiza la clave del usuario.
   # Las tablas las crean despues pacientes_service (TBL_PACIENTES) y la web (migraciones).
   db_init:
+    logging: *registro
     image: mcr.microsoft.com/mssql/server:2022-latest
     depends_on:
       sqlserver:
@@ -73,6 +83,7 @@ services:
   # /var/opt/mssql/backup (dentro del volumen sqldata) y borra los de mas de
   # 7 dias. Para bajarlos a otra maquina, ver docs/despliegue-nube.md.
   backup:
+    logging: *registro
     image: mcr.microsoft.com/mssql/server:2022-latest
     depends_on:
       db_init:
@@ -100,6 +111,7 @@ services:
 
   # ---------------------------------------------------------------- microservicios
   pacientes_service:
+    logging: *registro
     build: ./pacientes_service
     restart: unless-stopped
     depends_on:
@@ -109,6 +121,7 @@ services:
       DATABASE_URL: "mssql+pyodbc://asilo_app:${APP_DB_PASSWORD:?Falta APP_DB_PASSWORD en .env.cloud}@sqlserver:1433/AsiloCabezaAlgodon?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes"
 
   email_service:
+    logging: *registro
     build: ./email_service
     restart: unless-stopped
     environment:
@@ -118,11 +131,13 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
 
   pdf_service:
+    logging: *registro
     build: ./pdf_service
     restart: unless-stopped
 
   # ---------------------------------------------------------------- aplicacion web
   web:
+    logging: *registro
     build: ./AsiloWeb
     restart: unless-stopped
     depends_on:
@@ -148,9 +163,14 @@ services:
       Semillas__farmacia: ${PASS_FARMACIA:?Falta PASS_FARMACIA en .env.cloud}
       Semillas__fundacion: ${PASS_FUNDACION:?Falta PASS_FUNDACION en .env.cloud}
       Semillas__laboratorio: ${PASS_LABORATORIO:?Falta PASS_LABORATORIO en .env.cloud}
+    volumes:
+      # Llaves con las que se firman las sesiones. Guardadas aqui sobreviven a las actualizaciones:
+      # sin esto, cada vez que se reconstruye la web todos los usuarios tendrian que volver a entrar.
+      - webkeys:/root/.aspnet/DataProtection-Keys
 
   # ---------------------------------------------------------------- HTTPS publico
   caddy:
+    logging: *registro
     image: caddy:2
     restart: unless-stopped
     depends_on:
@@ -167,5 +187,6 @@ services:
 
 volumes:
   sqldata:
+  webkeys:
   caddy_data:
   caddy_config:

@@ -88,7 +88,17 @@ Tu forma habitual de trabajar (`docker-compose up` más `dotnet run`) no cambia.
 | Ahorrar crédito | Detén (desasigna) la máquina virtual desde el portal |
 
 Los datos viven en el volumen `sqldata` y sobreviven a reinicios y actualizaciones.
-**Nunca** uses `down -v`: borra el volumen y con él toda la base.
+**Nunca** uses `down -v` en la nube: borra el volumen y con él toda la base.
+
+Dos cosas que conviene saber:
+
+- **`SA_PASSWORD` se define una sola vez.** SQL Server la guarda en el volumen la primera vez que
+  arranca. Si después la cambias en `.env.cloud`, la base ya no la acepta y `sqlserver` queda
+  `unhealthy`. Pon la clave definitiva **antes** del primer arranque. (`APP_DB_PASSWORD` sí se puede
+  cambiar después: `db_init` la vuelve a aplicar en cada arranque.)
+- **Las sesiones sobreviven a las actualizaciones.** Las llaves que firman la sesión se guardan en el
+  volumen `webkeys`, así que al actualizar con `up -d --build` nadie tiene que volver a entrar. El
+  registro de cada servicio se limita a 3 archivos de 10 MB para no llenar el disco.
 
 ### Usuarios de la base de datos
 
@@ -136,7 +146,7 @@ puerto 1433 en la máquina virtual.
 |---|---|
 | No aparece el candado HTTPS | Los puertos 80/443 están cerrados, o `DOMINIO` no apunta a la IP de la máquina |
 | `web` se reinicia sin parar | `SA_PASSWORD` o `APP_DB_PASSWORD` no cumple la complejidad de SQL Server (12 o más caracteres, mayúsculas, minúsculas y números) |
-| `db_init` termina con error (`Login failed for user 'sa'`) | Se cambió `SA_PASSWORD` después de crear la base: vuelve a poner la clave original |
+| `sqlserver` queda `unhealthy` o `db_init` termina con error (`Login failed for user 'sa'`) | Se cambió `SA_PASSWORD` después de crear la base: vuelve a poner la clave original. Solo en una prueba local sin datos que perder, `down -v` y volver a levantar crea la base con la clave nueva |
 | Un reporte da error 502 | `pdf_service` no está corriendo: revisa `ps` |
 | No llegan los correos | Falta `SMTP_USER`/`SMTP_PASSWORD`, o se usó el puerto 25 (usa 587) |
 | La máquina se congela | Tiene menos de 4 GB de RAM |
