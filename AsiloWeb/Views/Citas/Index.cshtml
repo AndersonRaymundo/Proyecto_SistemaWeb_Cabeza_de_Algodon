@@ -18,15 +18,16 @@
         
         <main class="area-trabajo">
             <h1><i class="fa-solid fa-calendar-check"></i> Remisiones y Agenda de Citas</h1>
-            <p>El médico del asilo remite al residente; la Fundación asigna fecha y especialista; el especialista registra la visita.</p>
+            <p>Solicitudes de evaluación médica, agenda de citas de la Fundación y registro de las visitas.</p>
 
             <div class="barra-herramientas">
-                <select id="filtro-estado">
-                    <option value="">Todas las solicitudes</option>
-                    <option value="Pendiente">Pendientes de agenda</option>
-                    <option value="Agendada">Agendadas</option>
-                    <option value="Atendida">Atendidas</option>
-                </select>
+                <div class="pestanas" id="filtro-estado" role="tablist" aria-label="Filtrar solicitudes por estado">
+                    <button type="button" class="pestana activa" data-filtro="">Todas <span class="contador" data-cuenta="">0</span></button>
+                    <button type="button" class="pestana" data-filtro="Pendiente">Pendientes <span class="contador" data-cuenta="Pendiente">0</span></button>
+                    <button type="button" class="pestana" data-filtro="Agendada">Agendadas <span class="contador" data-cuenta="Agendada">0</span></button>
+                    <button type="button" class="pestana" data-filtro="Atendida">Atendidas <span class="contador" data-cuenta="Atendida">0</span></button>
+                    <button type="button" class="pestana" data-filtro="Cancelada">Canceladas <span class="contador" data-cuenta="Cancelada">0</span></button>
+                </div>
                 <span class="espacio"></span>
                 <button type="button" class="btn-guardar" data-abrir="panel-solicitud">
                     <i class="fa-solid fa-file-circle-plus"></i> Nueva solicitud
@@ -61,7 +62,7 @@
                         </div>
                         <div class="grupo-campo">
                             <label>Especialidad médica solicitada:</label>
-                            <input type="text" id="especialidad-solicitada" placeholder="Ej. Geriatría / Oftalmología / Neurología" required>
+                            <select id="especialidad-solicitada" required><option value="">-- Seleccionar --</option></select>
                         </div>
                     </div>
                     <div class="grupo-campo">

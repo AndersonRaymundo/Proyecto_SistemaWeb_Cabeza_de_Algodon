@@ -6,16 +6,22 @@
 const PACIENTES_API_URL = "/api/Pacientes";
 const CITAS_API_URL = "/api/Citas";
 const USUARIOS_API_URL = "/api/Auth/usuarios";
+const ESPECIALIDADES_API_URL = "/api/Auth/especialidades";
 const DESCUENTO_API_URL = "/api/Config/descuento";
 
 let mapaResidentes = {};      // idResidente -> { nombreCompleto, correoTutor }
 let medicos = [];             // usuarios con rol DOCTOR
 let enfermeros = [];          // usuarios con rol ENFERMERO (los que pueden acompañar al residente)
+let especialidades = ["Medicina general", "Geriatría", "Cardiología", "Neurología", "Endocrinología", "Reumatología",
+    "Traumatología", "Neumología", "Oftalmología", "Psiquiatría", "Urología", "Gastroenterología"];   // si el servidor no responde
+let solicitudesVisibles = 10;  // paginacion: cuantas solicitudes se muestran (de 10 en 10)
+let filtroEstadoActual = "";    // pestaña elegida: "" = todas, o Pendiente / Agendada / Atendida / Cancelada
 let porcentajeDescuento = 0;  // descuento de la fundacion (RF-10)
 
 // La pagina arranca cuando roles.js confirma la sesion (para conocer el rol)
 function iniciar() {
     hacerBuscable("select-residente-solicitud");
+    cargarEspecialidades();
     cargarSelectResidentes();
     cargarMedicos();
     cargarDescuento();
@@ -23,8 +29,14 @@ function iniciar() {
 
     const form = document.getElementById("form-solicitud");
     if (form) form.addEventListener("submit", registrarSolicitud);
-    const filtro = document.getElementById("filtro-estado");
-    if (filtro) filtro.addEventListener("change", cargarSolicitudes);
+    // pestañas de estado: al pulsar una se muestran solo las solicitudes de ese estado
+    const pestanas = document.querySelectorAll("#filtro-estado [data-filtro]");
+    pestanas.forEach(boton => boton.addEventListener("click", () => {
+        filtroEstadoActual = boton.dataset.filtro;
+        solicitudesVisibles = 10;
+        pestanas.forEach(b => b.classList.toggle("activa", b === boton));
+        cargarSolicitudes();
+    }));
 }
 if (window.ROL_ACTUAL) iniciar();
 else document.addEventListener("sesion-lista", iniciar, { once: true });
@@ -51,6 +63,16 @@ async function cargarSelectResidentes() {
         console.error("Error al cargar residentes:", err);
         select.innerHTML = '<option value="">-- No se pudo conectar con pacientes_service --</option>';
     }
+}
+
+// La especialidad de la solicitud se elige de una lista (la misma que se usa al registrar a los medicos)
+async function cargarEspecialidades() {
+    try {
+        const respuesta = await fetch(ESPECIALIDADES_API_URL);
+        if (respuesta.ok) { const lista = await respuesta.json(); if (Array.isArray(lista) && lista.length) especialidades = lista; }
+    } catch (err) { /* se usa la lista de respaldo */ }
+    document.getElementById("especialidad-solicitada").innerHTML = '<option value="">-- Seleccionar --</option>' +
+        especialidades.map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join("");
 }
 
 async function cargarMedicos() {
@@ -137,11 +159,17 @@ async function cargarSolicitudes() {
     const contenedor = document.getElementById("contenedor-solicitudes");
     if (!contenedor) return;
 
-    const filtro = (document.getElementById("filtro-estado") || {}).value || "";
     try {
-        const respuesta = await fetch(CITAS_API_URL + (filtro ? `?estado=${encodeURIComponent(filtro)}` : ""));
+        const respuesta = await fetch(CITAS_API_URL);
         if (!respuesta.ok) throw new Error("Error al cargar solicitudes");
-        const citas = await respuesta.json();
+        const todas = await respuesta.json();
+        if (!Array.isArray(todas)) throw new Error("Respuesta inesperada");
+
+        // el numero de cada pestaña se calcula con todas las solicitudes
+        document.querySelectorAll("#filtro-estado [data-cuenta]").forEach(c => {
+            c.textContent = c.dataset.cuenta ? todas.filter(x => x.estado === c.dataset.cuenta).length : todas.length;
+        });
+        const citas = filtroEstadoActual ? todas.filter(c => c.estado === filtroEstadoActual) : todas;
 
         if (!Array.isArray(citas) || citas.length === 0) {
             contenedor.innerHTML = "<p style='color:#777;'>No hay solicitudes para mostrar.</p>";
@@ -153,7 +181,8 @@ async function cargarSolicitudes() {
         const idUsuario = parseInt(localStorage.getItem("id_usuario"), 10) || 0;
         const puedeAtender = c => rol() === "ADMINISTRADOR" || (rol() === "DOCTOR" && (!c.idDoctor || Number(c.idDoctor) === idUsuario));
 
-        contenedor.innerHTML = citas.map(c => {
+        const visibles = citas.slice(0, solicitudesVisibles);
+        contenedor.innerHTML = visibles.map(c => {
             const nombre = (mapaResidentes[c.idPaciente] || {}).nombreCompleto || `Residente #${c.idPaciente}`;
             const medico = medicos.find(m => m.idUsuario === c.idDoctor);
             const fechaCita = c.fechaCita ? new Date(c.fechaCita).toLocaleString("es-GT", { weekday: "short", day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }) : "Sin agendar";
@@ -164,23 +193,21 @@ async function cargarSolicitudes() {
             if (dadoDeBaja && c.estado !== "Atendida") {
                 acciones = `<p style="margin:10px 0 0; color:#b45309; font-weight:600;"><i class="fa-solid fa-user-slash"></i> Residente dado de baja: no se puede agendar ni atender esta solicitud.</p>`;
             } else if (c.estado === "Pendiente" && puedeAgendar) {
-                const opciones = medicos.map(m => `<option value="${m.idUsuario}">${esc(m.nombreCompleto)}</option>`).join("");
+                acciones = controlesAgenda(c, "Agendar cita");
+            } else if (c.estado === "Agendada" && (puedeAtender(c) || puedeAgendar)) {
                 acciones = `
-                    <div class="fila-controles">
-                        <div><label>Médico especialista</label>
-                            <select id="agenda-medico-${c.idCita}" onchange="cargarHorarios(${c.idCita})"><option value="">-- Seleccionar --</option>${opciones}</select></div>
-                        <div><label>Día de la cita</label>
-                            <input type="date" id="agenda-dia-${c.idCita}" onchange="cargarHorarios(${c.idCita})"></div>
-                        <button type="button" class="btn-guardar" onclick="agendarCita(${c.idCita})"><i class="fa-solid fa-calendar-plus"></i> Agendar cita</button>
+                    <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                        ${puedeAtender(c) ? `<button type="button" class="btn-guardar" onclick="abrirVisita(${c.idCita})"><i class="fa-solid fa-user-doctor"></i> Registrar visita médica</button>` : ""}
+                        ${puedeAgendar ? `<button type="button" class="btn-guardar btn-secundario" onclick="mostrarReprogramar(${c.idCita})"><i class="fa-solid fa-calendar-days"></i> Reprogramar</button>
+                        <button type="button" class="btn-guardar btn-peligro" onclick="cancelarCita(${c.idCita})"><i class="fa-solid fa-ban"></i> Cancelar cita</button>` : ""}
                     </div>
-                    <input type="hidden" id="agenda-fecha-${c.idCita}">
-                    <div id="agenda-horarios-${c.idCita}" class="horarios-cita"></div>`;
-            } else if (c.estado === "Agendada" && puedeAtender(c)) {
-                acciones = `<div style="margin-top:10px;"><button type="button" class="btn-guardar" onclick="abrirVisita(${c.idCita})"><i class="fa-solid fa-user-doctor"></i> Registrar visita médica</button></div>`;
+                    ${puedeAgendar ? `<div id="bloque-reprogramar-${c.idCita}" style="display:none; margin-top:10px;">${controlesAgenda(c, "Guardar nueva fecha")}</div>` : ""}`;
             }
 
             let detalleVisita = "";
-            if (c.estado === "Atendida") {
+            if (c.estado === "Cancelada" && c.observaciones) {
+                detalleVisita = `<p style="margin:2px 0; color:#b45309; font-weight:600;"><i class="fa-solid fa-ban"></i> ${esc(c.observaciones)}</p>`;
+            } else if (c.estado === "Atendida") {
                 detalleVisita = `
                     <p style="margin:2px 0;"><strong>Diagnóstico:</strong> ${esc(c.diagnosticoConsulta)}</p>
                     ${c.observaciones ? `<p style="margin:2px 0;"><strong>Observaciones:</strong> ${esc(c.observaciones)}</p>` : ""}
@@ -200,7 +227,8 @@ async function cargarSolicitudes() {
                     ${detalleVisita}
                     ${acciones}
                 </div>`;
-        }).join("");
+        }).join("") + (citas.length > visibles.length
+            ? `<button type="button" class="btn-guardar btn-secundario btn-mas" onclick="solicitudesVisibles += 10; cargarSolicitudes();">Mostrar más (${citas.length - visibles.length} restantes)</button>` : "");
     } catch (err) {
         console.error("Error al cargar solicitudes:", err);
         contenedor.innerHTML = "<p style='color:#c62828;'>No se pudo conectar con el servidor.</p>";
@@ -208,6 +236,50 @@ async function cargarSolicitudes() {
 }
 
 // ---------------------------------------------------------------- RF-05 agenda
+// Medico, dia y horario. Se ofrecen los medicos de la especialidad pedida; si ninguno la tiene
+// registrada, se muestran todos y se avisa.
+function controlesAgenda(c, textoBoton) {
+    const deLaEspecialidad = medicos.filter(m => m.especialidad === c.especialidadSolicitada);
+    const lista = deLaEspecialidad.length ? deLaEspecialidad : medicos;
+    const nota = deLaEspecialidad.length
+        ? `<small class="nota-especialidad">Médicos de ${esc(c.especialidadSolicitada)}</small>`
+        : `<small class="nota-especialidad aviso">Ningún médico está registrado en ${esc(c.especialidadSolicitada)}: se muestran todos</small>`;
+    const opciones = lista.map(m => `<option value="${m.idUsuario}">${esc(m.nombreCompleto)}${m.especialidad ? " · " + esc(m.especialidad) : ""}</option>`).join("");
+    return `
+        <div class="fila-controles">
+            <div><label>Médico especialista</label>
+                <select id="agenda-medico-${c.idCita}" onchange="cargarHorarios(${c.idCita})"><option value="">-- Seleccionar --</option>${opciones}</select>${nota}</div>
+            <div><label>Día de la cita</label>
+                <input type="date" id="agenda-dia-${c.idCita}" onchange="cargarHorarios(${c.idCita})"></div>
+            <button type="button" class="btn-guardar" onclick="agendarCita(${c.idCita})"><i class="fa-solid fa-calendar-plus"></i> ${textoBoton}</button>
+        </div>
+        <input type="hidden" id="agenda-fecha-${c.idCita}">
+        <div id="agenda-horarios-${c.idCita}" class="horarios-cita"></div>`;
+}
+
+function mostrarReprogramar(idCita) {
+    const bloque = document.getElementById(`bloque-reprogramar-${idCita}`);
+    bloque.style.display = bloque.style.display === "none" ? "block" : "none";
+}
+
+// Cancela una cita agendada (el horario queda libre y el familiar recibe un aviso)
+async function cancelarCita(idCita) {
+    const motivo = prompt("Motivo de la cancelación de la cita:");
+    if (motivo === null) return;   // la persona se arrepintio
+    try {
+        const respuesta = await fetch(`${CITAS_API_URL}/${idCita}/cancelar`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ motivo: motivo.trim() }),
+        });
+        if (!respuesta.ok) { mostrarModal("No se pudo cancelar", await mensajeError(respuesta), "error"); return; }
+        mostrarModal("Cita cancelada", "El horario quedó libre y se avisó por correo al familiar.", "exito");
+        cargarSolicitudes();
+    } catch (err) {
+        mostrarModal("Error de conexión", "No se pudo conectar con el servidor.", "error");
+    }
+}
+
 // "14:30" -> "2:30 p. m."  (con a. m. / p. m. no hay duda entre las 12 de la noche y del mediodia)
 function etiquetaHora(hhmm) {
     const [h, m] = hhmm.split(":").map(Number);

@@ -117,6 +117,44 @@ namespace AsiloWeb.Controllers
             public int IdDoctor { get; set; }
         }
 
+        public class CancelarRequest
+        {
+            public string? Motivo { get; set; }
+        }
+
+        // Cancela una cita agendada que todavia no se atendio. El horario queda libre y se avisa al familiar.
+        // (Para cambiar la fecha o el medico no hace falta cancelar: se vuelve a agendar la misma solicitud.)
+        [HttpPut("{id}/cancelar")]
+        [Authorize(Roles = "ADMINISTRADOR,FUNDACION")]
+        public async Task<IActionResult> Cancelar(int id, CancelarRequest datos)
+        {
+            var cita = await _context.CitasMedicas.FindAsync(id);
+            if (cita == null) return NotFound();
+            if (cita.Estado != "Agendada")
+                return BadRequest(new { message = "Solo se pueden cancelar citas agendadas que todavía no fueron atendidas." });
+
+            var motivo = (datos.Motivo ?? "").Trim();
+            if (motivo.Length < 3)
+                return BadRequest(new { message = "Escriba el motivo de la cancelación." });
+
+            cita.Estado = "Cancelada";
+            cita.Observaciones = $"Cancelada: {motivo}";
+            await _context.SaveChangesAsync();
+
+            var paciente = await _pacientes.ObtenerAsync(cita.IdPaciente);
+            if (paciente != null && !string.IsNullOrWhiteSpace(paciente.CorreoTutor))
+            {
+                var cuerpo =
+                    "<div style=\"font-family: Arial, sans-serif;\"><h2>Asilo Cabeza de Algod&oacute;n</h2>" +
+                    $"<p>Estimado(a) <b>{H(paciente.NombreTutor)}</b>,</p>" +
+                    $"<p>La cita de <b>{H(paciente.NombreCompleto)}</b> ({H(cita.EspecialidadSolicitada)}) fue <b>cancelada</b>.</p>" +
+                    $"<p><b>Motivo:</b> {H(motivo)}</p>" +
+                    "<p>La Fundaci&oacute;n le informar&aacute; la nueva fecha cuando se reagende.</p></div>";
+                await _emailService.EnviarNotificacionAsync(paciente.CorreoTutor, "Cita médica cancelada - Asilo Cabeza de Algodón", cuerpo);
+            }
+            return Ok(cita);
+        }
+
         // Horarios de un medico en un dia: el cliente muestra solo estos espacios para elegir.
         // idCita (opcional) es la solicitud que se esta agendando: no choca consigo misma y, si el
         // residente ya tiene otra cita a esa hora, ese espacio se marca como ocupado.
@@ -130,7 +168,7 @@ namespace AsiloWeb.Controllers
 
             var siguiente = dia.AddDays(1);
             var ocupadas = await _context.CitasMedicas
-                .Where(c => c.FechaCita != null && c.FechaCita >= dia && c.FechaCita < siguiente && (idCita == null || c.IdCita != idCita))
+                .Where(c => c.Estado != "Cancelada" && c.FechaCita != null && c.FechaCita >= dia && c.FechaCita < siguiente && (idCita == null || c.IdCita != idCita))
                 .Select(c => new { c.IdDoctor, c.IdPaciente, c.FechaCita })
                 .ToListAsync();
 
@@ -157,6 +195,8 @@ namespace AsiloWeb.Controllers
             if (cita == null) return NotFound();
             if (cita.Estado == "Atendida")
                 return BadRequest(new { message = "Esta cita ya fue atendida." });
+            if (cita.Estado == "Cancelada")
+                return BadRequest(new { message = "Esta cita fue cancelada." });
             if (await _pacientes.EstaDadoDeBajaAsync(cita.IdPaciente))
                 return BadRequest(new { message = PacientesService.MensajeDadoDeBaja });
 
@@ -168,12 +208,12 @@ namespace AsiloWeb.Controllers
             // La agenda no admite choques: un medico no puede tener dos citas a la misma fecha y hora,
             // ni un residente estar en dos citas a la vez (la cita que se esta moviendo no cuenta).
             var medicoOcupado = await _context.CitasMedicas.AnyAsync(c =>
-                c.IdCita != id && c.IdDoctor == datos.IdDoctor && c.FechaCita == datos.FechaCita);
+                c.IdCita != id && c.Estado != "Cancelada" && c.IdDoctor == datos.IdDoctor && c.FechaCita == datos.FechaCita);
             if (medicoOcupado)
                 return BadRequest(new { message = "Ese médico ya tiene una cita en esa fecha y hora. Elija otro horario u otro médico." });
 
             var residenteOcupado = await _context.CitasMedicas.AnyAsync(c =>
-                c.IdCita != id && c.IdPaciente == cita.IdPaciente && c.FechaCita == datos.FechaCita);
+                c.IdCita != id && c.Estado != "Cancelada" && c.IdPaciente == cita.IdPaciente && c.FechaCita == datos.FechaCita);
             if (residenteOcupado)
                 return BadRequest(new { message = "Este residente ya tiene otra cita en esa fecha y hora." });
 
@@ -288,6 +328,8 @@ namespace AsiloWeb.Controllers
             if (cita == null) return NotFound();
             if (cita.Estado == "Atendida")
                 return BadRequest(new { message = "Esta cita ya fue atendida." });
+            if (cita.Estado == "Cancelada")
+                return BadRequest(new { message = "Esta cita fue cancelada." });
             if (await _pacientes.EstaDadoDeBajaAsync(cita.IdPaciente))
                 return BadRequest(new { message = PacientesService.MensajeDadoDeBaja });
 
