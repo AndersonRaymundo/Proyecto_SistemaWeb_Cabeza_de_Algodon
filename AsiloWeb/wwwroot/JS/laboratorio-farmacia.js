@@ -57,10 +57,6 @@ async function cargarDescuento() {
         const r = await fetch(DESCUENTO_API_URL);
         if (r.ok) porcentajeDescuento = (await r.json()).porcentaje || 0;
     } catch (e) { /* sin descuento visible */ }
-    if (porcentajeDescuento > 0) {
-        document.getElementById("nota-descuento").innerHTML =
-            `Se ingresa el <b>precio de lista</b>; el sistema aplica el descuento de la fundación (${porcentajeDescuento}%) y lo carga a la cuenta del familiar.`;
-    }
 }
 
 function previsualizar(idInput, idTexto) {

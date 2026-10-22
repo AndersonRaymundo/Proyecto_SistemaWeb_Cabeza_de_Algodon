@@ -309,7 +309,9 @@ async function nuevoResidente() {
         const respuesta = await fetch(`${API_URL}/siguiente-expediente`);
         if (respuesta.ok) {
             const datos = await respuesta.json();
-            if (!idResidenteEdicion) document.getElementById('txtExpediente').value = datos.noExpediente || '';
+            // solo si la persona todavia no escribio uno propio mientras llegaba la sugerencia
+            const campo = document.getElementById('txtExpediente');
+            if (!idResidenteEdicion && !campo.value) campo.value = datos.noExpediente || '';
         }
     } catch (e) { /* si no responde, el numero se escribe a mano */ }
 }
