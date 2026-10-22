@@ -230,6 +230,96 @@ namespace AsiloWeb.Controllers
             }, "cobros_paciente.pdf");
         }
 
+        // ---------- Estado de cuenta de un residente (CU-04 / CU-05): cargos, pagos y saldo ----------
+        private static string CategoriaCobro(string concepto)
+        {
+            var c = (concepto ?? "").ToLowerInvariant();
+            if (c.StartsWith("mensualidad")) return "Mensualidades";
+            if (c.StartsWith("consulta")) return "Consultas";
+            if (c.StartsWith("examen")) return "Exámenes";
+            if (c.StartsWith("medicamento")) return "Medicamentos";
+            return "Otros cargos";
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> EstadoCuenta(int idPaciente, DateTime? desde, DateTime? hasta)
+        {
+            var residente = await _pacientes.ObtenerAsync(idPaciente);
+            if (residente == null) return NotFound("No se encontró al residente.");
+
+            var d = desde?.Date;
+            var h = hasta?.Date.AddDays(1);
+            var cobros = await _context.PagosFundacion
+                .Where(p => p.IdPaciente == idPaciente && (d == null || p.FechaPago >= d) && (h == null || p.FechaPago < h))
+                .OrderBy(p => p.FechaPago)
+                .ToListAsync();
+
+            // Cada cobro es un cargo; si ya se cancelo, ademas es un pago en la fecha en que se recibio
+            var movimientos = new List<(DateTime Fecha, int Orden, string Concepto, decimal Cargo, decimal Pago)>();
+            foreach (var p in cobros)
+            {
+                movimientos.Add((p.FechaPago, 0, p.ConceptoPago, p.Monto, 0m));
+                if (p.Estado == "Pagado")
+                    movimientos.Add((p.FechaCancelado ?? p.FechaPago, 1, "Pago recibido: " + p.ConceptoPago, 0m, p.Monto));
+            }
+
+            decimal saldo = 0;
+            var filas = new List<List<string>>();
+            foreach (var m in movimientos.OrderBy(x => x.Fecha).ThenBy(x => x.Orden))
+            {
+                saldo += m.Cargo - m.Pago;
+                filas.Add(new List<string>
+                {
+                    FechaHora(m.Fecha), m.Concepto, m.Cargo > 0 ? Q(m.Cargo) : "-", m.Pago > 0 ? Q(m.Pago) : "-", Q(saldo)
+                });
+            }
+
+            var totalCargos = cobros.Sum(p => p.Monto);
+            var totalPagos = cobros.Where(p => p.Estado == "Pagado").Sum(p => p.Monto);
+
+            var resumen = new List<List<string>>();
+            foreach (var categoria in new[] { "Mensualidades", "Consultas", "Exámenes", "Medicamentos", "Otros cargos" })
+            {
+                var grupo = cobros.Where(p => CategoriaCobro(p.ConceptoPago) == categoria).ToList();
+                if (grupo.Count == 0) continue;
+                var cargado = grupo.Sum(p => p.Monto);
+                var pagado = grupo.Where(p => p.Estado == "Pagado").Sum(p => p.Monto);
+                resumen.Add(new List<string> { categoria, Q(cargado), Q(pagado), Q(cargado - pagado) });
+            }
+
+            var filtros = new List<string>
+            {
+                $"Residente: {residente.NombreCompleto} (expediente {residente.NoExpediente})",
+                $"Responsable: {Vacio(residente.NombreTutor)} | Tel. {Vacio(residente.TelefonoTutor)} | {Vacio(residente.CorreoTutor)}",
+                $"Saldo pendiente al {Fecha(DateTime.Today)}: {Q(totalCargos - totalPagos)}"
+            };
+            filtros.AddRange(FiltrosFecha(desde, hasta));
+
+            return await Entregar(new ReporteDto
+            {
+                Titulo = "Estado de Cuenta",
+                Subtitulo = "Cargos y pagos del familiar, con el saldo después de cada movimiento",
+                Filtros = filtros,
+                Secciones = new List<ReporteSeccion>
+                {
+                    new ReporteSeccion
+                    {
+                        Encabezado = "Resumen por tipo de cobro",
+                        Columnas = new List<string> { "Tipo", "Cargado", "Pagado", "Pendiente" },
+                        Filas = resumen,
+                        Totales = new List<string> { "TOTAL", Q(totalCargos), Q(totalPagos), Q(totalCargos - totalPagos) }
+                    },
+                    new ReporteSeccion
+                    {
+                        Encabezado = "Movimientos de la cuenta",
+                        Columnas = new List<string> { "Fecha", "Concepto", "Cargo", "Pago", "Saldo" },
+                        Filas = filas,
+                        Totales = new List<string> { "TOTALES", "", Q(totalCargos), Q(totalPagos), Q(totalCargos - totalPagos) }
+                    }
+                }
+            }, "estado_cuenta.pdf");
+        }
+
         // ---------- 4. Pagos a la fundacion (lo que el asilo debe por los servicios) ----------
         [HttpGet]
         public async Task<IActionResult> PagosFundacion(DateTime? desde, DateTime? hasta)

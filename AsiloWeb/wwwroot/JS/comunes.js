@@ -152,3 +152,22 @@ function hacerBuscable(selectOId) {
     new MutationObserver(sincronizar).observe(select, { childList: true });
     sincronizar();
 }
+
+// Abre una ventana con el documento y lanza la impresion (recibos y estado de cuenta).
+function imprimirHtml(titulo, html) {
+    const ventana = window.open("", "_blank", "width=820,height=900");
+    if (!ventana) { mostrarModal("Ventana bloqueada", "Permita las ventanas emergentes de este sitio para poder imprimir.", "error"); return; }
+    ventana.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>${esc(titulo)}</title>
+        <style>
+            body { font-family: Arial, sans-serif; color: #111; margin: 28px; }
+            h1 { font-size: 1.3rem; margin: 0; } h2 { font-size: 1rem; margin: 18px 0 6px; }
+            .cabecera { display: flex; justify-content: space-between; border-bottom: 2px solid #0f2740; padding-bottom: 8px; margin-bottom: 14px; }
+            table { width: 100%; border-collapse: collapse; font-size: .88rem; } th, td { border-bottom: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+            th { background: #eef1f5; } .der { text-align: right; } .total td { font-weight: bold; border-top: 2px solid #0f2740; }
+            .dato { margin: 3px 0; } .firma { margin-top: 60px; border-top: 1px solid #333; width: 260px; text-align: center; padding-top: 4px; font-size: .85rem; }
+            @media print { body { margin: 12mm; } }
+        </style></head><body>${html}</body></html>`);
+    ventana.document.close();
+    ventana.focus();
+    setTimeout(() => ventana.print(), 300);
+}

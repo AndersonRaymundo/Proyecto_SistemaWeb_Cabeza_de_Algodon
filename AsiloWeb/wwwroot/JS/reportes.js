@@ -7,6 +7,7 @@ const NOMBRES_ARCHIVO = {
     CostosCitas: "costos_citas",
     FichaMedica: "ficha_medica",
     CobrosPaciente: "cobros_paciente",
+    EstadoCuenta: "estado_cuenta",
     PagosFundacion: "pagos_fundacion",
     Entradas: "entradas_de_dinero",
     Examenes: "examenes_por_paciente",

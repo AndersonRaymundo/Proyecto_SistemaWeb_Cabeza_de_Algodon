@@ -50,11 +50,10 @@
             <section id="tab-cobros" class="pestana-contenido">
                 <div class="barra-herramientas">
                     <input type="search" id="buscador-cobros" placeholder="Buscar residente o expediente...">
-                    <select id="filtro-cobros">
-                        <option value="">Todos los cobros</option>
-                        <option value="Pendiente">Pendientes</option>
-                        <option value="Pagado">Cancelados</option>
-                    </select>
+                    <div class="pestanas" id="filtro-cobros" role="tablist" aria-label="Filtrar cobros">
+                        <button type="button" class="pestana activa" data-filtro="Pendiente">Pendientes <span class="contador" data-cuenta="Pendiente">0</span></button>
+                        <button type="button" class="pestana" data-filtro="Pagado">Cancelados <span class="contador" data-cuenta="Pagado">0</span></button>
+                    </div>
                     <span class="espacio"></span>
                     <button type="button" class="btn-guardar" data-abrir="panel-cobro">
                         <i class="fa-solid fa-plus"></i> Registrar cuota o cobro
@@ -62,7 +61,7 @@
                 </div>
                 <div class="formulario-datos">
                     <h2><i class="fa-solid fa-list"></i> Cobros a familiares</h2>
-                    <p>Las consultas, exámenes y medicamentos se cargan solos a la cuenta del familiar, con el descuento de la fundación. Aquí se registran además las cuotas mensuales.</p>
+                    <p>Cargos a la cuenta de cada familiar: consultas, exámenes, medicamentos y cuotas mensuales.</p>
                     <div id="contenedor-cobros"></div>
                 </div>
             </section>
@@ -249,6 +248,21 @@
     </div>
 
     <!-- SCRIPT DE ROLES Y SESIÓN -->
+    <!-- VENTANA: ESTADO DE CUENTA DE UN RESIDENTE (la llena abrirEstadoCuenta en caja.js) -->
+    <div class="panel-fondo" id="panel-estado-cuenta">
+        <div class="panel panel-ancho" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-file-invoice-dollar"></i> Estado de cuenta</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo" id="contenido-estado-cuenta"></div>
+            <div class="panel-pie" style="padding: 0 24px 20px;">
+                <button type="button" class="btn-guardar btn-secundario" onclick="imprimirEstadoCuenta()"><i class="fa-solid fa-print"></i> Imprimir</button>
+                <button type="button" class="btn-guardar" onclick="descargarEstadoPdf()"><i class="fa-solid fa-file-pdf"></i> Descargar PDF</button>
+            </div>
+        </div>
+    </div>
+
     <script src="~/JS/roles.js" asp-append-version="true"></script>
     <script src="~/JS/ui.js" asp-append-version="true"></script>
     <script src="~/JS/comunes.js" asp-append-version="true"></script>

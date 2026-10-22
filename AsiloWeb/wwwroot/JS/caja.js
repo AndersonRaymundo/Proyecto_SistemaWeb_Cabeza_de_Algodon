@@ -7,8 +7,12 @@ const PACIENTES_API_URL = "/api/Pacientes";
 const CAJA_API_URL = "/api/Caja";
 
 let mapaResidentes = {};
+const GRUPOS_POR_PAGINA = 8;      // residentes que se muestran a la vez en Cobros (luego, "Mostrar mas")
+let gruposVisibles = GRUPOS_POR_PAGINA;
+let filtroCobros = "Pendiente";   // pestaña elegida: "Pendiente" (la de inicio) o "Pagado" (cancelados)
 
 const fecha = f => (f ? new Date(f).toLocaleDateString("es-GT") : "-");
+const fechaHora = f => (f ? new Date(f).toLocaleString("es-GT") : "-");
 const nombreDe = id => (mapaResidentes[id] || {}).nombreCompleto || `Residente #${id}`;
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -16,8 +20,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("form-donacion").addEventListener("submit", registrarDonacion);
     document.getElementById("form-gasto").addEventListener("submit", registrarGasto);
     document.getElementById("form-abono").addEventListener("submit", registrarAbono);
-    document.getElementById("filtro-cobros").addEventListener("change", cargarCobros);
-    document.getElementById("buscador-cobros").addEventListener("input", pintarCobros);
+    // pestañas de cobros: Todos / Pendientes / Cancelados
+    const pestanasCobros = document.querySelectorAll("#filtro-cobros [data-filtro]");
+    pestanasCobros.forEach(boton => boton.addEventListener("click", () => {
+        filtroCobros = boton.dataset.filtro;
+        gruposVisibles = GRUPOS_POR_PAGINA;
+        pestanasCobros.forEach(b => b.classList.toggle("activa", b === boton));
+        pintarCobros();
+    }));
+    document.getElementById("buscador-cobros").addEventListener("input", () => { gruposVisibles = GRUPOS_POR_PAGINA; pintarCobros(); });
     hacerBuscable("select-residente-caja");
 
     await cargarResidentes();      // primero los nombres, para que las listas los muestren
@@ -134,11 +145,11 @@ function categoriaDeCobro(concepto) {
 
 async function cargarCobros() {
     const contenedor = document.getElementById("contenedor-cobros");
-    const filtro = document.getElementById("filtro-cobros").value;
     try {
-        const respuesta = await fetch(`${CAJA_API_URL}/pagos` + (filtro ? `?estado=${filtro}` : ""));
+        const respuesta = await fetch(`${CAJA_API_URL}/pagos`);
         if (!respuesta.ok) throw new Error("Error al cargar cobros");
         pagosCache = await respuesta.json();
+        gruposVisibles = GRUPOS_POR_PAGINA;
         pintarCobros();
     } catch (err) {
         console.error(err);
@@ -150,11 +161,24 @@ async function cargarCobros() {
 function pintarCobros() {
     const contenedor = document.getElementById("contenedor-cobros");
     const buscado = normalizarTexto(document.getElementById("buscador-cobros").value.trim());
-    const pagos = pagosCache.filter(p => !buscado
-        || normalizarTexto(nombreDe(p.idPaciente)).includes(buscado)
-        || normalizarTexto((mapaResidentes[p.idPaciente] || {}).noExpediente).includes(buscado));
+    // el numero de cada pestaña cuenta todos los cobros (cancelados = estado Pagado)
+    const esCancelado = p => p.estado === "Pagado";
+    document.querySelectorAll("#filtro-cobros [data-cuenta]").forEach(c => {
+        const clave = c.dataset.cuenta;
+        c.textContent = !clave ? pagosCache.length : pagosCache.filter(p => (clave === "Pagado" ? esCancelado(p) : !esCancelado(p))).length;
+    });
 
-    if (!pagos.length) { contenedor.innerHTML = "<p style='color:#777;'>No hay cobros para mostrar.</p>"; return; }
+    const pagos = pagosCache.filter(p => (!filtroCobros || (filtroCobros === "Pagado" ? esCancelado(p) : !esCancelado(p)))
+        && (!buscado
+            || normalizarTexto(nombreDe(p.idPaciente)).includes(buscado)
+            || normalizarTexto((mapaResidentes[p.idPaciente] || {}).noExpediente).includes(buscado)));
+
+    if (!pagos.length) {
+        contenedor.innerHTML = (filtroCobros === "Pendiente" && !buscado)
+            ? "<p style='color:#1e7e34; font-weight:600;'><i class=\"fa-solid fa-circle-check\"></i> No hay cobros pendientes: todos los residentes están al día.</p>"
+            : "<p style='color:#777;'>No hay cobros para mostrar.</p>";
+        return;
+    }
 
     const porResidente = new Map();
     pagos.forEach(p => {
@@ -162,20 +186,22 @@ function pintarCobros() {
         porResidente.get(p.idPaciente).push(p);
     });
     const suma = lista => lista.reduce((t, p) => t + Number(p.monto || 0), 0);
-    const grupos = Array.from(porResidente.entries()).map(([id, cobros]) => ({
-        id, cobros,
-        pendiente: suma(cobros.filter(p => p.estado !== "Pagado")),
-        cancelado: suma(cobros.filter(p => p.estado === "Pagado")),
-    })).sort((a, b) => b.pendiente - a.pendiente || nombreDe(a.id).localeCompare(nombreDe(b.id)));
+    // cada pestaña muestra solo su propio total: "Debe" en Pendientes y "Cancelado" en Cancelados
+    // (el panorama completo de un residente esta en su Estado de cuenta)
+    const grupos = Array.from(porResidente.entries()).map(([id, cobros]) => ({ id, cobros, total: suma(cobros) }))
+        .sort((a, b) => b.total - a.total || nombreDe(a.id).localeCompare(nombreDe(b.id)));
 
     const abierto = buscado !== "" || grupos.length <= 3;
-    contenedor.innerHTML = grupos.map(g => `
+    const visibles = grupos.slice(0, gruposVisibles);
+    contenedor.innerHTML = visibles.map(g => `
         <details class="grupo-residente" ${abierto ? "open" : ""}>
             <summary>
                 <span>${esc(nombreDe(g.id))}</span>
+                <button type="button" class="btn-estado" onclick="abrirEstadoCuenta(${g.id}, event)"><i class="fa-solid fa-file-invoice-dollar"></i> Estado de cuenta</button>
                 <span class="grupo-totales">
-                    ${g.pendiente > 0 ? `<span class="chip chip-debe">Debe ${quetzales(g.pendiente)}</span>` : `<span class="chip chip-aldia">Al día</span>`}
-                    ${g.cancelado > 0 ? `<span class="chip chip-cancelado">Cancelado ${quetzales(g.cancelado)}</span>` : ""}
+                    ${filtroCobros === "Pendiente"
+                        ? `<span class="chip chip-debe">Debe ${quetzales(g.total)}</span>`
+                        : `<span class="chip chip-cancelado">Cancelado ${quetzales(g.total)}</span>`}
                 </span>
             </summary>
             ${CATEGORIAS_COBRO.map(cat => {
@@ -190,13 +216,14 @@ function pintarCobros() {
                         <div><strong>${esc(p.conceptoPago)}</strong><small>${fecha(p.fechaPago)}${cuandoPago}</small></div>
                         <div class="fila-cobro-derecha">
                             <strong>${quetzales(p.monto)}</strong>
-                            ${pagado ? `<span class="chip chip-aldia">Cancelado</span>`
+                            ${pagado ? `<span class="chip chip-aldia">Cancelado</span><button type="button" class="btn-icono gris" title="Imprimir recibo" onclick="imprimirRecibo(${p.idPago})"><i class="fa-solid fa-print"></i></button>`
                                      : `<span class="chip chip-debe">Pendiente</span><button onclick="marcarPagado(${p.idPago})" class="btn-guardar" style="padding:6px 10px;" title="Marcar como cancelado"><i class="fa-solid fa-check"></i></button>`}
                         </div>
                     </div>`;
                 }).join("")}</div>`;
             }).join("")}
-        </details>`).join("");
+        </details>`).join("") + (grupos.length > visibles.length
+        ? `<button type="button" class="btn-guardar btn-secundario btn-mas" onclick="gruposVisibles += GRUPOS_POR_PAGINA; pintarCobros();">Mostrar más (${grupos.length - visibles.length} residentes)</button>` : "");
 }
 
 async function marcarPagado(idPago) {
@@ -338,3 +365,107 @@ async function enviar(url, payload, mensajeExito, idFormulario) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Estado de cuenta de un residente (CU-04 / CU-05): cargos, pagos y el saldo despues de cada movimiento
+// ---------------------------------------------------------------------------
+let estadoCuentaActual = null;
+
+// Cada cobro es un cargo; si ya se cancelo, ademas es un pago en la fecha en que se recibio
+function armarMovimientos(cobros) {
+    const mov = [];
+    cobros.forEach(p => {
+        mov.push({ fecha: new Date(p.fechaPago), orden: 0, concepto: p.conceptoPago, cargo: Number(p.monto), pago: 0 });
+        if (p.estado === "Pagado")
+            mov.push({ fecha: new Date(p.fechaCancelado || p.fechaPago), orden: 1, concepto: "Pago recibido: " + p.conceptoPago, cargo: 0, pago: Number(p.monto) });
+    });
+    mov.sort((a, b) => a.fecha - b.fecha || a.orden - b.orden);
+    let saldo = 0;
+    mov.forEach(m => { saldo += m.cargo - m.pago; m.saldo = saldo; });
+    return mov;
+}
+
+function tablaEstadoCuenta(e, conClase) {
+    const fila = m => `<tr><td>${fechaHora(m.fecha)}</td><td>${esc(m.concepto)}</td>
+        <td class="der">${m.cargo ? quetzales(m.cargo) : "-"}</td><td class="der">${m.pago ? quetzales(m.pago) : "-"}</td><td class="der">${quetzales(m.saldo)}</td></tr>`;
+    return `<table${conClase ? ' class="tabla-estado"' : ""}>
+        <thead><tr><th>Fecha</th><th>Concepto</th><th class="der">Cargo</th><th class="der">Pago</th><th class="der">Saldo</th></tr></thead>
+        <tbody>${e.movimientos.map(fila).join("")}</tbody>
+        <tfoot><tr${conClase ? "" : ' class="total"'}><td colspan="2">Totales</td><td class="der">${quetzales(e.cargos)}</td><td class="der">${quetzales(e.pagos)}</td><td class="der">${quetzales(e.cargos - e.pagos)}</td></tr></tfoot></table>`;
+}
+
+async function abrirEstadoCuenta(idPaciente, evento) {
+    if (evento) { evento.preventDefault(); evento.stopPropagation(); }   // el boton esta dentro del <summary>
+    try {
+        const respuesta = await fetch(`${CAJA_API_URL}/pagos`);
+        if (!respuesta.ok) throw new Error("Error al cargar los cobros");
+        const cobros = (await respuesta.json()).filter(p => p.idPaciente === idPaciente);
+        const movimientos = armarMovimientos(cobros);
+        const cargos = cobros.reduce((t, p) => t + Number(p.monto), 0);
+        const pagos = cobros.filter(p => p.estado === "Pagado").reduce((t, p) => t + Number(p.monto), 0);
+        estadoCuentaActual = { idPaciente, movimientos, cargos, pagos };
+
+        const r = mapaResidentes[idPaciente] || {};
+        const saldo = cargos - pagos;
+        document.getElementById("contenido-estado-cuenta").innerHTML = `
+            <div class="estado-cuenta-datos">
+                <p><strong>${esc(nombreDe(idPaciente))}</strong> · expediente ${esc(r.noExpediente || "-")}</p>
+                <p>Responsable: ${esc(r.nombreTutor || "-")} · Tel. ${esc(r.telefonoTutor || "-")} · ${esc(r.correoTutor || "sin correo")}</p>
+            </div>
+            <div class="estado-cuenta-resumen">
+                <span class="chip chip-cancelado">Cargos ${quetzales(cargos)}</span>
+                <span class="chip chip-aldia">Pagado ${quetzales(pagos)}</span>
+                <span class="chip ${saldo > 0 ? "chip-debe" : "chip-aldia"}">Saldo pendiente ${quetzales(saldo)}</span>
+            </div>
+            ${movimientos.length ? tablaEstadoCuenta(estadoCuentaActual, true) : "<p style='color:#64748b;'>Este residente aún no tiene cobros.</p>"}`;
+        abrirPanel("panel-estado-cuenta");
+    } catch (err) {
+        console.error(err);
+        mostrarModal("Error", "No se pudo cargar el estado de cuenta.", "error");
+    }
+}
+
+function imprimirEstadoCuenta() {
+    if (!estadoCuentaActual) return;
+    const e = estadoCuentaActual, r = mapaResidentes[e.idPaciente] || {};
+    imprimirHtml("Estado de cuenta", `
+        <div class="cabecera"><div><h1>Asilo Cabeza de Algodón</h1><div>Estado de cuenta</div></div><div class="der">${new Date().toLocaleDateString("es-GT")}</div></div>
+        <p class="dato"><strong>Residente:</strong> ${esc(nombreDe(e.idPaciente))} (expediente ${esc(r.noExpediente || "-")})</p>
+        <p class="dato"><strong>Responsable:</strong> ${esc(r.nombreTutor || "-")} · Tel. ${esc(r.telefonoTutor || "-")} · ${esc(r.correoTutor || "sin correo")}</p>
+        <p class="dato"><strong>Saldo pendiente:</strong> ${quetzales(e.cargos - e.pagos)}</p>
+        <h2>Movimientos</h2>${tablaEstadoCuenta(e, false)}`);
+}
+
+async function descargarEstadoPdf() {
+    if (!estadoCuentaActual) return;
+    try {
+        const respuesta = await fetch(`/Reportes/EstadoCuenta?idPaciente=${estadoCuentaActual.idPaciente}`);
+        if (!respuesta.ok) { mostrarModal("No se pudo generar el PDF", (await respuesta.text()) || `Error ${respuesta.status}`, "error"); return; }
+        const url = URL.createObjectURL(await respuesta.blob());
+        const enlace = document.createElement("a");
+        enlace.href = url;
+        enlace.download = `estado_cuenta_${new Date().toISOString().slice(0, 10)}.pdf`;
+        document.body.appendChild(enlace);
+        enlace.click();
+        enlace.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (err) {
+        mostrarModal("Error de conexión", "No se pudo conectar con el servidor.", "error");
+    }
+}
+
+// Recibo de un cobro ya cancelado (CU-04: "imprimir el recibo de caja")
+function imprimirRecibo(idPago) {
+    const p = pagosCache.find(x => x.idPago === idPago);
+    if (!p) return;
+    const r = mapaResidentes[p.idPaciente] || {};
+    imprimirHtml(`Recibo ${p.idPago}`, `
+        <div class="cabecera"><div><h1>Asilo Cabeza de Algodón</h1><div>Recibo de pago</div></div>
+            <div class="der">No. ${p.idPago}<br>${fechaHora(p.fechaCancelado || p.fechaPago)}</div></div>
+        <p class="dato"><strong>Residente:</strong> ${esc(nombreDe(p.idPaciente))} (expediente ${esc(r.noExpediente || "-")})</p>
+        <p class="dato"><strong>Recibimos de:</strong> ${esc(r.nombreTutor || "el familiar responsable")}</p>
+        <table><tr><th>Concepto</th><th class="der">Monto</th></tr>
+            <tr><td>${esc(p.conceptoPago)}</td><td class="der">${quetzales(p.monto)}</td></tr>
+            <tr class="total"><td>Total pagado</td><td class="der">${quetzales(p.monto)}</td></tr></table>
+        <p class="dato">Recibido por: ${esc(p.canceladoPor || "-")}</p>
+        <div class="firma">Firma y sello</div>`);
+}

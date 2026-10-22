@@ -18,7 +18,7 @@
         
       <main class="area-trabajo">
             <h1><i class="fa-solid fa-chart-line"></i> Módulo de Reportes Estadísticos e Informes</h1>
-            <p>Reportes en PDF con los datos reales del sistema, generados por el microservicio de PDF</p>
+            <p>Informes en PDF de los residentes, las citas, los cobros y las finanzas del asilo.</p>
             <br>
             <div class="lista-reportes">
                 <div class="tarjeta-reporte" data-reporte="CostosCitas">
@@ -39,6 +39,20 @@
                     <div class="filtros">
                         <div><label>Residente (obligatorio)</label>
                             <select class="sel-residente sel-obligatorio" data-param="idPaciente" required><option value="">-- Seleccionar --</option></select></div>
+                    </div>
+                    <button class="btn-descarga" onclick="descargarReporte(this)">
+                        <i class="fa-solid fa-download"></i> Exportar PDF
+                    </button>
+                </div>
+                <br>
+                <div class="tarjeta-reporte" data-reporte="EstadoCuenta">
+                    <h3><i class="fa-solid fa-file-invoice-dollar"></i> Estado de Cuenta por Residente</h3>
+                    <p>Cargos, pagos y saldo del familiar de un residente, con el saldo después de cada movimiento.</p>
+                    <div class="filtros">
+                        <div><label>Residente (obligatorio)</label>
+                            <select class="sel-residente sel-obligatorio" data-param="idPaciente"><option value="">-- Seleccione un residente --</option></select></div>
+                        <div><label>Desde</label><input type="date" data-param="desde"></div>
+                        <div><label>Hasta</label><input type="date" data-param="hasta"></div>
                     </div>
                     <button class="btn-descarga" onclick="descargarReporte(this)">
                         <i class="fa-solid fa-download"></i> Exportar PDF
