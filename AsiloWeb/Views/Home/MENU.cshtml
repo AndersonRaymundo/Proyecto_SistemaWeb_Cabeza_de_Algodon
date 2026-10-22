@@ -24,7 +24,7 @@
             <div class="bienvenida">
                 <div>
                     <h1>Bienvenido(a), <span id="bienvenida-nombre">al Sistema</span></h1>
-                    <p>Sistema de administración del asilo de ancianos Cabeza de Algodón. Seleccione un módulo para comenzar a trabajar.</p>
+                    <p>Sistema de administración del asilo de ancianos Cabeza de Algodón.</p>
                     <span class="fecha-hoy"><i class="fa-solid fa-calendar-day"></i> <span id="fecha-hoy"></span></span>
                 </div>
                 <img src="~/imagen sesion/logo.jpg" alt="Cabeza de Algodón">
@@ -68,10 +68,18 @@
                     <span class="desc">Parámetros generales de la institución.</span>
                 </a>
             </div>
+        
+            <!-- MI AGENDA (solo se muestra a los medicos; la llena inicio.js) -->
+            <section id="mi-agenda" class="mi-agenda" style="display:none;">
+                <div class="modulos-titulo">Mi agenda</div>
+                <div id="mi-agenda-resumen" class="mi-agenda-resumen"></div>
+                <div id="mi-agenda-lista"></div>
+            </section>
         </main>
 
     </div>
 <!-- SCRIPT CONTROLADOR DE ROLES -->
     <script src="~/JS/roles.js" asp-append-version="true"></script>
+    <script src="~/JS/inicio.js" asp-append-version="true"></script>
 </body>
     </html>
