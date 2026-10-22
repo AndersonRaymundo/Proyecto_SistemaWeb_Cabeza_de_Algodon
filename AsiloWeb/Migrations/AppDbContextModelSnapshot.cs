@@ -53,6 +53,40 @@ namespace BackendAsilo.Migrations
                     b.ToTable("TBL_ABONOS_FUNDACION");
                 });
 
+            modelBuilder.Entity("AsiloWeb.Models.BitacoraCorreo", b =>
+                {
+                    b.Property<int>("IdBitacora")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id_bitacora");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdBitacora"));
+
+                    b.Property<string>("Asunto")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)")
+                        .HasColumnName("asunto");
+
+                    b.Property<string>("Destinatario")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("destinatario");
+
+                    b.Property<bool>("Enviado")
+                        .HasColumnType("bit")
+                        .HasColumnName("enviado");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("fecha");
+
+                    b.HasKey("IdBitacora");
+
+                    b.ToTable("TBL_BITACORA_CORREOS");
+                });
+
             modelBuilder.Entity("AsiloWeb.Models.CitaMedica", b =>
                 {
                     b.Property<int>("IdCita")
@@ -507,6 +541,10 @@ namespace BackendAsilo.Migrations
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("email");
+
+                    b.Property<string>("Especialidad")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("especialidad");
 
                     b.Property<int>("IntentosCodigo")
                         .HasColumnType("int")

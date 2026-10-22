@@ -13,9 +13,8 @@
         .catch(() => { descuento.textContent = "No disponible"; });
 })();
 
-// ===========================================================================
+
 // Usuarios del sistema (solo el administrador): lista, alta, correo, clave y desbloqueo
-// ===========================================================================
 const USUARIOS_API_URL = "/api/Auth/usuarios";
 const NOMBRE_ROL = { ADMINISTRADOR: "Administrador", DOCTOR: "Doctor", ENFERMERO: "Enfermero", FARMACIA: "Farmacia", FUNDACION: "Fundación", LABORATORIO: "Laboratorio" };
 let usuariosCache = [];
@@ -32,15 +31,17 @@ async function cargarUsuarios() {
 
         contenedor.innerHTML = `
             <table class="tabla-datos">
-                <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Correo</th><th>Cuenta</th><th class="centrado">Acciones</th></tr></thead>
+                <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Especialidad</th><th>Correo</th><th>Cuenta</th><th class="centrado">Acciones</th></tr></thead>
                 <tbody>${usuariosCache.map(u => `
                     <tr>
                         <td>${esc(u.nombreCompleto)}</td>
                         <td>${esc(u.nombreUsuario)}</td>
                         <td>${esc(NOMBRE_ROL[u.rol] || u.rol)}</td>
+                        <td>${u.rol === "DOCTOR" ? (u.especialidad ? esc(u.especialidad) : '<em style="color:#b45309;">Sin especialidad</em>') : "-"}</td>
                         <td>${u.email ? esc(u.email) : '<em style="color:#b45309;">Sin correo</em>'}</td>
                         <td><span class="badge ${u.cuentaBloqueada ? "badge-peligro" : "badge-exito"}">${u.cuentaBloqueada ? "Bloqueada" : "Activa"}</span></td>
                         <td class="centrado">
+                            ${u.rol === "DOCTOR" ? `<button class="btn-icono verde" onclick="abrirEspecialidadUsuario(${u.idUsuario})" title="Cambiar especialidad"><i class="fa-solid fa-stethoscope"></i></button>` : ""}
                             <button class="btn-icono azul" onclick="abrirClaveUsuario(${u.idUsuario})" title="Cambiar contraseña"><i class="fa-solid fa-key"></i></button>
                             <button class="btn-icono celeste" onclick="abrirCorreoUsuario(${u.idUsuario})" title="Cambiar correo"><i class="fa-solid fa-envelope"></i></button>
                             ${u.cuentaBloqueada ? `<button class="btn-icono ambar" onclick="desbloquearUsuario(${u.idUsuario})" title="Desbloquear cuenta"><i class="fa-solid fa-lock-open"></i></button>` : ""}
@@ -73,15 +74,19 @@ async function crearUsuario(event) {
     const clave = document.getElementById("usuario-clave").value;
     if (!claveValida(clave)) { mostrarModal("Contraseña débil", "La contraseña debe tener al menos 8 caracteres e incluir letras y números.", "error"); return; }
     if (clave !== document.getElementById("usuario-clave2").value) { mostrarModal("Contraseñas distintas", "Las dos contraseñas no coinciden.", "error"); return; }
+    if (document.getElementById("usuario-rol").value === "DOCTOR" && !document.getElementById("usuario-especialidad").value) {
+        mostrarModal("Falta la especialidad", "Elija la especialidad del médico.", "error"); return;
+    }
 
     const ok = await enviarUsuario(USUARIOS_API_URL, "POST", {
         nombreCompleto: document.getElementById("usuario-nombre").value.trim(),
         nombreUsuario: document.getElementById("usuario-login").value.trim(),
         rol: document.getElementById("usuario-rol").value,
+        especialidad: document.getElementById("usuario-rol").value === "DOCTOR" ? document.getElementById("usuario-especialidad").value : null,
         email: document.getElementById("usuario-correo").value.trim() || null,
         contrasena: clave,
     }, "Usuario creado correctamente.");
-    if (ok) { document.getElementById("form-usuario").reset(); cerrarPanel("panel-usuario"); }
+    if (ok) { document.getElementById("form-usuario").reset(); alCambiarRol(); cerrarPanel("panel-usuario"); }
 }
 
 function abrirClaveUsuario(id) {
@@ -126,12 +131,77 @@ async function desbloquearUsuario(id) {
 (function iniciarUsuarios() {
     const seccion = document.getElementById("seccion-usuarios");
     if (!seccion) return;
+    const bitacora = document.getElementById("seccion-bitacora");
     const arrancar = () => {
-        if (rol() !== "ADMINISTRADOR") { seccion.style.display = "none"; return; }
+        if (rol() !== "ADMINISTRADOR") { seccion.style.display = "none"; if (bitacora) bitacora.style.display = "none"; return; }
         document.getElementById("form-usuario").addEventListener("submit", crearUsuario);
         document.getElementById("form-clave-usuario").addEventListener("submit", guardarClaveUsuario);
         document.getElementById("form-correo-usuario").addEventListener("submit", guardarCorreoUsuario);
+        document.getElementById("form-especialidad-usuario").addEventListener("submit", guardarEspecialidadUsuario);
+        document.getElementById("usuario-rol").addEventListener("change", alCambiarRol);
+        cargarEspecialidades();
         cargarUsuarios();
+        cargarBitacora();
     };
     if (window.ROL_ACTUAL) arrancar(); else document.addEventListener("sesion-lista", arrancar, { once: true });
 })();
+
+// Especialidad de los medicos (la Fundacion los asigna segun la especialidad que pide la solicitud)
+let especialidades = ["Medicina general", "Geriatría", "Cardiología", "Neurología", "Endocrinología", "Reumatología",
+    "Traumatología", "Neumología", "Oftalmología", "Psiquiatría", "Urología", "Gastroenterología"];   // si el servidor no responde
+
+async function cargarEspecialidades() {
+    try {
+        const respuesta = await fetch("/api/Auth/especialidades");
+        if (respuesta.ok) { const lista = await respuesta.json(); if (Array.isArray(lista) && lista.length) especialidades = lista; }
+    } catch (err) { /* se usa la lista de respaldo */ }
+    const opciones = '<option value="">-- Seleccionar --</option>' + especialidades.map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join("");
+    document.getElementById("usuario-especialidad").innerHTML = opciones;
+    document.getElementById("especialidad-nueva").innerHTML = opciones;
+}
+
+// La especialidad solo se pide cuando el rol elegido es Doctor
+function alCambiarRol() {
+    document.getElementById("grupo-especialidad").style.display = document.getElementById("usuario-rol").value === "DOCTOR" ? "block" : "none";
+}
+
+function abrirEspecialidadUsuario(id) {
+    const u = usuariosCache.find(x => x.idUsuario === id);
+    if (!u) return;
+    document.getElementById("especialidad-usuario-id").value = id;
+    document.getElementById("especialidad-usuario-nombre").innerHTML = `Médico: <strong>${esc(u.nombreCompleto)}</strong> (${esc(u.nombreUsuario)})`;
+    document.getElementById("especialidad-nueva").value = u.especialidad || "";
+    abrirPanel("panel-especialidad-usuario");
+}
+
+async function guardarEspecialidadUsuario(event) {
+    event.preventDefault();
+    const id = document.getElementById("especialidad-usuario-id").value;
+    const ok = await enviarUsuario(`${USUARIOS_API_URL}/${id}/especialidad`, "PUT", { especialidad: document.getElementById("especialidad-nueva").value }, "Especialidad actualizada.");
+    if (ok) cerrarPanel("panel-especialidad-usuario");
+}
+
+// Bitacora de correos: si un correo falla, aqui se ve 
+async function cargarBitacora() {
+    const contenedor = document.getElementById("contenedor-bitacora");
+    if (!contenedor) return;
+    try {
+        const respuesta = await fetch("/api/Bitacora/correos?top=50");
+        if (!respuesta.ok) throw new Error("Error al cargar la bitacora");
+        const correos = await respuesta.json();
+        contenedor.innerHTML = correos.length ? `
+            <table class="tabla-datos">
+                <thead><tr><th>Fecha</th><th>Destinatario</th><th>Asunto</th><th>Resultado</th></tr></thead>
+                <tbody>${correos.map(c => `
+                    <tr>
+                        <td>${new Date(c.fecha).toLocaleString("es-GT")}</td>
+                        <td>${esc(c.destinatario)}</td>
+                        <td>${esc(c.asunto)}</td>
+                        <td><span class="badge ${c.enviado ? "badge-exito" : "badge-peligro"}">${c.enviado ? "Enviado" : "No se envió"}</span></td>
+                    </tr>`).join("")}</tbody>
+            </table>` : "<p style='color:#64748b; padding:8px 0;'>Aún no se ha enviado ningún correo.</p>";
+    } catch (err) {
+        console.error(err);
+        contenedor.innerHTML = "<p style='color:#c62828;'>No se pudo cargar la bitácora de correos.</p>";
+    }
+}

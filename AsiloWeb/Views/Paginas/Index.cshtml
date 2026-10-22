@@ -31,7 +31,7 @@
             <div class="dato-clinico"><span>Descuento de la fundación sobre los costos médicos</span><span id="valor-descuento">Cargando...</span></div>
             <div class="dato-clinico"><span>Usuario conectado</span><span id="valor-usuario">—</span></div>
             <div class="dato-clinico"><span>Rol</span><span id="valor-rol">—</span></div>
-            <p style="color:#64748b; font-size:.88rem; margin-top:10px;">El porcentaje de descuento se define en la configuración del servidor (Fundacion:DescuentoPorcentaje).</p>
+            <p style="color:#64748b; font-size:.88rem; margin-top:10px;">El porcentaje de descuento lo define quien administra el servidor.</p>
         </div>
 
         <!-- USUARIOS DEL SISTEMA (solo el administrador) -->
@@ -41,8 +41,19 @@
                 <span class="espacio"></span>
                 <button type="button" class="btn-guardar" data-abrir="panel-usuario"><i class="fa-solid fa-user-plus"></i> Nuevo usuario</button>
             </div>
-            <p style="color:#64748b; font-size:.88rem;">Si alguien olvida su contraseña puede recuperarla desde el inicio de sesión con el correo registrado. Si no le llega el correo, aquí se le asigna una nueva.</p>
+            <p style="color:#64748b; font-size:.88rem;">Cuentas de acceso al sistema: crear usuarios, asignar especialidades, cambiar contraseñas y correos, y desbloquear cuentas.</p>
             <div id="contenedor-usuarios"></div>
+        </div>
+
+        <!-- BITACORA DE CORREOS (solo el administrador) -->
+        <div class="formulario-datos" id="seccion-bitacora">
+            <div class="barra-herramientas">
+                <h2 style="margin:0;"><i class="fa-solid fa-envelope-circle-check"></i> Correos enviados</h2>
+                <span class="espacio"></span>
+                <button type="button" class="btn-guardar btn-secundario" onclick="cargarBitacora()"><i class="fa-solid fa-rotate"></i> Actualizar</button>
+            </div>
+            <p style="color:#64748b; font-size:.88rem;">Registro de los últimos 50 correos del sistema (solicitudes, citas, comprobantes y códigos de recuperación) y si se enviaron.</p>
+            <div id="contenedor-bitacora"></div>
         </div>
     </main>
     </div>
@@ -71,6 +82,8 @@
                                 <option value="LABORATORIO">Laboratorio</option>
                             </select></div>
                     </div>
+                    <div class="grupo-campo" id="grupo-especialidad" style="display:none;"><label>Especialidad del médico:</label>
+                        <select id="usuario-especialidad"><option value="">-- Seleccionar --</option></select></div>
                     <div class="grupo-campo"><label>Correo (para recuperar la contraseña):</label>
                         <input type="email" id="usuario-correo" placeholder="correo@ejemplo.com"></div>
                     <div class="fila-2">
@@ -110,6 +123,28 @@
                     <div class="panel-pie">
                         <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
                         <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Guardar contraseña</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- VENTANA: ESPECIALIDAD DE UN MEDICO -->
+    <div class="panel-fondo" id="panel-especialidad-usuario">
+        <div class="panel" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-stethoscope"></i> Especialidad del médico</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <form id="form-especialidad-usuario">
+                    <p id="especialidad-usuario-nombre"></p>
+                    <input type="hidden" id="especialidad-usuario-id">
+                    <div class="grupo-campo"><label>Especialidad:</label>
+                        <select id="especialidad-nueva" required><option value="">-- Seleccionar --</option></select></div>
+                    <div class="panel-pie">
+                        <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Guardar especialidad</button>
                     </div>
                 </form>
             </div>

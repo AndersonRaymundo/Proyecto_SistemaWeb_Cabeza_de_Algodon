@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AsiloWeb.Models
 {
-    // Corresponde a TBL_USUARIOS del ERD (Fase de Análisis).
-    // Cubre CU-01 (Iniciar Sesión) incluyendo el bloqueo tras 3 intentos fallidos.
+
+    //bloqueo tras 3 intentos fallidos.
     [Table("TBL_USUARIOS")]
     public class Usuario
     {
@@ -33,12 +33,11 @@ namespace AsiloWeb.Models
         [Column("cuenta_bloqueada")]
         public bool CuentaBloqueada { get; set; } = false;
 
-        // No está en el ERD original, pero es necesario para saber CUÁNDO se
-        // desbloquea automáticamente (CU-01 pide 15 minutos de bloqueo).
+        // desbloquea automáticamente (15 minutos de bloqueo).
         [Column("bloqueado_hasta")]
         public DateTime? BloqueadoHasta { get; set; }
 
-        // "Olvide mi contrasena": codigo de 6 digitos enviado por correo. Se guarda cifrado (BCrypt),
+        // "Olvide mi contraseña": codigo de 6 digitos enviado por correo. Se guarda cifrado (BCrypt),
         // con su hora de vencimiento y los intentos fallidos, y se borra al usarse o vencer.
         [Column("codigo_recuperacion_hash")]
         public string? CodigoRecuperacionHash { get; set; }
@@ -48,5 +47,9 @@ namespace AsiloWeb.Models
 
         [Column("intentos_codigo")]
         public int IntentosCodigo { get; set; } = 0;
+
+        // Solo para medicos: la especialidad con la que la Fundacion los asigna (lista en Catalogos.Especialidades)
+        [Column("especialidad")]
+        public string? Especialidad { get; set; }
     }
 }

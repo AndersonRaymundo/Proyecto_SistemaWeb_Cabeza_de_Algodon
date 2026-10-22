@@ -12,8 +12,8 @@ using AsiloWeb.Services;
 
 namespace AsiloWeb.Controllers
 {
-    // Implementa CU-01 Iniciar Sesión: valida usuario/contraseña (hash
-    // Bcrypt), y bloquea la cuenta 15 minutos tras 3 intentos fallidos.
+    // Implementa CU-01 Iniciar Sesión: valida usuario/contraseña
+    //y bloquea la cuenta 15 minutos tras 3 intentos fallidos.
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -80,7 +80,7 @@ namespace AsiloWeb.Controllers
             usuario.IntentosFallidos = 0;
             await _context.SaveChangesAsync();
 
-            // Sesion en el servidor (cookie): es lo que protege las paginas y la API (RNF-02)
+            // Sesion en el servidor (cookie): es lo que protege las paginas y la API 
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString()),
@@ -103,7 +103,7 @@ namespace AsiloWeb.Controllers
             });
         }
 
-        // --- Gestión de usuarios (para una futura pantalla de Configuración) ---
+        // --- Gestión de usuarios  ---
 
         // Devuelve quien tiene la sesion abierta segun el servidor (no segun el navegador)
         [HttpGet("sesion")]
@@ -129,10 +129,7 @@ namespace AsiloWeb.Controllers
         private static readonly string[] RolesValidos =
             { "ADMINISTRADOR", "DOCTOR", "ENFERMERO", "FARMACIA", "FUNDACION", "LABORATORIO" };
 
-        // ------------------------------------------------------------------
         // Reglas compartidas: crear usuario, cambiar clave y recuperarla
-        // ------------------------------------------------------------------
-
         // Minimo 8 caracteres, con letras y numeros.
         private static string? ValidarContrasena(string? clave)
         {
@@ -148,9 +145,7 @@ namespace AsiloWeb.Controllers
             catch { return false; }
         }
 
-        // ------------------------------------------------------------------
-        // Gestion de usuarios (solo el administrador)
-        // ------------------------------------------------------------------
+        // Gestion de usuarios (solo administrador)
         public class UsuarioCreateRequest
         {
             public string NombreUsuario { get; set; } = string.Empty;
@@ -158,6 +153,18 @@ namespace AsiloWeb.Controllers
             public string NombreCompleto { get; set; } = string.Empty;
             public string Rol { get; set; } = string.Empty;
             public string? Email { get; set; }
+            public string? Especialidad { get; set; }
+        }
+
+        public class EspecialidadRequest
+        {
+            public string? Especialidad { get; set; }
+        }
+
+        public class MiClaveRequest
+        {
+            public string Actual { get; set; } = string.Empty;
+            public string Nueva { get; set; } = string.Empty;
         }
 
         public class ClaveRequest
@@ -174,19 +181,19 @@ namespace AsiloWeb.Controllers
         public async Task<IActionResult> ListarUsuarios()
         {
             // El correo y el estado de la cuenta solo los ve el administrador;
-            // los demas roles reciben lo basico (la agenda necesita la lista de medicos).
+            // los demas roles reciben lo basico 
             if (User.IsInRole("ADMINISTRADOR"))
             {
                 var completos = await _context.Usuarios
                     .OrderBy(u => u.NombreCompleto)
-                    .Select(u => new { u.IdUsuario, u.NombreUsuario, u.NombreCompleto, u.Rol, u.Email, u.CuentaBloqueada })
+                    .Select(u => new { u.IdUsuario, u.NombreUsuario, u.NombreCompleto, u.Rol, u.Especialidad, u.Email, u.CuentaBloqueada })
                     .ToListAsync();
                 return Ok(completos);
             }
 
             var basicos = await _context.Usuarios
                 .OrderBy(u => u.NombreCompleto)
-                .Select(u => new { u.IdUsuario, u.NombreUsuario, u.NombreCompleto, u.Rol })
+                .Select(u => new { u.IdUsuario, u.NombreUsuario, u.NombreCompleto, u.Rol, u.Especialidad })
                 .ToListAsync();
             return Ok(basicos);
         }
@@ -202,6 +209,8 @@ namespace AsiloWeb.Controllers
                 return BadRequest(new { message = "El nombre completo es obligatorio." });
             if (!RolesValidos.Contains(datos.Rol))
                 return BadRequest(new { message = "Rol inválido." });
+            if (datos.Rol == "DOCTOR" && !Catalogos.Especialidades.Contains(datos.Especialidad ?? ""))
+                return BadRequest(new { message = "Elija la especialidad del médico." });
             var errorClave = ValidarContrasena(datos.Contrasena);
             if (errorClave != null)
                 return BadRequest(new { message = errorClave });
@@ -218,6 +227,7 @@ namespace AsiloWeb.Controllers
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(datos.Contrasena),
                 NombreCompleto = datos.NombreCompleto.Trim(),
                 Rol = datos.Rol,
+                Especialidad = datos.Rol == "DOCTOR" ? datos.Especialidad : null,
                 Email = string.IsNullOrWhiteSpace(datos.Email) ? null : datos.Email.Trim()
             };
 
@@ -225,7 +235,7 @@ namespace AsiloWeb.Controllers
             await _context.SaveChangesAsync();
 
             // No se devuelve el registro completo (incluye la clave cifrada)
-            return StatusCode(201, new { nuevo.IdUsuario, nuevo.NombreUsuario, nuevo.NombreCompleto, nuevo.Rol, nuevo.Email, nuevo.CuentaBloqueada });
+            return StatusCode(201, new { nuevo.IdUsuario, nuevo.NombreUsuario, nuevo.NombreCompleto, nuevo.Rol, nuevo.Especialidad, nuevo.Email, nuevo.CuentaBloqueada });
         }
 
         // Quita el bloqueo de una cuenta sin esperar los 15 minutos
@@ -243,7 +253,7 @@ namespace AsiloWeb.Controllers
             return Ok(new { message = "Cuenta desbloqueada." });
         }
 
-        // El administrador asigna una contrasena nueva (por ejemplo, si no llega el correo de recuperacion)
+        // El administrador asigna una contraseña nueva (por ejemplo, si no llega el correo de recuperacion)
         [HttpPut("usuarios/{id}/contrasena")]
         [Authorize(Roles = "ADMINISTRADOR")]
         public async Task<IActionResult> CambiarContrasena(int id, ClaveRequest datos)
@@ -258,6 +268,51 @@ namespace AsiloWeb.Controllers
             usuario.CuentaBloqueada = false;
             usuario.IntentosFallidos = 0;
             usuario.BloqueadoHasta = null;
+            usuario.CodigoRecuperacionHash = null;
+            usuario.CodigoRecuperacionExpira = null;
+            usuario.IntentosCodigo = 0;
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Contraseña actualizada." });
+        }
+
+        // Lista de especialidades para los formularios 
+        [HttpGet("especialidades")]
+        public IActionResult Especialidades() => Ok(Catalogos.Especialidades);
+
+        // Asigna o corrige la especialidad de un medico
+        [HttpPut("usuarios/{id}/especialidad")]
+        [Authorize(Roles = "ADMINISTRADOR")]
+        public async Task<IActionResult> CambiarEspecialidad(int id, EspecialidadRequest datos)
+        {
+            var usuario = await _context.Usuarios.FindAsync(id);
+            if (usuario == null) return NotFound(new { message = "Usuario no encontrado." });
+            if (usuario.Rol != "DOCTOR")
+                return BadRequest(new { message = "Solo los médicos tienen especialidad." });
+            if (!Catalogos.Especialidades.Contains(datos.Especialidad ?? ""))
+                return BadRequest(new { message = "Elija una especialidad de la lista." });
+
+            usuario.Especialidad = datos.Especialidad;
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Especialidad actualizada." });
+        }
+
+        // Cada usuario cambia su propia contraseña, y confirmando la actual
+        [HttpPut("mi-contrasena")]
+        public async Task<IActionResult> CambiarMiContrasena(MiClaveRequest datos)
+        {
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id))
+                return Unauthorized();
+            var usuario = await _context.Usuarios.FindAsync(id);
+            if (usuario == null) return Unauthorized();
+
+            if (!BCrypt.Net.BCrypt.Verify(datos.Actual ?? "", usuario.PasswordHash))
+                return BadRequest(new { message = "La contraseña actual no es correcta." });
+            var error = ValidarContrasena(datos.Nueva);
+            if (error != null) return BadRequest(new { message = error });
+            if (datos.Nueva == datos.Actual)
+                return BadRequest(new { message = "La contraseña nueva debe ser distinta de la actual." });
+
+            usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(datos.Nueva);
             usuario.CodigoRecuperacionHash = null;
             usuario.CodigoRecuperacionExpira = null;
             usuario.IntentosCodigo = 0;
@@ -284,9 +339,7 @@ namespace AsiloWeb.Controllers
             return Ok(new { message = "Correo actualizado." });
         }
 
-        // ------------------------------------------------------------------
-        // Olvide mi contrasena: codigo de 6 digitos por correo (diseno del Login)
-        // ------------------------------------------------------------------
+        // Olvide mi contraseña: codigo de 6 digitos por correo 
         private const int MinutosCodigo = 5;
         private const int SegundosEntreEnvios = 60;
         private const int MaxIntentosCodigo = 5;
@@ -303,8 +356,7 @@ namespace AsiloWeb.Controllers
             public string NuevaContrasena { get; set; } = string.Empty;
         }
 
-        // Acepta el nombre de usuario o el correo registrado. Por correo solo se resuelve si pertenece
-        // a una sola cuenta (si dos comparten correo, no se sabe a cual restablecer).
+        // Acepta el nombre de usuario o el correo registrado.
         // En la peticion el campo se llama NombreUsuario, pero trae cualquiera de los dos.
         private async Task<Usuario?> BuscarPorUsuarioOCorreo(string? identificador)
         {
@@ -364,7 +416,7 @@ namespace AsiloWeb.Controllers
             var enviado = await _email.EnviarNotificacionAsync(
                 usuario.Email!.Trim(), "Código de recuperación de contraseña - Asilo Cabeza de Algodón", cuerpo);
 
-            // Si el correo no salio, el codigo no sirve de nada: se anula
+            // Si el correo no salio, el codigo no sirve de nada (se anula)
             if (!enviado)
             {
                 AnularCodigo(usuario);

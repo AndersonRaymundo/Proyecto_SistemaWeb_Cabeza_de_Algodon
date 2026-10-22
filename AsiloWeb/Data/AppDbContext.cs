@@ -17,6 +17,7 @@ namespace AsiloWeb.Data
         public DbSet<Gasto> Gastos { get; set; }
         public DbSet<AbonoFundacion> AbonosFundacion { get; set; }
         public DbSet<InventarioMedicamento> Inventario { get; set; }
+        public DbSet<BitacoraCorreo> BitacoraCorreos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
