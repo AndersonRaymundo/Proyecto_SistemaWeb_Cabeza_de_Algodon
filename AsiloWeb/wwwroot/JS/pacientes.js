@@ -392,23 +392,19 @@ async function cambiarEstado(id, nuevoEstado) {
     if (!acepta) return;
 
     try {
-        const resGet = await fetch(`${API_URL}/${id}`);
-        if (!resGet.ok) throw new Error("No se pudo obtener la información actual.");
-        
-        const residente = await resGet.json();
-        residente.estado = nuevoEstado;
-
+        // Solo se envia el estado: asi no se vuelven a revisar los demas datos del residente
+        // (por ejemplo, un expediente repetido de antes) y no hace falta consultarlo primero.
         const resPut = await fetch(`${API_URL}/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(residente)
+            body: JSON.stringify({ estado: nuevoEstado })
         });
 
         if (resPut.ok) {
             mostrarModal("Estado Actualizado", `El residente ha sido ${nuevoEstado ? 'reactivado' : 'dado de baja'}.`, "exito");
             cargarResidentes();
         } else {
-            mostrarModal("Error", "No se pudo actualizar el estado en el servidor.", "error");
+            mostrarModal("No se pudo actualizar", await mensajeError(resPut), "error");
         }
     } catch (err) {
         console.error("Error al cambiar estado:", err);
