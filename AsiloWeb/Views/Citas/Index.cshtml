@@ -83,6 +83,37 @@
     </div>
 
     <!-- SCRIPT CONTROLADOR DE ROLES -->
+    <!-- VENTANA: CANCELAR UNA CITA -->
+    <div class="panel-fondo" id="panel-cancelar-cita">
+        <div class="panel" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-ban"></i> Cancelar cita</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <form id="form-cancelar-cita">
+                    <input type="hidden" id="cancelar-cita-id">
+                    <div class="resumen-cita" id="cancelar-cita-resumen"></div>
+                    <div class="grupo-campo">
+                        <label for="cancelar-cita-motivo">Motivo de la cancelación</label>
+                        <div class="motivos-rapidos">
+                            <button type="button" class="motivo-rapido" onclick="elegirMotivoRapido(this)">El familiar no puede asistir</button>
+                            <button type="button" class="motivo-rapido" onclick="elegirMotivoRapido(this)">El médico no está disponible</button>
+                            <button type="button" class="motivo-rapido" onclick="elegirMotivoRapido(this)">El residente no está en condiciones</button>
+                            <button type="button" class="motivo-rapido" onclick="elegirMotivoRapido(this)">Otro</button>
+                        </div>
+                        <textarea id="cancelar-cita-motivo" rows="3" maxlength="200" minlength="3" placeholder="Escriba el motivo" required></textarea>
+                        <small style="color:#64748b;">El horario quedará libre y se avisará por correo al familiar.</small>
+                    </div>
+                    <div class="panel-pie">
+                        <button type="button" class="btn-guardar btn-secundario" data-cerrar>Volver</button>
+                        <button type="submit" class="btn-guardar btn-peligro"><i class="fa-solid fa-ban"></i> Cancelar la cita</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="~/JS/roles.js" asp-append-version="true"></script>
     <script src="~/JS/ui.js" asp-append-version="true"></script>
     <script src="~/JS/comunes.js" asp-append-version="true"></script>

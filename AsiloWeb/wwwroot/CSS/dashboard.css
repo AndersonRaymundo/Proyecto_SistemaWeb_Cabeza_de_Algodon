@@ -874,3 +874,20 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 
 /* ---- PESTANAS DE FILTRO dentro de la barra de herramientas (Citas y Cobros) ---- */
 .barra-herramientas .pestanas { margin-bottom: 0; }
+
+/* ---- FORMULARIO DE RESIDENTE: secciones y parentesco ----------------------------------------------- */
+.seccion-formulario { margin: 20px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--borde); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.seccion-formulario:first-child { margin-top: 0; }
+.parentesco-tabla { display: block; color: var(--muted); font-size: .78rem; }
+
+/* ---- VENTANAS PROPIAS: confirmar y cancelar cita --------------------------------------------------- */
+.confirmar-mensaje { margin: 4px 0 18px; color: var(--texto-2); line-height: 1.5; }
+.resumen-cita { margin-bottom: 14px; padding: 10px 12px; background: var(--fondo); border: 1px solid var(--borde); border-radius: var(--radio-sm); color: var(--texto-2); line-height: 1.5; }
+.resumen-cita strong { color: var(--texto); }
+.motivos-rapidos { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
+.motivo-rapido { padding: 6px 12px; border: 1px solid var(--primario-borde); background: #fff; color: var(--primario); border-radius: 999px; font-size: .82rem; font-weight: 600; cursor: pointer; }
+.motivo-rapido:hover, .motivo-rapido.activo { background: var(--primario-claro); }
+
+/* ---- CONFIGURACION: las tablas usan todo el ancho y, si no caben, se desplazan dentro de su recuadro ---- */
+#seccion-usuarios, #seccion-bitacora { max-width: none; }
+#contenedor-usuarios, #contenedor-bitacora { overflow-x: auto; }

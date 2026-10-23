@@ -13,8 +13,9 @@
         .catch(() => { descuento.textContent = "No disponible"; });
 })();
 
-
+// ===========================================================================
 // Usuarios del sistema (solo el administrador): lista, alta, correo, clave y desbloqueo
+// ===========================================================================
 const USUARIOS_API_URL = "/api/Auth/usuarios";
 const NOMBRE_ROL = { ADMINISTRADOR: "Administrador", DOCTOR: "Doctor", ENFERMERO: "Enfermero", FARMACIA: "Farmacia", FUNDACION: "Fundación", LABORATORIO: "Laboratorio" };
 let usuariosCache = [];
@@ -33,18 +34,22 @@ async function cargarUsuarios() {
             <table class="tabla-datos">
                 <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Especialidad</th><th>Correo</th><th>Cuenta</th><th class="centrado">Acciones</th></tr></thead>
                 <tbody>${usuariosCache.map(u => `
-                    <tr>
+                    <tr${u.activo === false ? ' style="opacity:.6;"' : ""}>
                         <td>${esc(u.nombreCompleto)}</td>
                         <td>${esc(u.nombreUsuario)}</td>
                         <td>${esc(NOMBRE_ROL[u.rol] || u.rol)}</td>
                         <td>${u.rol === "DOCTOR" ? (u.especialidad ? esc(u.especialidad) : '<em style="color:#b45309;">Sin especialidad</em>') : "-"}</td>
                         <td>${u.email ? esc(u.email) : '<em style="color:#b45309;">Sin correo</em>'}</td>
-                        <td><span class="badge ${u.cuentaBloqueada ? "badge-peligro" : "badge-exito"}">${u.cuentaBloqueada ? "Bloqueada" : "Activa"}</span></td>
+                        <td><span class="badge ${u.activo === false ? "badge-peligro" : (u.cuentaBloqueada ? "badge-alerta" : "badge-exito")}">${u.activo === false ? "Dada de baja" : (u.cuentaBloqueada ? "Bloqueada" : "Activa")}</span></td>
                         <td class="centrado">
+                            <button class="btn-icono celeste" onclick="abrirDatosUsuario(${u.idUsuario})" title="Editar nombre y rol"><i class="fa-solid fa-pen-to-square"></i></button>
                             ${u.rol === "DOCTOR" ? `<button class="btn-icono verde" onclick="abrirEspecialidadUsuario(${u.idUsuario})" title="Cambiar especialidad"><i class="fa-solid fa-stethoscope"></i></button>` : ""}
                             <button class="btn-icono azul" onclick="abrirClaveUsuario(${u.idUsuario})" title="Cambiar contraseña"><i class="fa-solid fa-key"></i></button>
                             <button class="btn-icono celeste" onclick="abrirCorreoUsuario(${u.idUsuario})" title="Cambiar correo"><i class="fa-solid fa-envelope"></i></button>
                             ${u.cuentaBloqueada ? `<button class="btn-icono ambar" onclick="desbloquearUsuario(${u.idUsuario})" title="Desbloquear cuenta"><i class="fa-solid fa-lock-open"></i></button>` : ""}
+                            ${u.activo === false
+                                ? `<button class="btn-icono verde" onclick="reactivarUsuario(${u.idUsuario})" title="Reactivar cuenta"><i class="fa-solid fa-user-check"></i></button>`
+                                : (u.idUsuario === Number(localStorage.getItem("id_usuario")) ? "" : `<button class="btn-icono ambar" onclick="darDeBajaUsuario(${u.idUsuario})" title="Dar de baja"><i class="fa-solid fa-user-slash"></i></button>`)}
                         </td>
                     </tr>`).join("")}</tbody>
             </table>`;
@@ -133,11 +138,21 @@ async function desbloquearUsuario(id) {
     if (!seccion) return;
     const bitacora = document.getElementById("seccion-bitacora");
     const arrancar = () => {
-        if (rol() !== "ADMINISTRADOR") { seccion.style.display = "none"; if (bitacora) bitacora.style.display = "none"; return; }
+        if (rol() !== "ADMINISTRADOR") {
+            // quien no es administrador solo ve los parametros
+            seccion.style.display = "none";
+            if (bitacora) bitacora.style.display = "none";
+            document.querySelectorAll('[data-pestana="pestana-usuarios"], [data-pestana="pestana-correos"]').forEach(b => { b.style.display = "none"; });
+            const parametros = document.querySelector('[data-pestana="pestana-parametros"]');
+            if (parametros) parametros.click();
+            return;
+        }
         document.getElementById("form-usuario").addEventListener("submit", crearUsuario);
         document.getElementById("form-clave-usuario").addEventListener("submit", guardarClaveUsuario);
         document.getElementById("form-correo-usuario").addEventListener("submit", guardarCorreoUsuario);
         document.getElementById("form-especialidad-usuario").addEventListener("submit", guardarEspecialidadUsuario);
+        document.getElementById("form-datos-usuario").addEventListener("submit", guardarDatosUsuario);
+        document.getElementById("datos-usuario-rol").addEventListener("change", alCambiarRolEdicion);
         document.getElementById("usuario-rol").addEventListener("change", alCambiarRol);
         cargarEspecialidades();
         cargarUsuarios();
@@ -146,7 +161,9 @@ async function desbloquearUsuario(id) {
     if (window.ROL_ACTUAL) arrancar(); else document.addEventListener("sesion-lista", arrancar, { once: true });
 })();
 
+// ---------------------------------------------------------------------------
 // Especialidad de los medicos (la Fundacion los asigna segun la especialidad que pide la solicitud)
+// ---------------------------------------------------------------------------
 let especialidades = ["Medicina general", "Geriatría", "Cardiología", "Neurología", "Endocrinología", "Reumatología",
     "Traumatología", "Neumología", "Oftalmología", "Psiquiatría", "Urología", "Gastroenterología"];   // si el servidor no responde
 
@@ -158,6 +175,7 @@ async function cargarEspecialidades() {
     const opciones = '<option value="">-- Seleccionar --</option>' + especialidades.map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join("");
     document.getElementById("usuario-especialidad").innerHTML = opciones;
     document.getElementById("especialidad-nueva").innerHTML = opciones;
+    document.getElementById("datos-usuario-especialidad").innerHTML = opciones;
 }
 
 // La especialidad solo se pide cuando el rol elegido es Doctor
@@ -181,7 +199,9 @@ async function guardarEspecialidadUsuario(event) {
     if (ok) cerrarPanel("panel-especialidad-usuario");
 }
 
-// Bitacora de correos: si un correo falla, aqui se ve 
+// ---------------------------------------------------------------------------
+// Bitacora de correos: si un correo falla, aqui se ve (antes quedaba oculto)
+// ---------------------------------------------------------------------------
 async function cargarBitacora() {
     const contenedor = document.getElementById("contenedor-bitacora");
     if (!contenedor) return;
@@ -204,4 +224,56 @@ async function cargarBitacora() {
         console.error(err);
         contenedor.innerHTML = "<p style='color:#c62828;'>No se pudo cargar la bitácora de correos.</p>";
     }
+}
+
+// ---------------------------------------------------------------------------
+// Editar nombre y rol, dar de baja y reactivar (la cuenta nunca se borra: se conserva su historial)
+// ---------------------------------------------------------------------------
+function alCambiarRolEdicion() {
+    document.getElementById("datos-grupo-especialidad").style.display = document.getElementById("datos-usuario-rol").value === "DOCTOR" ? "block" : "none";
+}
+
+function abrirDatosUsuario(id) {
+    const u = usuariosCache.find(x => x.idUsuario === id);
+    if (!u) return;
+    document.getElementById("datos-usuario-id").value = id;
+    document.getElementById("datos-usuario-login").innerHTML = `Usuario: <strong>${esc(u.nombreUsuario)}</strong>`;
+    document.getElementById("datos-usuario-nombre").value = u.nombreCompleto;
+    document.getElementById("datos-usuario-rol").value = u.rol;
+    document.getElementById("datos-usuario-especialidad").value = u.especialidad || "";
+    alCambiarRolEdicion();
+    abrirPanel("panel-datos-usuario");
+}
+
+async function guardarDatosUsuario(event) {
+    event.preventDefault();
+    const id = document.getElementById("datos-usuario-id").value;
+    const rol = document.getElementById("datos-usuario-rol").value;
+    const especialidad = document.getElementById("datos-usuario-especialidad").value;
+    const actual = usuariosCache.find(x => x.idUsuario === Number(id));
+    // Al pasar a Doctor hace falta la especialidad; un medico que sigue siendo medico conserva la suya
+    if (rol === "DOCTOR" && !especialidad) { mostrarModal("Falta la especialidad", "Elija la especialidad del médico.", "error"); return; }
+    const ok = await enviarUsuario(`${USUARIOS_API_URL}/${id}/datos`, "PUT", {
+        nombreCompleto: document.getElementById("datos-usuario-nombre").value.trim(),
+        rol,
+        especialidad: rol === "DOCTOR" ? especialidad : null,
+    }, actual && actual.rol !== rol ? "Datos actualizados. La persona deberá volver a iniciar sesión." : "Datos actualizados.");
+    if (ok) cerrarPanel("panel-datos-usuario");
+}
+
+async function darDeBajaUsuario(id) {
+    const u = usuariosCache.find(x => x.idUsuario === id);
+    if (!u) return;
+    const acepta = await confirmar({
+        titulo: "Dar de baja a un usuario",
+        mensaje: `¿Dar de baja a ${u.nombreCompleto}? No podrá iniciar sesión, pero su historial se conserva y se puede reactivar.`,
+        textoAceptar: "Dar de baja",
+        peligro: true,
+    });
+    if (!acepta) return;
+    await enviarUsuario(`${USUARIOS_API_URL}/${id}/baja`, "PUT", null, "La cuenta fue dada de baja.");
+}
+
+async function reactivarUsuario(id) {
+    await enviarUsuario(`${USUARIOS_API_URL}/${id}/reactivar`, "PUT", null, "La cuenta fue reactivada.");
 }

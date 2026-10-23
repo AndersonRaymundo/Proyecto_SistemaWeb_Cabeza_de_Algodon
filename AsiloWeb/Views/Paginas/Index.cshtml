@@ -18,8 +18,41 @@
 
       <main class="area-trabajo">
         <h1><i class="fa-solid fa-gear"></i> Configuración del Sistema</h1>
-        <p>Parámetros vigentes del sistema y administración de los usuarios.</p>
+        <p>Cuentas de usuario, correos enviados y parámetros del sistema.</p>
 
+        <div class="pestanas">
+            <button type="button" class="pestana activa" data-pestana="pestana-usuarios"><i class="fa-solid fa-users-gear"></i> Usuarios</button>
+            <button type="button" class="pestana" data-pestana="pestana-correos"><i class="fa-solid fa-envelope-circle-check"></i> Correos enviados</button>
+            <button type="button" class="pestana" data-pestana="pestana-parametros"><i class="fa-solid fa-sliders"></i> Parámetros</button>
+        </div>
+
+        <div id="pestana-usuarios" class="pestana-contenido activa">
+        <div class="formulario-datos" id="seccion-usuarios">
+            <div class="barra-herramientas">
+                <h2 style="margin:0;"><i class="fa-solid fa-users-gear"></i> Usuarios del sistema</h2>
+                <span class="espacio"></span>
+                <button type="button" class="btn-guardar" data-abrir="panel-usuario"><i class="fa-solid fa-user-plus"></i> Nuevo usuario</button>
+            </div>
+            <p style="color:#64748b; font-size:.88rem;">Cuentas de acceso al sistema: crear usuarios, asignar especialidades, cambiar contraseñas y correos, y desbloquear cuentas.</p>
+            <div id="contenedor-usuarios"></div>
+        </div>
+
+        <!-- BITACORA DE CORREOS (solo el administrador) -->
+        </div>
+
+        <div id="pestana-correos" class="pestana-contenido">
+        <div class="formulario-datos" id="seccion-bitacora">
+            <div class="barra-herramientas">
+                <h2 style="margin:0;"><i class="fa-solid fa-envelope-circle-check"></i> Correos enviados</h2>
+                <span class="espacio"></span>
+                <button type="button" class="btn-guardar btn-secundario" onclick="cargarBitacora()"><i class="fa-solid fa-rotate"></i> Actualizar</button>
+            </div>
+            <p style="color:#64748b; font-size:.88rem;">Registro de los últimos 50 correos del sistema (solicitudes, citas, comprobantes y códigos de recuperación) y si se enviaron.</p>
+            <div id="contenedor-bitacora"></div>
+        </div>
+        </div>
+
+        <div id="pestana-parametros" class="pestana-contenido">
         <div class="formulario-datos">
             <h2><i class="fa-solid fa-building"></i> Institución</h2>
             <div class="dato-clinico"><span>Nombre</span><span>Asilo de Ancianos Cabeza de Algodón</span></div>
@@ -35,25 +68,6 @@
         </div>
 
         <!-- USUARIOS DEL SISTEMA (solo el administrador) -->
-        <div class="formulario-datos" id="seccion-usuarios">
-            <div class="barra-herramientas">
-                <h2 style="margin:0;"><i class="fa-solid fa-users-gear"></i> Usuarios del sistema</h2>
-                <span class="espacio"></span>
-                <button type="button" class="btn-guardar" data-abrir="panel-usuario"><i class="fa-solid fa-user-plus"></i> Nuevo usuario</button>
-            </div>
-            <p style="color:#64748b; font-size:.88rem;">Cuentas de acceso al sistema: crear usuarios, asignar especialidades, cambiar contraseñas y correos, y desbloquear cuentas.</p>
-            <div id="contenedor-usuarios"></div>
-        </div>
-
-        <!-- BITACORA DE CORREOS (solo el administrador) -->
-        <div class="formulario-datos" id="seccion-bitacora">
-            <div class="barra-herramientas">
-                <h2 style="margin:0;"><i class="fa-solid fa-envelope-circle-check"></i> Correos enviados</h2>
-                <span class="espacio"></span>
-                <button type="button" class="btn-guardar btn-secundario" onclick="cargarBitacora()"><i class="fa-solid fa-rotate"></i> Actualizar</button>
-            </div>
-            <p style="color:#64748b; font-size:.88rem;">Registro de los últimos 50 correos del sistema (solicitudes, citas, comprobantes y códigos de recuperación) y si se enviaron.</p>
-            <div id="contenedor-bitacora"></div>
         </div>
     </main>
     </div>
@@ -123,6 +137,40 @@
                     <div class="panel-pie">
                         <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
                         <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Guardar contraseña</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- VENTANA: EDITAR LOS DATOS DE UN USUARIO (nombre y rol) -->
+    <div class="panel-fondo" id="panel-datos-usuario">
+        <div class="panel" role="dialog" aria-modal="true">
+            <div class="panel-cabecera">
+                <h2><i class="fa-solid fa-user-pen"></i> Editar usuario</h2>
+                <button type="button" class="panel-cerrar" data-cerrar aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-cuerpo">
+                <form id="form-datos-usuario">
+                    <p id="datos-usuario-login"></p>
+                    <input type="hidden" id="datos-usuario-id">
+                    <div class="grupo-campo"><label>Nombre completo:</label>
+                        <input type="text" id="datos-usuario-nombre" maxlength="100" required></div>
+                    <div class="grupo-campo"><label>Rol:</label>
+                        <select id="datos-usuario-rol" required>
+                            <option value="ADMINISTRADOR">Administrador</option>
+                            <option value="DOCTOR">Doctor</option>
+                            <option value="ENFERMERO">Enfermero</option>
+                            <option value="FARMACIA">Farmacia</option>
+                            <option value="FUNDACION">Fundación</option>
+                            <option value="LABORATORIO">Laboratorio</option>
+                        </select></div>
+                    <div class="grupo-campo" id="datos-grupo-especialidad" style="display:none;"><label>Especialidad del médico:</label>
+                        <select id="datos-usuario-especialidad"><option value="">-- Seleccionar --</option></select></div>
+                    <p style="color:#64748b; font-size:.85rem;">El nombre de usuario no se puede cambiar. Si cambia el rol, la persona tendrá que volver a iniciar sesión.</p>
+                    <div class="panel-pie">
+                        <button type="button" class="btn-guardar btn-secundario" data-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-guardar"><i class="fa-solid fa-floppy-disk"></i> Guardar cambios</button>
                     </div>
                 </form>
             </div>

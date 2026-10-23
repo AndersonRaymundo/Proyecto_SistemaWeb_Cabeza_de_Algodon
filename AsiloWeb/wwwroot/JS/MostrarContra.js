@@ -20,12 +20,20 @@ function togglePassword(idCampo, boton) {
 }
 
 // Iniciar sesion contra AuthController
+// El aviso del Login sale en la pagina (no en una ventana del navegador)
+function mostrarErrorLogin(texto) {
+    const aviso = document.getElementById("error-login");
+    aviso.textContent = texto;
+    aviso.style.display = "block";
+}
+
 async function iniciarSesion() {
+    document.getElementById("error-login").style.display = "none";
     const usuario = document.getElementById("usuario").value.trim();
     const contrasena = document.getElementById("contrasena").value;
 
     if (!usuario || !contrasena) {
-        alert("Por favor ingrese su nombre de usuario y contraseña.");
+        mostrarErrorLogin("Por favor ingrese su nombre de usuario y contraseña.");
         return;
     }
 
@@ -41,7 +49,7 @@ async function iniciarSesion() {
 
         if (!respuesta.ok) {
             const datosError = await respuesta.json().catch(() => null);
-            alert(datosError?.message || "Usuario o contraseña incorrectos.");
+            mostrarErrorLogin(datosError?.message || "Usuario o contraseña incorrectos.");
             return;
         }
 
@@ -55,7 +63,7 @@ async function iniciarSesion() {
         mostrarModalBienvenida();
     } catch (error) {
         console.error("Error al conectar con el login:", error);
-        alert("No se pudo conectar con el servidor.");
+        mostrarErrorLogin("No se pudo conectar con el servidor.");
     }
 }
 

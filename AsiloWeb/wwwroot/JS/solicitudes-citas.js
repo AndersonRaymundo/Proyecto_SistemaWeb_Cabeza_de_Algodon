@@ -14,6 +14,8 @@ let medicos = [];             // usuarios con rol DOCTOR
 let enfermeros = [];          // usuarios con rol ENFERMERO (los que pueden acompañar al residente)
 let especialidades = ["Medicina general", "Geriatría", "Cardiología", "Neurología", "Endocrinología", "Reumatología",
     "Traumatología", "Neumología", "Oftalmología", "Psiquiatría", "Urología", "Gastroenterología"];   // si el servidor no responde
+let todosMedicos = [];          // todos los medicos, incluidos los dados de baja
+let citasCache = [];            // las solicitudes cargadas (la ventana de cancelar las consulta)
 let solicitudesVisibles = 10;  // paginacion: cuantas solicitudes se muestran (de 10 en 10)
 let filtroEstadoActual = "";    // pestaña elegida: "" = todas, o Pendiente / Agendada / Atendida / Cancelada
 let porcentajeDescuento = 0;  // descuento de la fundacion (RF-10)
@@ -22,6 +24,7 @@ let porcentajeDescuento = 0;  // descuento de la fundacion (RF-10)
 function iniciar() {
     hacerBuscable("select-residente-solicitud");
     cargarEspecialidades();
+    document.getElementById("form-cancelar-cita").addEventListener("submit", confirmarCancelacion);
     cargarSelectResidentes();
     cargarMedicos();
     cargarDescuento();
@@ -80,8 +83,9 @@ async function cargarMedicos() {
         const respuesta = await fetch(USUARIOS_API_URL);
         if (!respuesta.ok) return;
         const usuarios = await respuesta.json();
-        medicos = usuarios.filter(u => u.rol === "DOCTOR");
-        enfermeros = usuarios.filter(u => u.rol === "ENFERMERO");
+        todosMedicos = usuarios.filter(u => u.rol === "DOCTOR");               // para mostrar el nombre en citas ya hechas
+        medicos = todosMedicos.filter(u => u.activo !== false);               // solo los activos se ofrecen en la agenda
+        enfermeros = usuarios.filter(u => u.rol === "ENFERMERO" && u.activo !== false);
         // el acompañante se elige de la lista de enfermeros del sistema (se guarda su nombre)
         document.getElementById("enfermero-asignado").innerHTML = '<option value="">-- Sin acompañante --</option>' +
             enfermeros.map(e => `<option value="${esc(e.nombreCompleto)}">${esc(e.nombreCompleto)}</option>`).join("");
@@ -169,6 +173,7 @@ async function cargarSolicitudes() {
         document.querySelectorAll("#filtro-estado [data-cuenta]").forEach(c => {
             c.textContent = c.dataset.cuenta ? todas.filter(x => x.estado === c.dataset.cuenta).length : todas.length;
         });
+        citasCache = todas;
         const citas = filtroEstadoActual ? todas.filter(c => c.estado === filtroEstadoActual) : todas;
 
         if (!Array.isArray(citas) || citas.length === 0) {
@@ -184,7 +189,7 @@ async function cargarSolicitudes() {
         const visibles = citas.slice(0, solicitudesVisibles);
         contenedor.innerHTML = visibles.map(c => {
             const nombre = (mapaResidentes[c.idPaciente] || {}).nombreCompleto || `Residente #${c.idPaciente}`;
-            const medico = medicos.find(m => m.idUsuario === c.idDoctor);
+            const medico = todosMedicos.find(m => m.idUsuario === c.idDoctor);
             const fechaCita = c.fechaCita ? new Date(c.fechaCita).toLocaleString("es-GT", { weekday: "short", day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }) : "Sin agendar";
 
             const dadoDeBaja = (mapaResidentes[c.idPaciente] || {}).estado === false;
@@ -262,17 +267,42 @@ function mostrarReprogramar(idCita) {
     bloque.style.display = bloque.style.display === "none" ? "block" : "none";
 }
 
-// Cancela una cita agendada (el horario queda libre y el familiar recibe un aviso)
-async function cancelarCita(idCita) {
-    const motivo = prompt("Motivo de la cancelación de la cita:");
-    if (motivo === null) return;   // la persona se arrepintio
+// Cancelar una cita agendada: una ventana del sistema con el resumen de la cita y el motivo
+// (el horario queda libre y el familiar recibe un aviso)
+function cancelarCita(idCita) {
+    const c = citasCache.find(x => x.idCita === idCita);
+    if (!c) return;
+    const nombre = (mapaResidentes[c.idPaciente] || {}).nombreCompleto || `Residente #${c.idPaciente}`;
+    const medico = todosMedicos.find(m => m.idUsuario === c.idDoctor);
+    const fecha = c.fechaCita ? new Date(c.fechaCita).toLocaleString("es-GT", { weekday: "short", day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }) : "Sin fecha";
+    document.getElementById("cancelar-cita-id").value = idCita;
+    document.getElementById("cancelar-cita-resumen").innerHTML =
+        `<strong>${esc(nombre)}</strong> · ${esc(c.especialidadSolicitada)}<br>${esc(fecha)}${medico ? ` · ${esc(medico.nombreCompleto)}` : ""}`;
+    document.getElementById("cancelar-cita-motivo").value = "";
+    document.querySelectorAll(".motivo-rapido").forEach(b => b.classList.remove("activo"));
+    abrirPanel("panel-cancelar-cita");
+}
+
+// Los motivos frecuentes se pulsan; "Otro" deja el campo vacio para escribirlo
+function elegirMotivoRapido(boton) {
+    document.querySelectorAll(".motivo-rapido").forEach(b => b.classList.toggle("activo", b === boton));
+    const campo = document.getElementById("cancelar-cita-motivo");
+    campo.value = boton.textContent.trim() === "Otro" ? "" : boton.textContent.trim();
+    campo.focus();
+}
+
+async function confirmarCancelacion(event) {
+    event.preventDefault();
+    const idCita = document.getElementById("cancelar-cita-id").value;
+    const motivo = document.getElementById("cancelar-cita-motivo").value.trim();
     try {
         const respuesta = await fetch(`${CITAS_API_URL}/${idCita}/cancelar`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ motivo: motivo.trim() }),
+            body: JSON.stringify({ motivo }),
         });
         if (!respuesta.ok) { mostrarModal("No se pudo cancelar", await mensajeError(respuesta), "error"); return; }
+        cerrarPanel("panel-cancelar-cita");
         mostrarModal("Cita cancelada", "El horario quedó libre y se avisó por correo al familiar.", "exito");
         cargarSolicitudes();
     } catch (err) {

@@ -56,7 +56,7 @@
     if (btnSalir) {
         btnSalir.addEventListener("click", async function (evento) {
             evento.preventDefault();
-            if (!confirm("¿Está seguro de que desea cerrar la sesión actual?")) return;
+            if (!await confirmar({ titulo: "Cerrar sesión", mensaje: "¿Está seguro de que desea cerrar la sesión actual?", textoAceptar: "Cerrar sesión" })) return;
             try { await fetch("/api/Auth/logout", { method: "POST" }); } catch (e) { }
             localStorage.clear();
             sessionStorage.clear();
