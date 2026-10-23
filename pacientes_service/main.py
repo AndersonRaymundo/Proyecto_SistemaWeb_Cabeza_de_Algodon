@@ -20,7 +20,8 @@ from typing import Optional, List
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import create_engine, Column, Integer, String, Date, DateTime, Boolean, or_, func
+from sqlalchemy import create_engine, Column, Integer, String, Date, DateTime, Boolean, or_, func, inspect, text
+from sqlalchemy.schema import CreateColumn
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 
 DATABASE_URL = os.getenv(
@@ -54,6 +55,8 @@ class Residente(Base):
     nombre_tutor = Column("nombre_tutor", String(200), nullable=False)
     telefono_tutor = Column("telefono_tutor", String(50), nullable=False)
     correo_tutor = Column("correo_tutor", String(150), nullable=True)
+    parentesco_tutor = Column("parentesco_tutor", String(60), nullable=True)
+    telefono_alterno = Column("telefono_alterno", String(50), nullable=True)
     estado = Column("estado", Boolean, default=True)
 
 # Esquemas Pydantic--------------------------------------
@@ -67,6 +70,8 @@ class ResidenteBase(BaseModel):
     nombreTutor: str
     telefonoTutor: str
     correoTutor: Optional[str] = None
+    parentescoTutor: Optional[str] = None
+    telefonoAlterno: Optional[str] = None
     estado: bool = True
 
 
@@ -82,6 +87,8 @@ class ResidenteUpdate(BaseModel):
     nombreTutor: Optional[str] = None
     telefonoTutor: Optional[str] = None
     correoTutor: Optional[str] = None
+    parentescoTutor: Optional[str] = None
+    telefonoAlterno: Optional[str] = None
     estado: Optional[bool] = None
 
 
@@ -96,6 +103,8 @@ class ResidenteOut(BaseModel):
     nombreTutor: str
     telefonoTutor: str
     correoTutor: Optional[str] = None
+    parentescoTutor: Optional[str] = None
+    telefonoAlterno: Optional[str] = None
     estado: bool
 
     @classmethod
@@ -110,6 +119,8 @@ class ResidenteOut(BaseModel):
             nombreTutor=r.nombre_tutor,
             telefonoTutor=r.telefono_tutor,
             correoTutor=r.correo_tutor,
+            parentescoTutor=r.parentesco_tutor,
+            telefonoAlterno=r.telefono_alterno,
             estado=bool(r.estado),
         )
 
@@ -148,9 +159,25 @@ app.add_middleware(
 )
 
 
+def asegurar_columnas():
+    """create_all solo crea las tablas que faltan. Si TBL_PACIENTES ya existia de una version anterior,
+    agrega las columnas nuevas (parentesco y telefono alterno) sin tocar los datos."""
+    inspector = inspect(engine)
+    tabla = Residente.__tablename__
+    if not inspector.has_table(tabla):
+        return
+    existentes = {columna["name"] for columna in inspector.get_columns(tabla)}
+    with engine.begin() as conexion:
+        for columna in Residente.__table__.columns:
+            if columna.name not in existentes:
+                definicion = CreateColumn(columna).compile(dialect=engine.dialect)
+                conexion.execute(text(f"ALTER TABLE {tabla} ADD {definicion}"))
+
+
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
+    asegurar_columnas()
 
 
 @app.get("/")
@@ -206,6 +233,8 @@ def crear_residente(datos: ResidenteCreate, db: Session = Depends(get_db)):
     # Si no se envia expediente, se asigna el siguiente automaticamente
     expediente = datos.noExpediente.strip() or siguiente_expediente(db)
     validar_expediente_libre(db, expediente)
+    if not (datos.parentescoTutor or "").strip():
+        raise HTTPException(status_code=422, detail="Indique el parentesco del familiar con el residente.")
     if datos.fechaIngreso:
         fecha_ing_dt = datetime.combine(datos.fechaIngreso, datetime.min.time())
     else:
@@ -219,6 +248,8 @@ def crear_residente(datos: ResidenteCreate, db: Session = Depends(get_db)):
         nombre_tutor=datos.nombreTutor,
         telefono_tutor=datos.telefonoTutor,
         correo_tutor=datos.correoTutor,
+        parentesco_tutor=(datos.parentescoTutor or "").strip() or None,
+        telefono_alterno=(datos.telefonoAlterno or "").strip() or None,
         estado=datos.estado,
     )
     db.add(nuevo)
@@ -241,6 +272,8 @@ def actualizar_residente(id_residente: int, datos: ResidenteUpdate, db: Session 
         "nombreTutor": "nombre_tutor",
         "telefonoTutor": "telefono_tutor",
         "correoTutor": "correo_tutor",
+        "parentescoTutor": "parentesco_tutor",
+        "telefonoAlterno": "telefono_alterno",
         "estado": "estado",
     }
     cambios = datos.model_dump(exclude_unset=True)

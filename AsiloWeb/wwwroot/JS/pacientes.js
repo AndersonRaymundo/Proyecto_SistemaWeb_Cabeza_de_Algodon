@@ -31,6 +31,7 @@ async function cargarResidentes() {
                 const tut = r.nombreTutor || r.NombreTutor || '-';
                 const tel = r.telefonoTutor || r.TelefonoTutor || '-';
                 const correo = r.correoTutor || r.CorreoTutor || '';
+                const par = r.parentescoTutor || r.ParentescoTutor || '';
                 const est = (r.estado !== undefined ? r.estado : r.Estado) ?? true;
                 const edad = calcularEdad(r.fechaNacimiento || r.FechaNacimiento);
 
@@ -39,7 +40,7 @@ async function cargarResidentes() {
                         <td>${esc(exp)}</td>
                         <td>${esc(nom)}</td>
                         <td>${edad === '-' ? '-' : edad + ' años'}</td>
-                        <td>${esc(tut)}</td>
+                        <td>${esc(tut)}${par ? `<small class="parentesco-tabla">${esc(par)}</small>` : ''}</td>
                         <td>${esc(tel)}</td>
                         <td><span class="badge ${est ? 'badge-exito' : 'badge-peligro'}">${est ? 'Activo' : 'Inactivo'}</span></td>
                         <td class="centrado">
@@ -79,6 +80,13 @@ async function guardarResidente(event) {
     const patologias = leerLista('patologias');
     const medicamentosCajon = leerLista('medicamentos');
 
+    // El parentesco es obligatorio al registrar (a los residentes anteriores se les puede completar al editar)
+    const parentesco = leerParentesco();
+    if (idResidenteEdicion === null && !parentesco) {
+        mostrarModal("Falta el parentesco", "Indique qué parentesco tiene el tutor con el residente.", "error");
+        return;
+    }
+
     const residentePayload = {
         idResidente: idResidenteEdicion || 0,
         noExpediente: document.getElementById('txtExpediente').value,
@@ -89,7 +97,9 @@ async function guardarResidente(event) {
         patologia: resumenPatologias(patologias),
         nombreTutor: nombreTutor,
         telefonoTutor: document.getElementById('txtTelefono').value,
-        correoTutor: correoTutor
+        correoTutor: correoTutor,
+        parentescoTutor: parentesco || null,
+        telefonoAlterno: document.getElementById('txtTelefonoAlterno').value.trim() || null
     };
     // Al registrar queda activo; al editar no se toca el estado (un residente dado de baja no se reactiva solo)
     if (idResidenteEdicion === null) residentePayload.estado = true;
@@ -295,6 +305,7 @@ function textoBotonGuardar(editando) {
 function resetearFormulario() {
     idResidenteEdicion = null;
     document.getElementById('formResidente').reset();
+    alCambiarParentesco();
     pintarLista('patologias', []);
     pintarLista('medicamentos', []);
     textoBotonGuardar(false);
@@ -330,6 +341,8 @@ function prepararEdicion(r) {
     document.getElementById('txtTutor').value = r.nombreTutor || r.NombreTutor || '';
     document.getElementById('txtTelefono').value = r.telefonoTutor || r.TelefonoTutor || '';
     document.getElementById('txtCorreo').value = r.correoTutor || r.CorreoTutor || '';
+    asignarParentesco(r.parentescoTutor || r.ParentescoTutor || '');
+    document.getElementById('txtTelefonoAlterno').value = r.telefonoAlterno || r.TelefonoAlterno || '';
     pintarLista('medicamentos', []);
     cargarFichaBase(idResidenteEdicion);
 
@@ -368,7 +381,15 @@ function filtrarResidentes() {
 // 3. BORRADO LÓGICO / CAMBIO DE ESTADO
 async function cambiarEstado(id, nuevoEstado) {
     const accionTexto = nuevoEstado ? "reactivar" : "dar de baja";
-    if (!confirm(`¿Está seguro de que desea ${accionTexto} a este residente?`)) return;
+    const acepta = await confirmar({
+        titulo: nuevoEstado ? 'Reactivar residente' : 'Dar de baja a un residente',
+        mensaje: nuevoEstado
+            ? '¿Reactivar a este residente? Volverá a aparecer en las solicitudes, citas, cobros y despachos.'
+            : '¿Dar de baja a este residente? Se conserva su historial, pero no se podrán registrar solicitudes, citas, cobros ni despachos nuevos.',
+        textoAceptar: nuevoEstado ? 'Reactivar' : 'Dar de baja',
+        peligro: !nuevoEstado,
+    });
+    if (!acepta) return;
 
     try {
         const resGet = await fetch(`${API_URL}/${id}`);
@@ -547,11 +568,37 @@ async function verFicha(id) {
         dato('Estado', est ? 'Activo' : 'Inactivo (dado de baja)') +
         titulo('Tutor') +
         dato('Nombre', r.nombreTutor || r.NombreTutor) +
+        dato('Parentesco', r.parentescoTutor || r.ParentescoTutor || 'No indicado') +
         dato('Teléfono', r.telefonoTutor || r.TelefonoTutor) +
+        ((r.telefonoAlterno || r.TelefonoAlterno) ? dato('Teléfono alternativo', r.telefonoAlterno || r.TelefonoAlterno) : '') +
         dato('Correo', r.correoTutor || r.CorreoTutor) +
         titulo('Patologías / condiciones') +
         datoHtml('Listado', patologias ? `<ul class="lista-ficha">${patologias}</ul>` : '') +
         titulo('Medicamentos de cajón') +
         datoHtml('Listado', cajon ? `<ul class="lista-ficha">${cajon}</ul>` : '');
     abrirPanel('panel-ficha-residente');
+}
+
+// ---------------------------------------------------------------------------
+// Parentesco del tutor: lista fija, y "Otro" para escribirlo a mano
+// ---------------------------------------------------------------------------
+function alCambiarParentesco() {
+    const esOtro = document.getElementById('selParentesco').value === 'Otro';
+    document.getElementById('grupoParentescoOtro').style.display = esOtro ? 'block' : 'none';
+    if (!esOtro) document.getElementById('txtParentescoOtro').value = '';
+}
+
+function leerParentesco() {
+    const valor = document.getElementById('selParentesco').value;
+    return valor === 'Otro' ? document.getElementById('txtParentescoOtro').value.trim() : valor;
+}
+
+// Al editar: si el parentesco guardado esta en la lista se elige; si no, se muestra como "Otro" con su texto
+function asignarParentesco(valor) {
+    const lista = document.getElementById('selParentesco');
+    const conocidos = [...lista.options].map(o => o.value).filter(v => v && v !== 'Otro');
+    if (!valor) lista.value = '';
+    else lista.value = conocidos.includes(valor) ? valor : 'Otro';
+    alCambiarParentesco();
+    if (lista.value === 'Otro') document.getElementById('txtParentescoOtro').value = valor;
 }

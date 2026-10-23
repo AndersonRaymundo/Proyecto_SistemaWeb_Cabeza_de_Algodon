@@ -140,7 +140,9 @@ namespace AsiloWeb.Controllers
                         new List<string> { "Nombre completo", Vacio(paciente?.NombreCompleto) },
                         new List<string> { "Motivo de reclusión / patología", Vacio(paciente?.Patologia) },
                         new List<string> { "Tutor responsable", Vacio(paciente?.NombreTutor) },
+                        new List<string> { "Parentesco", Vacio(paciente?.ParentescoTutor) },
                         new List<string> { "Teléfono del tutor", Vacio(paciente?.TelefonoTutor) },
+                        new List<string> { "Teléfono alternativo", Vacio(paciente?.TelefonoAlterno) },
                         new List<string> { "Correo del tutor", Vacio(paciente?.CorreoTutor) }
                     }
                 },
@@ -290,7 +292,7 @@ namespace AsiloWeb.Controllers
             var filtros = new List<string>
             {
                 $"Residente: {residente.NombreCompleto} (expediente {residente.NoExpediente})",
-                $"Responsable: {Vacio(residente.NombreTutor)} | Tel. {Vacio(residente.TelefonoTutor)} | {Vacio(residente.CorreoTutor)}",
+                $"Responsable: {Vacio(residente.NombreTutor)} ({Vacio(residente.ParentescoTutor)}) | Tel. {Vacio(residente.TelefonoTutor)}{(string.IsNullOrWhiteSpace(residente.TelefonoAlterno) ? "" : " / " + residente.TelefonoAlterno)} | {Vacio(residente.CorreoTutor)}",
                 $"Saldo pendiente al {Fecha(DateTime.Today)}: {Q(totalCargos - totalPagos)}"
             };
             filtros.AddRange(FiltrosFecha(desde, hasta));

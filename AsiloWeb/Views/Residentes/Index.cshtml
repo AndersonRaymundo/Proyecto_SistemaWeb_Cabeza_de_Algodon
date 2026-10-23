@@ -71,6 +71,7 @@
             </div>
             <div class="panel-cuerpo">
                 <form id="formResidente" onsubmit="guardarResidente(event)">
+                    <h3 class="seccion-formulario">Datos del residente</h3>
                     <div class="fila-2">
                     <div class="grupo-campo">
                         <label for="txtExpediente">No. de expediente</label>
@@ -86,24 +87,53 @@
                         <label for="txtFechaNacimiento">Fecha de nacimiento</label>
                         <input type="date" id="txtFechaNacimiento" placeholder="" required>
                     </div>
-                    <div class="grupo-campo">
-                        <label>Patologías / condiciones</label>
-                        <div id="listaPatologias" class="lista-editable"></div>
-                        <button type="button" class="btn-agregar" onclick="agregarFila('patologias')"><i class="fa-solid fa-plus"></i> Agregar patología</button>
-                    </div>
-                    <div class="fila-3">
+
+                    <h3 class="seccion-formulario">Tutor o familiar responsable</h3>
+                    <div class="fila-2">
                     <div class="grupo-campo">
                         <label for="txtTutor">Nombre del tutor</label>
                         <input type="text" id="txtTutor" placeholder="Nombre del encargado">
                     </div>
                     <div class="grupo-campo">
+                        <label for="selParentesco">Parentesco con el residente</label>
+                        <select id="selParentesco" onchange="alCambiarParentesco()">
+                            <option value="">-- Seleccionar --</option>
+                            <option value="Hijo(a)">Hijo(a)</option>
+                            <option value="Nieto(a)">Nieto(a)</option>
+                            <option value="Hermano(a)">Hermano(a)</option>
+                            <option value="Sobrino(a)">Sobrino(a)</option>
+                            <option value="Cónyuge">Cónyuge</option>
+                            <option value="Yerno / Nuera">Yerno / Nuera</option>
+                            <option value="Primo(a)">Primo(a)</option>
+                            <option value="Tutor legal">Tutor legal</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    </div>
+                    <div class="grupo-campo" id="grupoParentescoOtro" style="display:none;">
+                        <label for="txtParentescoOtro">Especifique el parentesco</label>
+                        <input type="text" id="txtParentescoOtro" maxlength="60" placeholder="Ej. Cuñado(a), vecino(a)">
+                    </div>
+                    <div class="fila-3">
+                    <div class="grupo-campo">
                         <label for="txtTelefono">Teléfono del tutor</label>
                         <input type="tel" id="txtTelefono" placeholder="Teléfono de contacto">
+                    </div>
+                    <div class="grupo-campo">
+                        <label for="txtTelefonoAlterno">Teléfono alternativo (opcional)</label>
+                        <input type="tel" id="txtTelefonoAlterno" placeholder="Otro número del tutor">
                     </div>
                     <div class="grupo-campo">
                         <label for="txtCorreo">Correo del tutor</label>
                         <input type="email" id="txtCorreo" placeholder="correo@ejemplo.com">
                     </div>
+                    </div>
+
+                    <h3 class="seccion-formulario">Datos clínicos</h3>
+                    <div class="grupo-campo">
+                        <label>Patologías / condiciones</label>
+                        <div id="listaPatologias" class="lista-editable"></div>
+                        <button type="button" class="btn-agregar" onclick="agregarFila('patologias')"><i class="fa-solid fa-plus"></i> Agregar patología</button>
                     </div>
                     <div class="grupo-campo">
                         <label>Medicamentos de cajón (uso continuo)</label>

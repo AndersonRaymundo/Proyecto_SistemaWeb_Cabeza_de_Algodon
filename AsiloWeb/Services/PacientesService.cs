@@ -12,6 +12,8 @@ namespace AsiloWeb.Services
         public string? NombreTutor { get; set; }
         public string? TelefonoTutor { get; set; }
         public string? CorreoTutor { get; set; }
+        public string? ParentescoTutor { get; set; }
+        public string? TelefonoAlterno { get; set; }
         public bool Estado { get; set; } = true;
     }
 

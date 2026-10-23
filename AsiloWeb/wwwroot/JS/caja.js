@@ -12,6 +12,8 @@ let gruposVisibles = GRUPOS_POR_PAGINA;
 let filtroCobros = "Pendiente";   // pestaña elegida: "Pendiente" (la de inicio) o "Pagado" (cancelados)
 
 const fecha = f => (f ? new Date(f).toLocaleDateString("es-GT") : "-");
+// Nombre del tutor con su parentesco, y sus telefonos (el alternativo solo si existe)
+const datosTutor = r => `${esc(r.nombreTutor || "-")}${r.parentescoTutor ? " (" + esc(r.parentescoTutor) + ")" : ""} · Tel. ${esc(r.telefonoTutor || "-")}${r.telefonoAlterno ? " / " + esc(r.telefonoAlterno) : ""}`;
 const fechaHora = f => (f ? new Date(f).toLocaleString("es-GT") : "-");
 const nombreDe = id => (mapaResidentes[id] || {}).nombreCompleto || `Residente #${id}`;
 
@@ -409,7 +411,7 @@ async function abrirEstadoCuenta(idPaciente, evento) {
         document.getElementById("contenido-estado-cuenta").innerHTML = `
             <div class="estado-cuenta-datos">
                 <p><strong>${esc(nombreDe(idPaciente))}</strong> · expediente ${esc(r.noExpediente || "-")}</p>
-                <p>Responsable: ${esc(r.nombreTutor || "-")} · Tel. ${esc(r.telefonoTutor || "-")} · ${esc(r.correoTutor || "sin correo")}</p>
+                <p>Responsable: ${datosTutor(r)} · ${esc(r.correoTutor || "sin correo")}</p>
             </div>
             <div class="estado-cuenta-resumen">
                 <span class="chip chip-cancelado">Cargos ${quetzales(cargos)}</span>
@@ -430,7 +432,7 @@ function imprimirEstadoCuenta() {
     imprimirHtml("Estado de cuenta", `
         <div class="cabecera"><div><h1>Asilo Cabeza de Algodón</h1><div>Estado de cuenta</div></div><div class="der">${new Date().toLocaleDateString("es-GT")}</div></div>
         <p class="dato"><strong>Residente:</strong> ${esc(nombreDe(e.idPaciente))} (expediente ${esc(r.noExpediente || "-")})</p>
-        <p class="dato"><strong>Responsable:</strong> ${esc(r.nombreTutor || "-")} · Tel. ${esc(r.telefonoTutor || "-")} · ${esc(r.correoTutor || "sin correo")}</p>
+        <p class="dato"><strong>Responsable:</strong> ${datosTutor(r)} · ${esc(r.correoTutor || "sin correo")}</p>
         <p class="dato"><strong>Saldo pendiente:</strong> ${quetzales(e.cargos - e.pagos)}</p>
         <h2>Movimientos</h2>${tablaEstadoCuenta(e, false)}`);
 }
@@ -462,7 +464,7 @@ function imprimirRecibo(idPago) {
         <div class="cabecera"><div><h1>Asilo Cabeza de Algodón</h1><div>Recibo de pago</div></div>
             <div class="der">No. ${p.idPago}<br>${fechaHora(p.fechaCancelado || p.fechaPago)}</div></div>
         <p class="dato"><strong>Residente:</strong> ${esc(nombreDe(p.idPaciente))} (expediente ${esc(r.noExpediente || "-")})</p>
-        <p class="dato"><strong>Recibimos de:</strong> ${esc(r.nombreTutor || "el familiar responsable")}</p>
+        <p class="dato"><strong>Recibimos de:</strong> ${esc(r.nombreTutor || "el familiar responsable")}${r.parentescoTutor ? " (" + esc(r.parentescoTutor) + ")" : ""}</p>
         <table><tr><th>Concepto</th><th class="der">Monto</th></tr>
             <tr><td>${esc(p.conceptoPago)}</td><td class="der">${quetzales(p.monto)}</td></tr>
             <tr class="total"><td>Total pagado</td><td class="der">${quetzales(p.monto)}</td></tr></table>
