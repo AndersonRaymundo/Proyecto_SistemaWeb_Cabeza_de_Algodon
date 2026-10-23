@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -54,6 +55,24 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.AccessDeniedPath = "/Home/MENU";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
+        // En cada peticion se confirma que la cuenta siga activa y con el mismo rol: si se dio de baja o se le cambio
+        // el rol, la sesion abierta deja de valer y la persona vuelve al Login.
+        options.Events.OnValidatePrincipal = async ctx =>
+        {
+            var texto = ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(texto, out var idUsuario)) return;
+            var rolEnSesion = ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            var db = ctx.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+            var cuenta = await db.Usuarios.AsNoTracking()
+                .Where(u => u.IdUsuario == idUsuario)
+                .Select(u => new { u.Activo, u.Rol })
+                .FirstOrDefaultAsync();
+            if (cuenta == null || !cuenta.Activo || cuenta.Rol != rolEnSesion)
+            {
+                ctx.RejectPrincipal();
+                await ctx.HttpContext.SignOutAsync();
+            }
+        };
         options.Events.OnRedirectToLogin = ctx =>
         {
             if (ctx.Request.Path.StartsWithSegments("/api"))

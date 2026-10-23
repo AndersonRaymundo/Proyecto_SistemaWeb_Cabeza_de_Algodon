@@ -30,6 +30,9 @@ namespace AsiloWeb.Data
             modelBuilder.Entity<Gasto>().Property(g => g.Monto).HasPrecision(10, 2);
             modelBuilder.Entity<AbonoFundacion>().Property(a => a.Monto).HasPrecision(10, 2);
             modelBuilder.Entity<InventarioMedicamento>().Property(i => i.PrecioUnitario).HasPrecision(10, 2);
+
+            // Las cuentas que ya existian quedan activas al agregar la columna (sin esto, la migracion las dejaria dadas de baja)
+            modelBuilder.Entity<Usuario>().Property(u => u.Activo).HasDefaultValue(true);
         }
     }
 }

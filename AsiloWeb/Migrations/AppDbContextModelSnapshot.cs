@@ -522,6 +522,12 @@ namespace BackendAsilo.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdUsuario"));
 
+                    b.Property<bool>("Activo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true)
+                        .HasColumnName("activo");
+
                     b.Property<DateTime?>("BloqueadoHasta")
                         .HasColumnType("datetime2")
                         .HasColumnName("bloqueado_hasta");
