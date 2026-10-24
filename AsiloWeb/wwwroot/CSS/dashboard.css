@@ -465,7 +465,7 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .ts-wrapper.focus .ts-control { border-color: var(--primario) !important; box-shadow: 0 0 0 3px rgba(31, 95, 166, .16) !important; }
 .ts-dropdown { border-radius: var(--radio-sm) !important; border-color: var(--borde-fuerte) !important; box-shadow: 0 10px 24px -8px rgba(15, 23, 42, .25) !important; }
 
-/* ---- 3.3 Botones -------------------------------------------------------- */
+/* ---- 3.3 Botones -----------*/
 .btn-guardar {
     background-color: var(--boton);
     color: #fff;
@@ -513,7 +513,7 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .btn-icono.rojo    { background: var(--peligro-bg);     color: var(--peligro); }
 .btn-icono.gris    { background: #eef1f5;               color: var(--texto-2); }
 
-/* ---- 3.4 Etiquetas (badges) ---------------------------------------------- */
+/* ---- 3.4 Etiquetas (badges) ----------- */
 .badge {
     display: inline-flex;
     align-items: center;
@@ -530,7 +530,7 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .badge-peligro { background: var(--peligro-bg); color: var(--peligro); }
 .badge-info    { background: var(--info-bg);    color: var(--info); }
 
-/* ---- 3.5 Tablas ----------------------------------------------------------- */
+/* ---- 3.5 Tablas ---- */
 .tabla-contenedor { overflow-x: auto; border: 1px solid var(--borde); border-radius: 12px; }
 .tabla-datos { width: 100%; border-collapse: collapse; background-color: #fff; font-size: .9rem; }
 .tabla-datos th,
@@ -552,7 +552,7 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .sin-relleno { padding: 0 !important; overflow: hidden; }
 .sin-relleno .tabla-contenedor { border: 0; border-radius: 0; }
 
-/* ---- 3.6 Barra de herramientas y buscador ----------------------------------- */
+/* ---- 3.6 Barra de herramientas y buscador ------*/
 /* Va entre el título y el contenido: buscador / filtro a la izquierda, botón de acción a la derecha */
 .barra-herramientas { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
 .barra-herramientas .espacio { flex: 1; }
@@ -564,7 +564,7 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .area-trabajo .buscador input { padding-left: 40px; }
 .area-trabajo .barra-herramientas select { width: auto; min-width: 190px; }
 
-/* ---- 3.7 Pestañas ------------------------------------------------------------ */
+/* ---- 3.7 Pestañas ------*/
 .pestanas { display: flex; gap: 4px; box-shadow: inset 0 -2px 0 var(--borde); margin-bottom: 22px; overflow-x: auto; overflow-y: hidden; }
 .pestana {
     display: inline-flex;
@@ -631,11 +631,9 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .panel-pie .btn-guardar { margin-top: 0; }
 @keyframes panel-entrada { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
-/* ==========================================================================
-   4. PANTALLAS
-   Cada vista tiene la clase de su pantalla en el <body>, por ejemplo
-   <body class="pagina-caja">, y aquí abajo va lo que es propio de ella.
-   ========================================================================== */
+/* 4. PANTALLAS
+   Cada vista tiene la clase de su pantalla por ejemplo
+   <body class="pagina-caja">, y aquí abajo va lo que es propio de ella. */
 
 /* ---- 4.1 INICIO  (Views/Home/MENU.cshtml) ---------------------------------------- */
 /* Panel de bienvenida y accesos rápidos a los módulos según el rol */
@@ -748,12 +746,10 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .pagina-caja .fila-movimiento .monto.rojo  { color: var(--peligro); }
 
 /* ---- 4.8 CONFIGURACIÓN  (Views/Paginas/Index.cshtml) ------------------------------------------------ */
-/* Parámetros generales de la institución (por ahora solo diseño, sin lógica) */
+/* Parámetros generales de la institución  */
 .pagina-configuracion .formulario-datos { max-width: 860px; }
 
-/* ==========================================================================
-   5. PANTALLAS ADAPTABLES (responsive)
-   ========================================================================== */
+/* 5. PANTALLAS ADAPTABLES (responsive)*/
 @media (max-width: 1100px) {
     .menu-lateral { width: 78px; }
     .menu-lateral::before { height: 46px; width: 46px; margin: 14px auto; border-radius: 12px; background-size: 285% auto; background-position: center 47%; }
@@ -802,12 +798,12 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .buscador-select-opcion:hover, .buscador-select-opcion.resaltada { background: var(--primario-claro); }
 .buscador-select-vacio { padding: 9px 12px; color: var(--muted); font-size: .9rem; }
 
-/* ---- LISTAS DENTRO DE LA FICHA (patologias y medicamentos de cajon) ------------------------- */
+/* ---- LISTAS DENTRO DE LA FICHA (patologias y medicamentos de cajon) ----- */
 .lista-ficha { margin: 0; padding-left: 18px; }
 .lista-ficha li { margin-bottom: 6px; }
 .lista-ficha li span { display: block; color: var(--texto-2); font-size: .88rem; }
 
-/* ---- COBROS A FAMILIARES AGRUPADOS POR RESIDENTE ---------------------------------------------- */
+/* ---- COBROS A FAMILIARES AGRUPADOS POR RESIDENTE ----------*/
 .grupo-residente { border: 1px solid var(--borde); border-radius: var(--radio-sm); margin-bottom: 10px; background: #fff; }
 .grupo-residente > summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
     padding: 12px 14px; cursor: pointer; list-style: none; font-weight: 700; color: var(--texto); }
@@ -828,7 +824,7 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .subtitulo-ficha:first-child { margin-top: 0; }
 #buscador-cobros { flex: 1 1 260px; width: auto; max-width: 380px; }
 
-/* ---- AGENDA: horarios disponibles de un medico en un dia ------------------------------------- */
+/* ---- AGENDA: horarios disponibles de un medico en un dia ------ */
 .horarios-cita { margin-top: 10px; }
 .horarios-nota { display: block; color: var(--muted); font-size: .85rem; margin-bottom: 6px; }
 .horarios-lista { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -838,12 +834,12 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 .horario.elegido, .horario.elegido:hover { background: var(--boton); color: #fff; border-color: var(--boton); }
 .horario.ocupado { background: #eef1f5; color: var(--muted); border-color: var(--borde); text-decoration: line-through; cursor: not-allowed; }
 
-/* ---- CAMBIAR MI CONTRASENA (boton del encabezado) ---------------------------------------------- */
+/* ---- CAMBIAR MI CONTRASENA ----------- */
 .btn-cuenta { background: rgba(255, 255, 255, .10); border: 1px solid rgba(255, 255, 255, .18); color: #cfe3f8; width: 34px; height: 34px;
     border-radius: 50%; cursor: pointer; font-size: .85rem; transition: background .15s, color .15s; }
 .btn-cuenta:hover { background: rgba(255, 255, 255, .20); color: #fff; }
 
-/* ---- ESTADO DE CUENTA (Caja) --------------------------------------------------------------------- */
+/* ---- ESTADO DE CUENTA (Caja) ----------*/
 .panel.panel-ancho { max-width: 860px; }
 .btn-estado { margin-left: auto; padding: 5px 12px; border: 1px solid var(--primario-borde); background: #fff; color: var(--primario);
     border-radius: 8px; font-weight: 700; font-size: .8rem; cursor: pointer; }
@@ -891,3 +887,49 @@ body.panel-abierto .area-trabajo { overflow: hidden; }
 /* ---- CONFIGURACION: las tablas usan todo el ancho y, si no caben, se desplazan dentro de su recuadro ---- */
 #seccion-usuarios, #seccion-bitacora { max-width: none; }
 #contenedor-usuarios, #contenedor-bitacora { overflow-x: auto; }
+
+/* VERSION PARA CELULAR 
+   Menu como cajon,*/
+.btn-menu-movil, .menu-fondo { display: none; }
+
+@media (max-width: 760px) {
+    /* Encabezado con el boton del menu */
+    .barra-superior { padding: 0 12px; justify-content: flex-start; gap: 6px; }
+    .usuario-info { margin-left: auto; }
+    .btn-menu-movil { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 42px; height: 42px; border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, .18); background: rgba(255, 255, 255, .08); color: #fff; font-size: 1.15rem; cursor: pointer; }
+
+    /* El menu lateral pasa a ser un cajon que se abre por encima del contenido */
+    .menu-lateral { position: fixed; top: 64px; left: 0; bottom: 0; width: 264px; height: auto; z-index: 300; transform: translateX(-105%);
+        transition: transform .2s ease; box-shadow: 8px 0 24px rgba(10, 28, 48, .35); }
+    body.menu-abierto .menu-lateral { transform: none; }
+    .menu-lateral::before { height: 128px; width: auto; margin: 18px 16px 14px; border-radius: 14px; background-size: 128% auto; }
+    .opcion-menu { font-size: .8rem; gap: 14px; justify-content: flex-start; padding: 12px 16px; margin: 2px 12px; }
+    .menu-fondo { position: fixed; inset: 64px 0 0 0; z-index: 250; background: rgba(10, 28, 48, .5); }
+    body.menu-abierto .menu-fondo { display: block; }
+    body.menu-abierto { overflow: hidden; }
+
+    /* Contenido: margenes, titulos y controles pensados para el dedo */
+    .area-trabajo { padding: 16px 14px 40px; }
+    main.area-trabajo h1 { font-size: 1.35rem; }
+    .area-trabajo > p { margin: 0 0 18px 0; width: 100%; max-width: 100%; }   /* sin la sangria de escritorio, que empujaba el texto fuera de la pantalla */
+    .pestana { padding: 10px 12px; font-size: .85rem; }
+    .panel-fondo { padding: 12px 10px; }
+    input, select, textarea { font-size: 16px !important; }   /* con menos de 16 px el celular hace zoom al tocar un campo */
+    .btn-icono { min-width: 40px; min-height: 40px; }
+    .barra-herramientas { gap: 8px; }
+    .buscador { flex: 1 1 100%; min-width: 0; }
+    .area-trabajo .barra-herramientas select { flex: 1 1 100%; min-width: 0; }
+    .barra-herramientas .btn-guardar { width: 100%; justify-content: center; }
+    .fila-cobro-derecha { white-space: normal; flex-wrap: wrap; justify-content: flex-end; }
+
+    /* Tablas: cada fila se muestra como una tarjeta con el nombre de cada dato */
+    .tabla-datos, .tabla-estado, .tabla-datos tbody, .tabla-estado tbody, .tabla-estado tfoot { display: block; width: 100%; }
+    .tabla-datos thead, .tabla-estado thead { display: none; }
+    .tabla-datos tr, .tabla-estado tr { display: block; margin-bottom: 10px; padding: 6px 12px; background: #fff; border: 1px solid var(--borde); border-radius: var(--radio-sm); }
+    .tabla-datos td, .tabla-estado td { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 7px 0; border: none; text-align: right; }
+    .tabla-datos td + td, .tabla-estado td + td { border-top: 1px solid var(--borde); }
+    .tabla-datos td::before, .tabla-estado td::before { content: attr(data-label); flex: 0 0 38%; text-align: left; color: var(--muted); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .tabla-datos td[data-label=""]::before, .tabla-estado td[data-label=""]::before { display: none; }
+    .tabla-datos td:last-child { flex-wrap: wrap; justify-content: flex-end; }
+}
