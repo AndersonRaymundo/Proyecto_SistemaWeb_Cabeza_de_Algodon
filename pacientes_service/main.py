@@ -135,6 +135,20 @@ def validar_expediente_libre(db: Session, expediente: str, excluir_id: Optional[
             detail=f"Ya existe un residente con el expediente {expediente.strip()}. Cada residente debe tener un número de expediente distinto.",
         )
 
+EDAD_MAXIMA = 120
+
+
+def validar_fecha_nacimiento(fecha: date):
+    """La fecha debe ser real: no futura ni de alguien con mas de EDAD_MAXIMA anios.
+    (La edad minima de 60 la confirma la pantalla, porque puede haber casos especiales.)"""
+    hoy = date.today()
+    edad = hoy.year - fecha.year - ((hoy.month, hoy.day) < (fecha.month, fecha.day))
+    if fecha > hoy or edad > EDAD_MAXIMA:
+        raise HTTPException(
+            status_code=422,
+            detail=f"La fecha de nacimiento no es válida: la edad debe estar entre 0 y {EDAD_MAXIMA} años.",
+        )
+
 def siguiente_expediente(db: Session) -> str:
     """Siguiente numero libre del anio en curso, con el formato EXP-AAAA-NNN."""
     prefijo = f"EXP-{datetime.now().year}-"
@@ -233,6 +247,7 @@ def crear_residente(datos: ResidenteCreate, db: Session = Depends(get_db)):
     # Si no se envia expediente, se asigna el siguiente automaticamente
     expediente = datos.noExpediente.strip() or siguiente_expediente(db)
     validar_expediente_libre(db, expediente)
+    validar_fecha_nacimiento(datos.fechaNacimiento)
     if not (datos.parentescoTutor or "").strip():
         raise HTTPException(status_code=422, detail="Indique el parentesco del familiar con el residente.")
     if datos.fechaIngreso:
@@ -280,6 +295,8 @@ def actualizar_residente(id_residente: int, datos: ResidenteUpdate, db: Session 
     if cambios.get("noExpediente") is not None:
         validar_expediente_libre(db, cambios["noExpediente"], id_residente)
         cambios["noExpediente"] = cambios["noExpediente"].strip()
+    if cambios.get("fechaNacimiento") is not None:
+        validar_fecha_nacimiento(cambios["fechaNacimiento"])
     for campo_entrada, valor in cambios.items():
         setattr(residente, mapa_campos[campo_entrada], valor)
 

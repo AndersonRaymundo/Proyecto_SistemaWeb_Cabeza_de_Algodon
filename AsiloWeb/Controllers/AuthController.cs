@@ -133,6 +133,11 @@ namespace AsiloWeb.Controllers
         private static readonly string[] RolesValidos =
             { "ADMINISTRADOR", "DOCTOR", "ENFERMERO", "FARMACIA", "FUNDACION", "LABORATORIO" };
 
+        // Un administrador debe tener correo: es la unica forma de recuperar su contrasena
+        // (a los demas usuarios se la puede restablecer el administrador).
+        private const string MensajeAdminSinCorreo =
+            "Un administrador debe tener correo: si olvida la contraseña, es la única forma de recuperarla. Asígnele un correo primero.";
+
         // ------------------------------------------------------------------
         // Reglas compartidas: crear usuario, cambiar clave y recuperarla
         // ------------------------------------------------------------------
@@ -232,6 +237,8 @@ namespace AsiloWeb.Controllers
                 return BadRequest(new { message = errorClave });
             if (!string.IsNullOrWhiteSpace(datos.Email) && !CorreoValido(datos.Email))
                 return BadRequest(new { message = "El correo no tiene un formato válido." });
+            if (datos.Rol == "ADMINISTRADOR" && string.IsNullOrWhiteSpace(datos.Email))
+                return BadRequest(new { message = MensajeAdminSinCorreo });
             if (await _context.Usuarios.AnyAsync(u => u.NombreUsuario == login))
                 return Conflict(new { message = "Ese nombre de usuario ya existe." });
             if (!string.IsNullOrWhiteSpace(datos.Email) && await _context.Usuarios.AnyAsync(u => u.Email == datos.Email.Trim()))
@@ -365,6 +372,8 @@ namespace AsiloWeb.Controllers
                 if (error != null) return BadRequest(new { message = error });
                 if (datos.Rol == "DOCTOR" && !Catalogos.Especialidades.Contains(datos.Especialidad ?? ""))
                     return BadRequest(new { message = "Elija la especialidad del médico." });
+                if (datos.Rol == "ADMINISTRADOR" && string.IsNullOrWhiteSpace(usuario.Email))
+                    return BadRequest(new { message = MensajeAdminSinCorreo });
             }
 
             usuario.NombreCompleto = nombre;

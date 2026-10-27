@@ -30,7 +30,16 @@ async function cargarUsuarios() {
         if (!respuesta.ok) throw new Error("Error al cargar usuarios");
         usuariosCache = await respuesta.json();
 
-        contenedor.innerHTML = `
+        // Un administrador sin correo no puede recuperar su contraseña: se avisa arriba de la lista
+        const adminsSinCorreo = usuariosCache.filter(u => u.rol === "ADMINISTRADOR" && u.activo !== false && !u.email);
+        const aviso = adminsSinCorreo.length ? `
+            <p style="margin:0 0 12px; padding:10px 14px; border-radius:8px; background:var(--alerta-bg); color:var(--alerta); font-weight:600;">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                ${adminsSinCorreo.map(u => esc(u.nombreCompleto)).join(", ")} no ${adminsSinCorreo.length > 1 ? "tienen" : "tiene"} correo:
+                si olvida la contraseña no podrá recuperarla. Asígnele uno con el botón <i class="fa-solid fa-envelope"></i>.
+            </p>` : "";
+
+        contenedor.innerHTML = aviso + `
             <table class="tabla-datos">
                 <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Especialidad</th><th>Correo</th><th>Cuenta</th><th class="centrado">Acciones</th></tr></thead>
                 <tbody>${usuariosCache.map(u => `

@@ -185,6 +185,12 @@ async function cargarSolicitudes() {
         // RF-07: el medico asignado registra la visita; el administrador puede hacerlo siempre
         const idUsuario = parseInt(localStorage.getItem("id_usuario"), 10) || 0;
         const puedeAtender = c => rol() === "ADMINISTRADOR" || (rol() === "DOCTOR" && (!c.idDoctor || Number(c.idDoctor) === idUsuario));
+        // La visita se registra a partir del dia de la cita (el servidor tambien lo valida)
+        const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+        const esFutura = c => c.fechaCita && new Date(c.fechaCita) >= new Date(hoy.getTime() + 86400000);
+        const botonVisita = c => esFutura(c)
+            ? `<button type="button" class="btn-guardar" disabled title="Disponible a partir del día de la cita"><i class="fa-solid fa-clock"></i> Visita disponible el ${new Date(c.fechaCita).toLocaleDateString("es-GT")}</button>`
+            : `<button type="button" class="btn-guardar" onclick="abrirVisita(${c.idCita})"><i class="fa-solid fa-user-doctor"></i> Registrar visita médica</button>`;
 
         const visibles = citas.slice(0, solicitudesVisibles);
         contenedor.innerHTML = visibles.map(c => {
@@ -202,7 +208,7 @@ async function cargarSolicitudes() {
             } else if (c.estado === "Agendada" && (puedeAtender(c) || puedeAgendar)) {
                 acciones = `
                     <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-                        ${puedeAtender(c) ? `<button type="button" class="btn-guardar" onclick="abrirVisita(${c.idCita})"><i class="fa-solid fa-user-doctor"></i> Registrar visita médica</button>` : ""}
+                        ${puedeAtender(c) ? botonVisita(c) : ""}
                         ${puedeAgendar ? `<button type="button" class="btn-guardar btn-secundario" onclick="mostrarReprogramar(${c.idCita})"><i class="fa-solid fa-calendar-days"></i> Reprogramar</button>
                         <button type="button" class="btn-guardar btn-peligro" onclick="cancelarCita(${c.idCita})"><i class="fa-solid fa-ban"></i> Cancelar cita</button>` : ""}
                     </div>

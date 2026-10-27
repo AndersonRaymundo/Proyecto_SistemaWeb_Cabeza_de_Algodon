@@ -119,15 +119,21 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
 
+    // El "Médico General" del análisis (RF-02) es el rol DOCTOR con especialidad "Medicina general".
     var semillas = new[]
     {
-        (Login: "admin",       Clave: "admin123",       Nombre: "Administrador del Sistema", Rol: "ADMINISTRADOR"),
-        (Login: "doctor",      Clave: "doctor123",      Nombre: "Dr. Raymundo",             Rol: "DOCTOR"),
-        (Login: "enfermero",   Clave: "enfermero123",   Nombre: "Licda. Sofia Lopez",       Rol: "ENFERMERO"),
-        (Login: "farmacia",    Clave: "farmacia123",    Nombre: "Encargado de Farmacia",    Rol: "FARMACIA"),
-        (Login: "fundacion",   Clave: "fundacion123",   Nombre: "Personal de la Fundacion", Rol: "FUNDACION"),
-        (Login: "laboratorio", Clave: "laboratorio123", Nombre: "Personal de Laboratorio",  Rol: "LABORATORIO")
+        (Login: "admin",       Clave: "admin123",       Nombre: "Administrador del Sistema", Rol: "ADMINISTRADOR", Especialidad: (string?)null),
+        (Login: "doctor",      Clave: "doctor123",      Nombre: "Dr. Raymundo",             Rol: "DOCTOR",        Especialidad: (string?)"Medicina general"),
+        (Login: "enfermero",   Clave: "enfermero123",   Nombre: "Licda. Sofía López",       Rol: "ENFERMERO",     Especialidad: (string?)null),
+        (Login: "farmacia",    Clave: "farmacia123",    Nombre: "Encargado de Farmacia",    Rol: "FARMACIA",      Especialidad: (string?)null),
+        (Login: "fundacion",   Clave: "fundacion123",   Nombre: "Personal de la Fundación", Rol: "FUNDACION",     Especialidad: (string?)null),
+        (Login: "laboratorio", Clave: "laboratorio123", Nombre: "Personal de Laboratorio",  Rol: "LABORATORIO",   Especialidad: (string?)null)
     };
+
+    // Correo del administrador (para que pueda recuperar su contraseña). Opcional en la
+    // configuracion ("Semillas:correo_admin"); si el admin ya existe sin correo, se le asigna.
+    var correoAdmin = builder.Configuration["Semillas:correo_admin"];
+    correoAdmin = string.IsNullOrWhiteSpace(correoAdmin) ? null : correoAdmin.Trim();
 
     foreach (var semilla in semillas)
     {
@@ -151,9 +157,20 @@ using (var scope = app.Services.CreateScope())
                 NombreUsuario = semilla.Login,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(clave),
                 NombreCompleto = semilla.Nombre,
-                Rol = semilla.Rol
+                Rol = semilla.Rol,
+                Especialidad = semilla.Especialidad,
+                Email = semilla.Rol == "ADMINISTRADOR" ? correoAdmin : null
             });
         }
+    }
+
+    var admin = db.Usuarios.FirstOrDefault(u => u.NombreUsuario == "admin");
+    if (admin != null && string.IsNullOrWhiteSpace(admin.Email))
+    {
+        if (correoAdmin != null && !db.Usuarios.Any(u => u.Email == correoAdmin))
+            admin.Email = correoAdmin;
+        else
+            app.Logger.LogWarning("El usuario admin no tiene correo: no podra recuperar su contrasena. Asignelo en Configuracion o con Semillas:correo_admin.");
     }
     db.SaveChanges();
 }
@@ -176,6 +193,20 @@ app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
         ctx.Context.Response.Headers["Cache-Control"] = "public,max-age=604800"
+});
+
+// Las paginas y la API no se guardan en la cache del navegador: despues de cerrar
+// sesion, el boton "Atras" no puede mostrar datos de pacientes ya vistos.
+// (Los css/js/imagenes de arriba conservan su propia cache.)
+app.Use(async (contexto, siguiente) =>
+{
+    contexto.Response.OnStarting(() =>
+    {
+        if (!contexto.Response.Headers.ContainsKey("Cache-Control"))
+            contexto.Response.Headers.CacheControl = "no-store";
+        return Task.CompletedTask;
+    });
+    await siguiente();
 });
 
 app.UseRouting();

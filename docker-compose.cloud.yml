@@ -118,6 +118,7 @@ services:
       db_init:
         condition: service_completed_successfully
     environment:
+      TZ: ${ZONA_HORARIA:-America/Guatemala}
       DATABASE_URL: "mssql+pyodbc://asilo_app:${APP_DB_PASSWORD:?Falta APP_DB_PASSWORD en .env.cloud}@sqlserver:1433/AsiloCabezaAlgodon?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes"
 
   email_service:
@@ -152,6 +153,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://+:8080"
+      # Hora local del asilo: "hoy" (citas, cobros, bloqueos) debe ser el dia de Guatemala, no el de UTC
+      TZ: ${ZONA_HORARIA:-America/Guatemala}
       ConnectionStrings__ConexionSQL: "Server=sqlserver,1433;Database=AsiloCabezaAlgodon;User Id=asilo_app;Password=${APP_DB_PASSWORD:?Falta APP_DB_PASSWORD en .env.cloud};TrustServerCertificate=True;"
       Servicios__Pacientes: "http://pacientes_service:8000"
       Servicios__Correo: "http://email_service:8001"
@@ -163,6 +166,8 @@ services:
       Semillas__farmacia: ${PASS_FARMACIA:?Falta PASS_FARMACIA en .env.cloud}
       Semillas__fundacion: ${PASS_FUNDACION:?Falta PASS_FUNDACION en .env.cloud}
       Semillas__laboratorio: ${PASS_LABORATORIO:?Falta PASS_LABORATORIO en .env.cloud}
+      # Correo del administrador para recuperar su contrasena (opcional; tambien se pone en Configuracion)
+      Semillas__correo_admin: ${CORREO_ADMIN:-}
     volumes:
       # Llaves con las que se firman las sesiones. Guardadas aqui sobreviven a las actualizaciones:
       # sin esto, cada vez que se reconstruye la web todos los usuarios tendrian que volver a entrar.

@@ -31,7 +31,7 @@ namespace AsiloWeb.Services
         public string DetalleDescuento(decimal precioLista)
         {
             return string.Format(CultureInfo.InvariantCulture,
-                "lista Q{0:F2}, desc. fundacion {1:0.##}%", precioLista, PorcentajeDescuento);
+                "precio de lista Q{0:F2}, descuento de la fundación {1:0.##}%", precioLista, PorcentajeDescuento);
         }
 
         // Agrega el cargo a la cuenta del familiar (no hace nada si el monto es 0).

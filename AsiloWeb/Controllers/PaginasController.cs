@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,9 +14,16 @@ namespace AsiloWeb.Controllers
         [HttpGet("/Home/MENU")]
         public IActionResult Menu() => View("~/Views/Home/MENU.cshtml");
 
+        // Entrar al Login cierra cualquier sesion abierta en el servidor. Asi el enlace
+        // "Cerrar sesion" (que apunta aqui) cierra la sesion aunque falle el JavaScript.
         [HttpGet("/Auth/Login")]
         [AllowAnonymous]
-        public IActionResult Login() => View("~/Views/Auth/Login.cshtml");
+        public async Task<IActionResult> Login()
+        {
+            if (User.Identity?.IsAuthenticated == true)
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return View("~/Views/Auth/Login.cshtml");
+        }
 
         [HttpGet("/Citas")]
         [Authorize(Roles = "ADMINISTRADOR,DOCTOR,ENFERMERO,FUNDACION")]

@@ -330,6 +330,12 @@ namespace AsiloWeb.Controllers
                 return BadRequest(new { message = "Esta cita ya fue atendida." });
             if (cita.Estado == "Cancelada")
                 return BadRequest(new { message = "Esta cita fue cancelada." });
+            // La visita se registra sobre una cita ya agendada y a partir de su dia: asi el historial
+            // no queda con consultas atendidas antes de la fecha en que estaban programadas.
+            if (cita.Estado != "Agendada" || cita.FechaCita == null)
+                return BadRequest(new { message = "La solicitud todavía no tiene fecha: la Fundación debe agendarla antes de registrar la visita." });
+            if (cita.FechaCita.Value.Date > DateTime.Today)
+                return BadRequest(new { message = $"Esta cita está programada para el {cita.FechaCita.Value:dd/MM/yyyy}. La visita se puede registrar a partir de ese día." });
             if (await _pacientes.EstaDadoDeBajaAsync(cita.IdPaciente))
                 return BadRequest(new { message = PacientesService.MensajeDadoDeBaja });
 
