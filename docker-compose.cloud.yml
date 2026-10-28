@@ -153,7 +153,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://+:8080"
-      # Hora local del asilo: "hoy" (citas, cobros, bloqueos) debe ser el dia de Guatemala, no el de UTC
+      # Hora de Guatemala
       TZ: ${ZONA_HORARIA:-America/Guatemala}
       ConnectionStrings__ConexionSQL: "Server=sqlserver,1433;Database=AsiloCabezaAlgodon;User Id=asilo_app;Password=${APP_DB_PASSWORD:?Falta APP_DB_PASSWORD en .env.cloud};TrustServerCertificate=True;"
       Servicios__Pacientes: "http://pacientes_service:8000"
@@ -166,7 +166,7 @@ services:
       Semillas__farmacia: ${PASS_FARMACIA:?Falta PASS_FARMACIA en .env.cloud}
       Semillas__fundacion: ${PASS_FUNDACION:?Falta PASS_FUNDACION en .env.cloud}
       Semillas__laboratorio: ${PASS_LABORATORIO:?Falta PASS_LABORATORIO en .env.cloud}
-      # Correo del administrador para recuperar su contrasena (opcional; tambien se pone en Configuracion)
+      # Correo del admin (opcional)
       Semillas__correo_admin: ${CORREO_ADMIN:-}
     volumes:
       # Llaves con las que se firman las sesiones. Guardadas aqui sobreviven a las actualizaciones:

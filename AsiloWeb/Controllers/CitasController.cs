@@ -163,6 +163,8 @@ namespace AsiloWeb.Controllers
         public async Task<IActionResult> Disponibilidad(int idDoctor, DateTime fecha, int? idCita)
         {
             var dia = fecha.Date;
+            if (dia < DateTime.Today)
+                return Ok(new { laborable = false, mensaje = "Ese día ya pasó. Elija hoy o una fecha posterior.", horarios = new object[0] });
             if (!_agenda.EsDiaLaborable(dia))
                 return Ok(new { laborable = false, mensaje = "Ese día no hay atención de citas.", horarios = new object[0] });
 
@@ -179,9 +181,10 @@ namespace AsiloWeb.Controllers
             var horarios = _agenda.HorariosDelDia().Select(h =>
             {
                 var inicio = dia + h;
+                var pasado = _agenda.YaPaso(inicio);
                 var medico = ocupadas.Any(c => c.IdDoctor == idDoctor && c.FechaCita == inicio);
                 var residente = idPaciente != null && ocupadas.Any(c => c.IdPaciente == idPaciente && c.FechaCita == inicio);
-                return new { hora = $"{h.Hours:00}:{h.Minutes:00}", estado = medico ? "medico" : (residente ? "residente" : "libre") };
+                return new { hora = $"{h.Hours:00}:{h.Minutes:00}", estado = pasado ? "pasado" : medico ? "medico" : (residente ? "residente" : "libre") };
             }).ToList();
 
             return Ok(new { laborable = true, horarios });
@@ -330,8 +333,7 @@ namespace AsiloWeb.Controllers
                 return BadRequest(new { message = "Esta cita ya fue atendida." });
             if (cita.Estado == "Cancelada")
                 return BadRequest(new { message = "Esta cita fue cancelada." });
-            // La visita se registra sobre una cita ya agendada y a partir de su dia: asi el historial
-            // no queda con consultas atendidas antes de la fecha en que estaban programadas.
+            // La visita solo se registra si la cita ya esta agendada y ya llego su dia
             if (cita.Estado != "Agendada" || cita.FechaCita == null)
                 return BadRequest(new { message = "La solicitud todavía no tiene fecha: la Fundación debe agendarla antes de registrar la visita." });
             if (cita.FechaCita.Value.Date > DateTime.Today)

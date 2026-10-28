@@ -14,8 +14,7 @@ namespace AsiloWeb.Controllers
         [HttpGet("/Home/MENU")]
         public IActionResult Menu() => View("~/Views/Home/MENU.cshtml");
 
-        // Si ya hay sesion (por ejemplo, el Login abierto en otra pestaña), se va directo al Menu.
-        // No se cierra la sesion aqui: todas las pestañas comparten la misma y se cerraria en todas.
+        // Si ya inicio sesion lo manda al Menu
         [HttpGet("/Auth/Login")]
         [AllowAnonymous]
         public IActionResult Login()
@@ -25,8 +24,7 @@ namespace AsiloWeb.Controllers
             return View("~/Views/Auth/Login.cshtml");
         }
 
-        // Enlace "Cerrar sesion": cierra la sesion en el servidor y vuelve al Login.
-        // Funciona aunque falle el JavaScript del boton.
+        // Cerrar sesion
         [HttpGet("/Auth/Salir")]
         [AllowAnonymous]
         public async Task<IActionResult> Salir()

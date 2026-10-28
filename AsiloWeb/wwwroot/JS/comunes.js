@@ -9,6 +9,12 @@ const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 // 1234.5  ->  "Q1,234.50"
 const quetzales = n => "Q" + Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+// Fecha de hoy en AAAA-MM-DD con la hora local (toISOString da la de UTC)
+function fechaLocal(fecha = new Date()) {
+    const dos = n => String(n).padStart(2, "0");
+    return `${fecha.getFullYear()}-${dos(fecha.getMonth() + 1)}-${dos(fecha.getDate())}`;
+}
+
 // Rol de quien inicio sesion.
 const rol = () => window.ROL_ACTUAL || localStorage.getItem("rol_usuario") || "";
 

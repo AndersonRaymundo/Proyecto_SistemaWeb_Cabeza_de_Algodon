@@ -75,7 +75,7 @@ async function descargarReporte(boton) {
         const url = URL.createObjectURL(blob);
         const enlace = document.createElement("a");
         enlace.href = url;
-        enlace.download = `${NOMBRES_ARCHIVO[reporte] || "reporte"}_${new Date().toISOString().slice(0, 10)}.pdf`;
+        enlace.download = `${NOMBRES_ARCHIVO[reporte] || "reporte"}_${fechaLocal()}.pdf`;
         document.body.appendChild(enlace);
         enlace.click();
         enlace.remove();

@@ -30,7 +30,7 @@ async function cargarUsuarios() {
         if (!respuesta.ok) throw new Error("Error al cargar usuarios");
         usuariosCache = await respuesta.json();
 
-        // Un administrador sin correo no puede recuperar su contraseña: se avisa arriba de la lista
+        // Aviso si algun admin no tiene correo
         const adminsSinCorreo = usuariosCache.filter(u => u.rol === "ADMINISTRADOR" && u.activo !== false && !u.email);
         const aviso = adminsSinCorreo.length ? `
             <p style="margin:0 0 12px; padding:10px 14px; border-radius:8px; background:var(--alerta-bg); color:var(--alerta); font-weight:600;">

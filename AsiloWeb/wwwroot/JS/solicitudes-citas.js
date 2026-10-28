@@ -185,7 +185,7 @@ async function cargarSolicitudes() {
         // RF-07: el medico asignado registra la visita; el administrador puede hacerlo siempre
         const idUsuario = parseInt(localStorage.getItem("id_usuario"), 10) || 0;
         const puedeAtender = c => rol() === "ADMINISTRADOR" || (rol() === "DOCTOR" && (!c.idDoctor || Number(c.idDoctor) === idUsuario));
-        // La visita se registra a partir del dia de la cita (el servidor tambien lo valida)
+        // La visita se habilita hasta el dia de la cita
         const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
         const esFutura = c => c.fechaCita && new Date(c.fechaCita) >= new Date(hoy.getTime() + 86400000);
         const botonVisita = c => esFutura(c)
@@ -261,7 +261,7 @@ function controlesAgenda(c, textoBoton) {
             <div><label>Médico especialista</label>
                 <select id="agenda-medico-${c.idCita}" onchange="cargarHorarios(${c.idCita})"><option value="">-- Seleccionar --</option>${opciones}</select>${nota}</div>
             <div><label>Día de la cita</label>
-                <input type="date" id="agenda-dia-${c.idCita}" onchange="cargarHorarios(${c.idCita})"></div>
+                <input type="date" id="agenda-dia-${c.idCita}" min="${fechaLocal()}" onchange="cargarHorarios(${c.idCita})"></div>
             <button type="button" class="btn-guardar" onclick="agendarCita(${c.idCita})"><i class="fa-solid fa-calendar-plus"></i> ${textoBoton}</button>
         </div>
         <input type="hidden" id="agenda-fecha-${c.idCita}">
@@ -337,12 +337,24 @@ async function cargarHorarios(idCita) {
         const datos = await respuesta.json();
         if (!datos.laborable) { contenedor.innerHTML = `<span class="horarios-nota">${esc(datos.mensaje)}</span>`; return; }
 
-        contenedor.innerHTML = '<span class="horarios-nota">Horarios disponibles (los grises ya están ocupados):</span><div class="horarios-lista">' +
+        const MOTIVOS = {
+            pasado: "Ya pasó",
+            medico: "El médico ya tiene una cita a esa hora",
+            residente: "El residente ya tiene otra cita a esa hora"
+        };
+        if (!datos.horarios.some(h => h.estado === "libre")) {
+            const todasPasaron = datos.horarios.every(h => h.estado === "pasado");
+            contenedor.innerHTML = `<span class="horarios-nota">${todasPasaron
+                ? "Los horarios de hoy ya pasaron. Elija otro día."
+                : "No quedan horarios libres ese día. Elija otro día u otro médico."}</span>`;
+            return;
+        }
+        contenedor.innerHTML = '<span class="horarios-nota">Horarios disponibles (los grises ya pasaron o están ocupados):</span><div class="horarios-lista">' +
             datos.horarios.map(h => {
                 const libre = h.estado === "libre";
-                const motivo = h.estado === "medico" ? "El médico ya tiene una cita a esa hora" : "El residente ya tiene otra cita a esa hora";
+                const motivo = MOTIVOS[h.estado] || "No disponible";
                 return `<button type="button" class="horario${libre ? "" : " ocupado"}" ${libre ? "" : `disabled title="${motivo}"`}
-                            onclick="elegirHorario(${idCita}, '${h.hora}', this)">${etiquetaHora(h.hora)}</button>`;
+                            onclick="elegirHorario(${idCita}, '${h.hora}', this)">${etiquetaHora(h.hora)}${h.estado === "pasado" ? " · Ya pasó" : ""}</button>`;
             }).join("") + "</div>";
     } catch (err) {
         console.error(err);

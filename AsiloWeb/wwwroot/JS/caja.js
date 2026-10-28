@@ -445,7 +445,7 @@ async function descargarEstadoPdf() {
         const url = URL.createObjectURL(await respuesta.blob());
         const enlace = document.createElement("a");
         enlace.href = url;
-        enlace.download = `estado_cuenta_${new Date().toISOString().slice(0, 10)}.pdf`;
+        enlace.download = `estado_cuenta_${fechaLocal()}.pdf`;
         document.body.appendChild(enlace);
         enlace.click();
         enlace.remove();

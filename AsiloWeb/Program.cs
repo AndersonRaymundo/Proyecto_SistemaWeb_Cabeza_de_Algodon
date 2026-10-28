@@ -119,7 +119,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
 
-    // El "Médico General" del análisis (RF-02) es el rol DOCTOR con especialidad "Medicina general".
+    // Usuarios de prueba (el doctor es el medico general)
     var semillas = new[]
     {
         (Login: "admin",       Clave: "admin123",       Nombre: "Administrador del Sistema", Rol: "ADMINISTRADOR", Especialidad: (string?)null),
@@ -130,8 +130,7 @@ using (var scope = app.Services.CreateScope())
         (Login: "laboratorio", Clave: "laboratorio123", Nombre: "Personal de Laboratorio",  Rol: "LABORATORIO",   Especialidad: (string?)null)
     };
 
-    // Correo del administrador (para que pueda recuperar su contraseña). Opcional en la
-    // configuracion ("Semillas:correo_admin"); si el admin ya existe sin correo, se le asigna.
+    // Correo del admin (Semillas:correo_admin)
     var correoAdmin = builder.Configuration["Semillas:correo_admin"];
     correoAdmin = string.IsNullOrWhiteSpace(correoAdmin) ? null : correoAdmin.Trim();
 
@@ -195,9 +194,7 @@ app.UseStaticFiles(new StaticFileOptions
         ctx.Context.Response.Headers["Cache-Control"] = "public,max-age=604800"
 });
 
-// Las paginas y la API no se guardan en la cache del navegador: despues de cerrar
-// sesion, el boton "Atras" no puede mostrar datos de pacientes ya vistos.
-// (Los css/js/imagenes de arriba conservan su propia cache.)
+// Que el navegador no guarde las paginas (para que no se vean al darle atras despues de salir)
 app.Use(async (contexto, siguiente) =>
 {
     contexto.Response.OnStarting(() =>

@@ -87,7 +87,7 @@ async function guardarResidente(event) {
         return;
     }
 
-    // El asilo atiende adultos mayores: la fecha debe ser real y, si es menor de EDAD_MINIMA, se pide confirmación
+    // Validar la edad (si es menor de 60 se pide confirmacion)
     const edad = calcularEdad(fechaNacFormatted);
     if (edad === '-' || edad < 0 || edad > EDAD_MAXIMA) {
         mostrarModal("Fecha de nacimiento inválida", `Revise la fecha de nacimiento: la edad debe estar entre 0 y ${EDAD_MAXIMA} años.`, "error");
@@ -108,7 +108,7 @@ async function guardarResidente(event) {
         noExpediente: document.getElementById('txtExpediente').value,
         nombreCompleto: nombrePaciente,
         fechaNacimiento: fechaNacFormatted,
-        fechaIngreso: new Date().toISOString().split('T')[0],
+        fechaIngreso: fechaLocal(),
         // Resumen en texto para el listado y los reportes (la columna admite 255 caracteres)
         patologia: resumenPatologias(patologias),
         nombreTutor: nombreTutor,
@@ -527,8 +527,8 @@ async function enviarCorreoTutor(event) {
 // ---------------------------------------------------------------------------
 // Edad en anos cumplidos a partir de la fecha de nacimiento (AAAA-MM-DD)
 // ---------------------------------------------------------------------------
-const EDAD_MINIMA = 60;   // adulto mayor: por debajo se pide confirmacion
-const EDAD_MAXIMA = 120;  // por encima la fecha es un error de captura (el servidor tambien lo valida)
+const EDAD_MINIMA = 60;
+const EDAD_MAXIMA = 120;
 
 function calcularEdad(fechaIso) {
     if (!fechaIso) return '-';

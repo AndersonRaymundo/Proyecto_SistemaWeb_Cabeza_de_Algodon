@@ -46,6 +46,9 @@ namespace AsiloWeb.Services
 
         public bool EsDiaLaborable(DateTime dia) => _dias.Contains(dia.DayOfWeek);
 
+        // Hora de Guatemala
+        public bool YaPaso(DateTime fechaHora) => fechaHora <= DateTime.Now;
+
         // Horas de inicio de cita de un dia: dentro de la jornada y sin tocar el almuerzo
         public List<TimeSpan> HorariosDelDia()
         {
@@ -62,6 +65,10 @@ namespace AsiloWeb.Services
         // null si la fecha y hora son validas para una cita; si no, el motivo
         public string? Validar(DateTime fechaHora)
         {
+            // No se puede agendar en el pasado
+            if (YaPaso(fechaHora))
+                return "Esa fecha y hora ya pasaron. Elija un horario a partir de ahora.";
+
             if (!EsDiaLaborable(fechaHora))
                 return "Ese día no hay atención de citas.";
 

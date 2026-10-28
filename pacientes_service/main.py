@@ -50,7 +50,7 @@ class Residente(Base):
     no_expediente = Column("expediente_no", String(50), nullable=False)
     nombre_completo = Column("nombre_completo", String(200), nullable=False)
     fecha_nacimiento = Column("fecha_nacimiento", Date, nullable=False)
-    fecha_ingreso = Column("fecha_ingreso", DateTime, default=datetime.utcnow, nullable=True)
+    fecha_ingreso = Column("fecha_ingreso", DateTime, default=datetime.now, nullable=True)
     patologia = Column("patologia", String(255), nullable=True)
     nombre_tutor = Column("nombre_tutor", String(200), nullable=False)
     telefono_tutor = Column("telefono_tutor", String(50), nullable=False)
@@ -139,8 +139,7 @@ EDAD_MAXIMA = 120
 
 
 def validar_fecha_nacimiento(fecha: date):
-    """La fecha debe ser real: no futura ni de alguien con mas de EDAD_MAXIMA anios.
-    (La edad minima de 60 la confirma la pantalla, porque puede haber casos especiales.)"""
+    """Que la fecha de nacimiento no sea futura ni de mas de 120 anios."""
     hoy = date.today()
     edad = hoy.year - fecha.year - ((hoy.month, hoy.day) < (fecha.month, fecha.day))
     if fecha > hoy or edad > EDAD_MAXIMA:

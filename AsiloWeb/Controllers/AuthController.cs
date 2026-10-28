@@ -133,8 +133,7 @@ namespace AsiloWeb.Controllers
         private static readonly string[] RolesValidos =
             { "ADMINISTRADOR", "DOCTOR", "ENFERMERO", "FARMACIA", "FUNDACION", "LABORATORIO" };
 
-        // Un administrador debe tener correo: es la unica forma de recuperar su contrasena
-        // (a los demas usuarios se la puede restablecer el administrador).
+        // El admin necesita correo para poder recuperar su contrasena
         private const string MensajeAdminSinCorreo =
             "Un administrador debe tener correo: si olvida la contraseña, es la única forma de recuperarla. Asígnele un correo primero.";
 

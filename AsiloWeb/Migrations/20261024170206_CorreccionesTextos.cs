@@ -4,12 +4,7 @@
 
 namespace BackendAsilo.Migrations
 {
-    /// <summary>
-    /// Corrige datos que ya estaban guardados (no cambia tablas):
-    ///  - Tildes en los nombres de los usuarios de prueba (solo si siguen con el texto original).
-    ///  - El texto de descuento de los cobros ya generados ("desc. fundacion").
-    ///  - El doctor de prueba queda como Medico General (especialidad "Medicina general").
-    /// </summary>
+    // Correccion de tildes en los usuarios de prueba y en los cobros, y especialidad del doctor
     public partial class CorreccionesTextos : Migration
     {
         /// <inheritdoc />
@@ -35,7 +30,7 @@ namespace BackendAsilo.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // Son correcciones de texto: no se revierten.
+            // No se revierte
         }
     }
 }
